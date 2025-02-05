@@ -200,6 +200,14 @@ bool Session::Accept(Connection& conn)
 
         conn.peer = CService(peer_addr, I2P_SAM31_PORT);
 
+        try {
+            std::string sock_data = conn.sock->RecvUntilTerminator('\n', MAX_WAIT_FOR_IO, *m_interrupt, MAX_MSG_SIZE);
+            Log("sock_data: %s\n", sock_data);
+            continue;
+        } catch (const std::runtime_error& e) {
+            break;
+        }
+
         return true;
     }
 
