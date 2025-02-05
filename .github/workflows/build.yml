@@ -245,7 +245,7 @@ jobs:
           cp ./src/pocketcoind ./out/pocketnetcore_${VERSION}_macos_x64_daemon.bin
           cp ./Pocketnet-Core.dmg ./out/pocketnetcore_${VERSION}_macos_x64_setup.dmg
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MacOS_x64
           path: ./out/*
