@@ -25,7 +25,6 @@
 namespace SimpleWeb {
   using error_code = std::error_code;
   using errc = std::errc;
-  using system_error = std::system_error;
   namespace make_error_code = std;
 } // namespace SimpleWeb
 #else
@@ -36,7 +35,6 @@ namespace SimpleWeb {
   namespace asio = boost::asio;
   using error_code = boost::system::error_code;
   namespace errc = boost::system::errc;
-  using system_error = boost::system::system_error;
   namespace make_error_code = boost::system::errc;
 } // namespace SimpleWeb
 #endif
@@ -433,7 +431,7 @@ namespace SimpleWeb {
       if(config.address.size() > 0)
         endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(config.address), config.port);
       else
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), config.port);
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), config.port);
 
       if(!io_service) {
         io_service = std::make_shared<asio::io_service>();
@@ -442,17 +440,7 @@ namespace SimpleWeb {
 
       if(!acceptor)
         acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*io_service));
-      try {
-        acceptor->open(endpoint.protocol());
-      }
-      catch(const system_error &error) {
-        if(error.code() == asio::error::address_family_not_supported && config.address.empty()) {
-          endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), config.port);
-          acceptor->open(endpoint.protocol());
-        }
-        else
-          throw;
-      }
+      acceptor->open(endpoint.protocol());
       acceptor->set_option(asio::socket_base::reuse_address(config.reuse_address));
       acceptor->bind(endpoint);
 
