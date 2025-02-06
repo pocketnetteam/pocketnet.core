@@ -1130,7 +1130,7 @@ namespace PocketDb
                     where sc.Type=301 and sc.RegId2 = c.RowId and sc.Int1 = -1)             as ScoreDown,
 
                 (select r.Value from Ratings r indexed by Ratings_Type_Uid_Last_Height
-                    where r.Uid = c.RowId AND r.Type=3 and r.Last=1)                        as Reputation,
+                    where r.Uid = cc.Uid AND r.Type=3 and r.Last=1)                         as Reputation,
 
                 (select count() from Transactions ch indexed by Transactions_Type_RegId4_RegId1
                     join Chain cch on cch.TxId = ch.RowId
@@ -1184,6 +1184,7 @@ namespace PocketDb
                     (
                         select
                             c1.RowId
+                            
                         from Transactions c1 indexed by Transactions_Type_RegId3_RegId1
                         cross join Chain cc1 on cc1.TxId = c1.RowId
                         cross join Last lc1 on lc1.TxId = c1.RowId
@@ -1199,11 +1200,15 @@ namespace PocketDb
                         left join
                             BlockingLists bl_cmt_cnt on
                                 bl_cmt_cnt.IdSource = c1.RegId1 and bl_cmt_cnt.IdTarget = t.RegId1
+                        left join
+                            Ratings ur on
+                                ur.Type = 0 and ur.Last = 1 and ur.Uid = cuac.Uid
+
                         where c1.Type in (204, 205)
                           and c1.RegId3 = t.RegId2
                           and c1.RegId4 is null
                           
-                        order by bl_cnt_cmt.IdSource, bl_cmt_cnt.IdSource, o.Value desc, c1.RowId desc
+                        order by bl_cnt_cmt.IdSource, bl_cmt_cnt.IdSource, (case when ur.Value > 0 then 0 else ur.Value end) desc, o.Value desc, c1.RowId desc
 
                         limit 1
                     )commentRowId
@@ -4551,7 +4556,7 @@ namespace PocketDb
                         addr
                     cross join
                         Transactions t on
-                            t.RowId = txs.id and t.Type in (200, 201, 202, 209, 210, 207)
+                            t.RowId = txs.id
                     cross join
                         Chain c on
                             c.TxId = t.RowId
@@ -5541,7 +5546,6 @@ namespace PocketDb
                     jv.FlagRowId = j.FlagRowId
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and t.RegId3 is null
 
                 -- Do not show posts from banned users
                 and jb.AccountId is null
@@ -5737,9 +5741,18 @@ namespace PocketDb
                 Payload p on
                     p.TxId = t.RowId and
                     ( ? or p.String1 = ? )
+            -- Filter first version for skip edited posts
+            cross join
+                First ft on
+                    ft.TxId = t.RowId
+            cross join
+                Transactions t2 indexed by Transactions_Type_RegId2_RegId1 on
+                    t2.Type = t.Type and
+                    t2.RegId2 = t.RegId2
+            -- Join last version for skip deleted posts
             cross join
                 Last lt on
-                    lt.TxId = t.RowId
+                    lt.TxId = t2.RowId
             cross join
                 Chain ct indexed by Chain_TxId_Height on
                     ct.TxId = t.RowId and
@@ -6426,7 +6439,7 @@ namespace PocketDb
         string _keyword;
         if(!keyword.empty())
         {
-            _keyword = "\"" + keyword + "\"" + " OR " + keyword + "*";
+            _keyword = "\"" + keyword + "\"" + " OR \"" + keyword + "\"*";
         }
 
         string contentTypesWhere = " ( 220 ) ";

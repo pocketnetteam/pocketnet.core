@@ -64,7 +64,7 @@ $ docker run -d \
     -p 38881:38881 \
     -p 8087:8087 \
     -p 8887:8887 \
-    -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
+    -v /var/pocketnet/.data:/home/pocketcore/.pocketcoin \
     pocketnetteam/pocketnet.core:latest
 ```
 ### docker-compose (recommended)

@@ -39,6 +39,8 @@ namespace PocketDb
     {
         int64_t RegDate;
         int Rating;
+        int Sum;
+        int Count;
     };
 
     struct BarteronOffersComplexDealDto
@@ -48,6 +50,7 @@ namespace PocketDb
         vector<int64_t> TheirTags;
         vector<string> ExcludeAddresses;
         vector<string> Location;
+        string Language = "";
     };
 
     class BarteronRepository : public BaseRepository
@@ -62,6 +65,11 @@ namespace PocketDb
         UniValue GetGroups(const BarteronOffersFeedDto& args);
         vector<string> GetDeals(const BarteronOffersDealDto& args);
         map<string, vector<string>> GetComplexDeal(const BarteronOffersComplexDealDto& args);
+    
+    protected:
+        vector<string> _feed_by_search(const BarteronOffersFeedDto& args, const string& search);
+        vector<string> _feed_by_tags(const BarteronOffersFeedDto& args);
+        vector<string> _feed(const BarteronOffersFeedDto& args);
     };
 
     typedef std::shared_ptr<BarteronRepository> BarteronRepositoryRef;

@@ -647,4 +647,80 @@ namespace PocketDb
 
         return result;
     }
+
+    UniValue ExplorerRepository::GetFromToTransactions(const string& from, const string& to, int minHeight)
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addrFr as ( select RowId as value from Registry where String = ?),
+                        addrTo as ( select RowId as value from Registry where String = ?)
+                    select
+                        (select r.String from Registry r where r.RowId = t.RowId),
+                        t.Type,
+                        tc.Height,
+                        ot.Value,
+                        t.Time,
+                        (
+                            select
+                                (select r.String from Registry r where r.RowId = ot0.ScriptPubKeyId)
+                            from TxOutputs ot0 indexed by TxOutputs_TxId_Number_AddressId
+                            where
+                                ot0.TxId = ot.TxId and
+                                ot0.Number = 0
+                        )
+                    from
+                        addrFr,
+                        addrTo
+                    cross join
+                        TxOutputs ot on
+                            ot.AddressId = addrTo.value
+                    cross join
+                        TxOutputs of on
+                            of.TxId = ot.TxId and
+                            of.AddressId = addrFr.value
+                    cross join
+                        Transactions t on
+                            t.RowId = of.TxId and
+                            t.Type in (1, 204)
+                    cross join
+                        Chain tc indexed by Chain_TxId_Height on
+                            tc.TxId = t.RowId and
+                            tc.Height >= ?
+                    cross join
+                        TxInputs it indexed by TxInputs_SpentTxId_Number_TxId on
+                            it.SpentTxId = ot.TxId
+                    cross join
+                        TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
+                            ofr.TxId = it.TxId and
+                            ofr.Number = it.Number and
+                            ofr.AddressId = addrFr.value
+                )sql")
+                .Bind(from, to, minHeight);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+                        cursor.Collect<string>(0, record, "hash");
+                        cursor.Collect<int64_t>(1, record, "type");
+                        cursor.Collect<int64_t>(2, record, "height");
+                        cursor.Collect<int64_t>(3, record, "amount");
+                        cursor.Collect<int64_t>(4, record, "time");
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok)
+                            record.pushKV("opreturn", TransactionHelper::ParseOpReturn(value));
+
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
 }

@@ -23,6 +23,7 @@
 #include <scheduler.h>
 #include <util/sock.h>
 #include <util/strencodings.h>
+#include <util/trace.h>
 #include <util/translation.h>
 #include <util/time.h>
 
@@ -54,6 +55,12 @@ static_assert(MINIUPNPC_API_VERSION >= 10, "miniUPnPc API version >= 10 assumed"
 #include <unordered_map>
 
 #include <math.h>
+
+TRACEPOINT_SEMAPHORE(net, closed_connection);
+TRACEPOINT_SEMAPHORE(net, evicted_inbound_connection);
+TRACEPOINT_SEMAPHORE(net, inbound_connection);
+TRACEPOINT_SEMAPHORE(net, outbound_connection);
+TRACEPOINT_SEMAPHORE(net, outbound_message);
 
 /** Maximum number of block-relay-only anchor connections */
 static constexpr size_t MAX_BLOCK_RELAY_ONLY_ANCHORS = 2;
@@ -534,6 +541,13 @@ void CNode::CloseSocketDisconnect()
     if (m_sock) {
         LogPrint(BCLog::NET, "disconnecting peer=%d\n", id);
         m_sock.reset();
+
+        TRACEPOINT(net, closed_connection,
+            GetId(),
+            GetAddrName().c_str(),
+            ConnectionTypeAsString().c_str(),
+            ConnectedThroughNetwork(),
+            Ticks<std::chrono::seconds>(m_connected));
     }
 }
 
@@ -1083,6 +1097,13 @@ bool CConnman::AttemptToEvictConnection()
     LOCK(cs_vNodes);
     for (CNode* pnode : vNodes) {
         if (pnode->GetId() == evicted) {
+            LogPrint(BCLog::NET, "selected %s connection for eviction peer=%d; disconnecting\n", pnode->ConnectionTypeAsString(), pnode->GetId());
+            TRACEPOINT(net, evicted_inbound_connection,
+                pnode->GetId(),
+                pnode->GetAddrName().c_str(),
+                pnode->ConnectionTypeAsString().c_str(),
+                pnode->ConnectedThroughNetwork(),
+                Ticks<std::chrono::seconds>(pnode->m_connected));
             pnode->fDisconnect = true;
             return true;
         }
@@ -1212,6 +1233,12 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
     m_msgproc->InitializeNode(pnode);
 
     LogPrint(BCLog::NET, "connection from %s accepted\n", addr.ToString());
+    TRACEPOINT(net, inbound_connection,
+        pnode->GetId(),
+        pnode->GetAddrName().c_str(),
+        pnode->ConnectionTypeAsString().c_str(),
+        pnode->ConnectedThroughNetwork(),
+        GetNodeCount(CConnman::CONNECTIONS_IN));
 
     {
         LOCK(cs_vNodes);
@@ -2286,6 +2313,13 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
     }
+
+    TRACEPOINT(net, outbound_connection,
+        pnode->GetId(),
+        pnode->GetAddrName().c_str(),
+        pnode->ConnectionTypeAsString().c_str(),
+        pnode->ConnectedThroughNetwork(),
+        GetNodeCount(CConnman::CONNECTIONS_OUT));
 }
 
 void CConnman::ThreadMessageHandler()
@@ -3151,6 +3185,15 @@ void CConnman::PushMessage(CNode* pnode, CSerializedNetMsg&& msg)
     if (gArgs.GetBoolArg("-capturemessages", false)) {
         CaptureMessage(pnode->addr, msg.m_type, msg.data, /* incoming */ false);
     }
+
+    TRACEPOINT(net, outbound_message,
+        pnode->GetId(),
+        pnode->GetAddrName().c_str(),
+        pnode->ConnectionTypeAsString().c_str(),
+        msg.m_type.c_str(),
+        msg.data.size(),
+        msg.data.data()
+    );
 
     // make sure we use the appropriate network transport format
     std::vector<unsigned char> serializedHeader;
