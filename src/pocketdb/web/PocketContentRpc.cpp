@@ -541,8 +541,8 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetHistoricalFeed()
     {
-        return RPCHelpMan{"GetHistoricalFeed",
-                "\n\n", // TODO (rpc)
+        return RPCHelpMan{"gethistoricalfeed",
+                "\n\n",
                 {
                     {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
                     {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},

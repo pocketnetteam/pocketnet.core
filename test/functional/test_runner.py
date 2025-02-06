@@ -160,6 +160,7 @@ BASE_SCRIPTS = [
     'wallet_reorgsrestore.py',
     'interface_http.py',
     'interface_rpc.py',
+    'interface_usdt_mempool.py',
     'rpc_psbt.py',
     'rpc_psbt.py --descriptors',
     'rpc_users.py',
