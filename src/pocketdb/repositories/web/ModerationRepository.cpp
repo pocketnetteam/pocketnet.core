@@ -65,37 +65,27 @@ namespace PocketDb
                                 juryVerdict jv
                                     on jv.FlagRowId = flag.id
                         ),
-                        moders as (
-                            select
-                                (select r.String from Registry r where r.RowId = u.RegId1) as address,
-                                v.RowId as voteId,
-                                ifnull(v.Int1, -1) as verdict
-                            from
-                                flag
-                            cross join JuryModerators jm on jm.FlagRowId = flag.id
-                            cross join Chain c on c.Uid = jm.AccountId
-                            cross join Last l on l.TxId = c.TxId
-                            cross join Transactions u on u.RowId = c.TxId and u.Type = 100
-                            left join Transactions v on v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
-                        ),
                         ban as (
                             select
                                 jb.Ending
                             from
-                                moders m
-                            cross join JuryBan jb on jb.VoteRowId = m.voteId
+                                flag
+                            cross join JuryModerators jm on jm.FlagRowId = flag.id
+                            cross join Chain c on c.Uid = jm.AccountId
+                            cross join First f on f.TxId = c.TxId
+                            cross join Transactions u on u.RowId = c.TxId and u.Type = 100
+                            cross join Transactions v on v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
+                            cross join JuryBan jb on jb.VoteRowId = v.RowId
                         )
                     select
                         a.AddressHash,
                         j.Reason,
                         ifnull(jv.Verdict, -1) as verdict,
-                        json_group_array(json_object(m.address, m.verdict)) as moders,
                         ifnull(b.Ending, -1) as ban_ending
                     from
                         juryRec j
                         join account a
                         left join juryVerd jv
-                        left join moders m
                         left join ban b
                 )sql")
                 .Bind(jury);
@@ -108,13 +98,7 @@ namespace PocketDb
                         cursor.Collect<string>(0, result, "address");
                         cursor.Collect<int>(1, result, "reason");
                         cursor.Collect<int>(2, result, "verdict");
-                        if (auto [ok, value] = cursor.TryGetColumnString(3); ok)
-                        {
-                            UniValue moderators(UniValue::VARR);
-                            moderators.push_back(value);
-                            result.pushKV("moderators", moderators);
-                        }
-                        cursor.Collect<int64_t>(4, result, "ban_ending");
+                        cursor.Collect<int64_t>(3, result, "ban_ending");
                     }
                 });
             }
@@ -285,20 +269,21 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    flag as (
-                        select
-                            t.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        cross join
-                            Transactions t
-                                on t.RowId = r.RowId
-                        where
-                            r.String = ?
-                    )
+                        flag as (
+                            select
+                                t.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            cross join
+                                Transactions t
+                                    on t.RowId = r.RowId
+                            where
+                                r.String = ?
+                        )
                     select
-                        (select r.String from Registry r where r.RowId = u.RegId1)
+                        (select r.String from Registry r where r.RowId = u.RegId1) as address,
+                        v.Int1 as vote
                     from
                         flag
                     cross join
@@ -313,6 +298,9 @@ namespace PocketDb
                     cross join
                         Transactions u
                             on u.RowId = f.TxId
+                    left join
+                        Transactions v on
+                            v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
                 )sql")
                 .Bind(jury);
             },
@@ -320,8 +308,13 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                            result.push_back(value);
+                        UniValue record(UniValue::VOBJ);
+
+                        cursor.Collect<string>(0, record, "address");
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("vote", value);
+
+                        result.push_back(record);
                     }
                 });
             }
