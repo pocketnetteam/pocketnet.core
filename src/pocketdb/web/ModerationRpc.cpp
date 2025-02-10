@@ -166,6 +166,12 @@ namespace PocketWeb::PocketWebRpc
                     {RPCResult::Type::STR, "address", "The addresses of author of content."},
                     {RPCResult::Type::NUM, "reason", "Reason jury."},
                     {RPCResult::Type::NUM, "verdict", "Verdict jury (0 or 1)."},
+                    {RPCResult::Type::OBJ, "moderators", "Moderators votes.",
+                        {
+                            {RPCResult::Type::STR, "address", "The address of moderator."},
+                            {RPCResult::Type::NUM, "verdict", "Verdict jury (0 or 1 or -1 if not voted)."},
+                        }
+                    },
                 }
             },
             RPCExamples{

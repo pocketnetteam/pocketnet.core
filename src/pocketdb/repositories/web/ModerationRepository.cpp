@@ -19,60 +19,74 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    flag as (
-                        select
-                            t.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        cross join
-                            Transactions t
-                                on t.RowId = r.RowId
-                        where
-                            r.String = ?
-                    ),
-                    juryRec as (
-                        select
-                            j.AccountId,
-                            j.Reason
-                        from
-                            flag
-                        cross join
-                            Jury j
-                                on j.FlagRowId = flag.id
-                    ),
-                    account as (
-                        select
-                            (select r.String from Registry r where r.RowId = u.RegId1) as AddressHash
-                        from
-                            juryRec
-                        cross join
-                            Chain c indexed by Chain_Uid_Height
-                                on c.Uid = juryRec.AccountId
-                        cross join
-                            First f
-                                on f.TxId = c.TxId
-                        cross join
-                            Transactions u
-                                on u.RowId = f.TxId
-                    ),
-                    juryVerd as (
-                        select
-                            jv.Verdict
-                        from
-                            flag
-                        cross join
-                            juryVerdict jv
-                                on jv.FlagRowId = flag.id
-                    )
+                        flag as (
+                            select
+                                t.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            cross join
+                                Transactions t
+                                    on t.RowId = r.RowId
+                            where
+                                r.String = ?
+                        ),
+                        juryRec as (
+                            select
+                                j.AccountId,
+                                j.Reason
+                            from
+                                flag
+                            cross join
+                                Jury j
+                                    on j.FlagRowId = flag.id
+                        ),
+                        account as (
+                            select
+                                (select r.String from Registry r where r.RowId = u.RegId1) as AddressHash
+                            from
+                                juryRec
+                            cross join
+                                Chain c indexed by Chain_Uid_Height
+                                    on c.Uid = juryRec.AccountId
+                            cross join
+                                First f
+                                    on f.TxId = c.TxId
+                            cross join
+                                Transactions u
+                                    on u.RowId = f.TxId
+                        ),
+                        juryVerd as (
+                            select
+                                jv.Verdict
+                            from
+                                flag
+                            cross join
+                                juryVerdict jv
+                                    on jv.FlagRowId = flag.id
+                        ),
+                        ban as (
+                            select
+                                jb.Ending
+                            from
+                                flag
+                            cross join JuryModerators jm on jm.FlagRowId = flag.id
+                            cross join Chain c on c.Uid = jm.AccountId
+                            cross join First f on f.TxId = c.TxId
+                            cross join Transactions u on u.RowId = c.TxId and u.Type = 100
+                            cross join Transactions v on v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
+                            cross join JuryBan jb on jb.VoteRowId = v.RowId
+                        )
                     select
                         a.AddressHash,
                         j.Reason,
-                        ifnull(jv.Verdict, -1)
+                        ifnull(jv.Verdict, -1) as verdict,
+                        ifnull(b.Ending, -1) as ban_ending
                     from
                         juryRec j
                         join account a
                         left join juryVerd jv
+                        left join ban b
                 )sql")
                 .Bind(jury);
             },
@@ -83,11 +97,8 @@ namespace PocketDb
                         result.pushKV("id", jury);
                         cursor.Collect<string>(0, result, "address");
                         cursor.Collect<int>(1, result, "reason");
-                        if (auto [ok, value] = cursor.TryGetColumnInt(2); ok && value > -1)
-                        {
-                            result.pushKV("verdict", value);
-                            // TODO (aok): add object with ban information if verditc == 1
-                        }
+                        cursor.Collect<int>(2, result, "verdict");
+                        cursor.Collect<int64_t>(3, result, "ban_ending");
                     }
                 });
             }
@@ -258,20 +269,21 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    flag as (
-                        select
-                            t.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        cross join
-                            Transactions t
-                                on t.RowId = r.RowId
-                        where
-                            r.String = ?
-                    )
+                        flag as (
+                            select
+                                t.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            cross join
+                                Transactions t
+                                    on t.RowId = r.RowId
+                            where
+                                r.String = ?
+                        )
                     select
-                        (select r.String from Registry r where r.RowId = u.RegId1)
+                        (select r.String from Registry r where r.RowId = u.RegId1) as address,
+                        v.Int1 as vote
                     from
                         flag
                     cross join
@@ -286,6 +298,9 @@ namespace PocketDb
                     cross join
                         Transactions u
                             on u.RowId = f.TxId
+                    left join
+                        Transactions v on
+                            v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
                 )sql")
                 .Bind(jury);
             },
@@ -293,8 +308,13 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok)
-                            result.push_back(value);
+                        UniValue record(UniValue::VOBJ);
+
+                        cursor.Collect<string>(0, record, "address");
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("vote", value);
+
+                        result.push_back(record);
                     }
                 });
             }
