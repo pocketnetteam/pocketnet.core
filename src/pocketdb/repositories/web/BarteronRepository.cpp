@@ -91,15 +91,16 @@ namespace PocketDb
                         from
                             data,
                             Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join First fo on fo.TxId = o.RowId
                             cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
                                 s.Type = 300 and
                                 s.RegId2 = o.RegId2 and
-                                s.RegId1 != addrid
+                                s.RegId1 != data.addrid
                             cross join Chain c on -- chain only
                                 c.TxId = s.RowId
                         where
                             o.Type = 211 and
-                            o.RegId1 = addrid
+                            o.RegId1 = data.addrid
                     )
                 select
                     data.txid,
