@@ -10,7 +10,7 @@ namespace PocketDb
 
     void ModerationRepository::Destroy() {}
 
-    UniValue ModerationRepository::GetJury(const string& jury)
+    UniValue ModerationRepository::GetJury(const string& jury, int64_t& contentId, int& contentType)
     {
         UniValue result(UniValue::VOBJ);
 
@@ -22,7 +22,8 @@ namespace PocketDb
                         flag as (
                             select
                                 t.RowId as id,
-                                r.String as hash
+                                r.String as hash,
+                                t.RegId2 as content_id
                             from
                                 Registry r
                             cross join
@@ -43,6 +44,7 @@ namespace PocketDb
                         ),
                         account as (
                             select
+                                c.Uid,
                                 (select r.String from Registry r where r.RowId = u.RegId1) as AddressHash
                             from
                                 juryRec
@@ -55,6 +57,16 @@ namespace PocketDb
                             cross join
                                 Transactions u
                                     on u.RowId = f.TxId
+                        ),
+                        content as (
+                            select
+                                c.Uid as content_id,
+                                t.Type as content_type
+                            from
+                                flag
+                            cross join Chain c on c.TxId = flag.content_id
+                            cross join First f on f.TxId = c.TxId
+                            cross join Transactions t on t.RowId = c.TxId
                         ),
                         juryVerd as (
                             select
@@ -78,13 +90,17 @@ namespace PocketDb
                             cross join JuryBan jb on jb.VoteRowId = v.RowId
                         )
                     select
+                        a.Uid,
                         a.AddressHash,
                         j.Reason,
                         ifnull(jv.Verdict, -1) as verdict,
-                        ifnull(b.Ending, -1) as ban_ending
+                        ifnull(b.Ending, -1) as ban_ending,
+                        c.content_id,
+                        c.content_type
                     from
                         juryRec j
                         join account a
+                        left join content c
                         left join juryVerd jv
                         left join ban b
                 )sql")
@@ -95,10 +111,20 @@ namespace PocketDb
                     if (cursor.Step())
                     {
                         result.pushKV("id", jury);
-                        cursor.Collect<string>(0, result, "address");
-                        cursor.Collect<int>(1, result, "reason");
-                        cursor.Collect<int>(2, result, "verdict");
-                        cursor.Collect<int64_t>(3, result, "ban_ending");
+                        cursor.Collect<string>(1, result, "address");
+                        cursor.Collect<int>(2, result, "reason");
+                        cursor.Collect<int>(3, result, "verdict");
+                        cursor.Collect<int64_t>(4, result, "ban_ending");
+
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        {
+                            contentId = value;
+                            contentType = 100;
+                        }
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(5); ok)
+                            contentId = value;
+                        if (auto [ok, value] = cursor.TryGetColumnInt(6); ok)
+                            contentType = value;
                     }
                 });
             }
