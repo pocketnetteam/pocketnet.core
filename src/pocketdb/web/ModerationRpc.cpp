@@ -166,12 +166,6 @@ namespace PocketWeb::PocketWebRpc
                     {RPCResult::Type::STR, "address", "The addresses of author of content."},
                     {RPCResult::Type::NUM, "reason", "Reason jury."},
                     {RPCResult::Type::NUM, "verdict", "Verdict jury (0 or 1)."},
-                    {RPCResult::Type::OBJ, "moderators", "Moderators votes.",
-                        {
-                            {RPCResult::Type::STR, "address", "The address of moderator."},
-                            {RPCResult::Type::NUM, "verdict", "Verdict jury (0 or 1 or -1 if not voted)."},
-                        }
-                    },
                 }
             },
             RPCExamples{
@@ -182,9 +176,50 @@ namespace PocketWeb::PocketWebRpc
         {
             RPCTypeCheck(request.params, {UniValue::VSTR});
 
-            const string jury = request.params[0].get_str();
+            const string juryId = request.params[0].get_str();
 
-            return request.DbConnection()->ModerationRepoInst->GetJury(jury);
+            int64_t contentId;
+            int contentType;
+            UniValue jury = request.DbConnection()->ModerationRepoInst->GetJury(juryId, contentId, contentType);
+            if (jury.empty())
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Jury not found");
+
+            switch (contentType)
+            {
+                case TxType::ACCOUNT_USER:
+                    {
+                        vector<int64_t> accountIds{ contentId };
+                        auto contentMap = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(accountIds);
+                        auto cnt = contentMap.find(contentId);
+                        if (cnt != contentMap.end())
+                            jury.pushKV("content", cnt->second);
+
+                        break;
+                    }
+                case TxType::CONTENT_COMMENT:
+                case TxType::CONTENT_COMMENT_EDIT:
+                    {
+                        vector<int64_t> commentIds{ contentId };
+                        auto contentMap = request.DbConnection()->WebRpcRepoInst->GetCommentsByIds(commentIds, "");
+                        auto cnt = contentMap.find(contentId);
+                        if (cnt != contentMap.end())
+                            jury.pushKV("content", cnt->second);
+
+                        break;
+                    }
+                default:
+                    {
+                        vector<int64_t> contentIds{ contentId };
+                        auto contentMap = request.DbConnection()->WebRpcRepoInst->GetContentsData(contentIds);
+                        auto cnt = contentMap.find(contentId);
+                        if (cnt != contentMap.end())
+                            jury.pushKV("content", cnt->second);
+
+                        break;
+                    }
+            }
+
+            return jury;
         }};
     }
 

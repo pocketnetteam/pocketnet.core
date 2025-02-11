@@ -4555,8 +4555,9 @@ namespace PocketDb
                         txs,
                         addr
                     cross join
-                        Transactions t on
-                            t.RowId = txs.id
+                        Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                            t.Type in (200,201,202,209,210,221,211,220,207) and
+                            t.RegId2 = txs.id
                     cross join
                         Chain c on
                             c.TxId = t.RowId
@@ -4670,8 +4671,12 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Place in result data with source sorting
-        for (auto& id : ids)
-            result.push_back(tmpResult[id]);
+        if (!ids.empty())
+            for (auto& id : ids)
+                result.push_back(tmpResult[id]);
+        else
+            for (auto& record : tmpResult)
+                result.push_back(record.second);
 
         return result;
     }
