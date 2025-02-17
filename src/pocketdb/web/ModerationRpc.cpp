@@ -244,8 +244,8 @@ namespace PocketWeb::PocketWebRpc
                 }
             },
             RPCExamples{
-                HelpExampleCli("getjury", "juryid") +
-                HelpExampleRpc("getjury", "juryid")
+                HelpExampleCli("getalljury", "juryid") +
+                HelpExampleRpc("getalljury", "juryid")
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
