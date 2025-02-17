@@ -144,3 +144,10 @@ Fork start at:
 Changes:
 - Moderation flag check block depth [PR #789](https://github.com/pocketnetteam/pocketnet.core/pull/789)
 
+## `PIP 113`: Count of moderators and votes for moderation
+
+Fork start at:
+- Main net: 3247300
+
+Changes:
+- Increase the number of moderators for the jury to 240 [PR #831](https://github.com/pocketnetteam/pocketnet.core/pull/831)
