@@ -10,9 +10,9 @@ namespace PocketDb
 
     void ModerationRepository::Destroy() {}
 
-    UniValue ModerationRepository::GetJury(const string& jury, int64_t& contentId, int& contentType)
+    JuryContent ModerationRepository::GetJury(const string& jury)
     {
-        UniValue result(UniValue::VOBJ);
+        JuryContent result;
 
         SqlTransaction(
             __func__,
@@ -88,6 +88,17 @@ namespace PocketDb
                             cross join Transactions u on u.RowId = c.TxId and u.Type = 100
                             cross join Transactions v on v.Type = 420 and v.RegId1 = u.RegId1 and v.RegId2 = flag.id
                             cross join JuryBan jb on jb.VoteRowId = v.RowId
+                        ),
+                        likers as (
+                            select
+                                ifnull((
+                                    select
+                                        sum(lp.Value)
+                                    from Ratings lp indexed by Ratings_Type_Uid_Last_Value
+                                    where lp.Type in (111, 112, 113) and lp.Uid = a.Uid and lp.Last = 1
+                                ),0) as value
+                            from
+                                account a
                         )
                     select
                         a.Uid,
@@ -96,10 +107,12 @@ namespace PocketDb
                         ifnull(jv.Verdict, -1) as verdict,
                         ifnull(b.Ending, -1) as ban_ending,
                         c.content_id,
-                        c.content_type
+                        c.content_type,
+                        l.value as likers
                     from
                         juryRec j
                         join account a
+                        join likers l
                         left join content c
                         left join juryVerd jv
                         left join ban b
@@ -110,13 +123,20 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     if (cursor.Step())
                     {
-                        result.pushKV("id", jury);
-                        cursor.Collect<string>(1, result, "address");
-                        cursor.Collect<int>(2, result, "reason");
-                        cursor.Collect<int>(3, result, "verdict");
-                        cursor.Collect<int64_t>(4, result, "ban_ending");
+                        UniValue record(UniValue::VOBJ);
+                        cursor.Collect<string>(0, record, "id");
+                        cursor.Collect<string>(1, record, "address");
+                        cursor.Collect<int>(2, record, "reason");
+                        cursor.Collect<int>(3, record, "verdict");
+                        cursor.Collect<int64_t>(4, record, "ban_ending");
 
-                        if (auto [ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        int addressLikers;
+                        if (auto [ok, value] = cursor.TryGetColumnInt(5); ok)
+                            addressLikers = value;
+
+                        int64_t contentId;
+                        int contentType;
+                        if (auto [ok, value] = cursor.TryGetColumnInt64(6); ok)
                         {
                             contentId = value;
                             contentType = 100;
@@ -125,6 +145,8 @@ namespace PocketDb
                             contentId = value;
                         if (auto [ok, value] = cursor.TryGetColumnInt(6); ok)
                             contentType = value;
+
+                        result = JuryContent{contentId, (TxType)contentType, addressLikers, record};
                     }
                 });
             }
@@ -155,7 +177,13 @@ namespace PocketDb
                             from Transactions v
                             cross join Chain vc on vc.TxId = v.RowId
                             where v.Type = 420 and v.RegId2 = j.FlagRowId
-                        ) as votes
+                        ) as votes,
+                        ifnull((
+                            select
+                                sum(lp.Value)
+                            from Ratings lp indexed by Ratings_Type_Uid_Last_Value
+                            where lp.Type in (111, 112, 113) and lp.Uid = cu.Uid and lp.Last = 1
+                        ),0) as likers
                     from
                         Jury j
                     cross join Transactions f on
@@ -168,6 +196,12 @@ namespace PocketDb
                         cc.TxId = c.RowId
                     cross join First fc on
                         fc.TxId = cc.TxId
+                    cross join Transactions u on
+                        u.Type = 100 and u.RegId1 = f.RegId3
+                    cross join First fu on
+                        fu.TxId = u.RowId
+                    cross join Chain cu on
+                        cu.TxId = fu.TxId
                     left join JuryVerdict jv on
                         jv.FlagRowId = j.FlagRowId
                     order by cf.Height )sql" + (pagination.OrderDesc ? " desc "s : " asc "s) + R"sql(
@@ -187,6 +221,8 @@ namespace PocketDb
                         cursor.Collect<int64_t>(6, contentId);
                         int contentType;
                         cursor.Collect<int>(7, contentType);
+                        int addressLikers;
+                        cursor.Collect<int>(9, addressLikers);
 
                         UniValue record(UniValue::VOBJ);
                         cursor.Collect<int64_t>(0, record, "height");
@@ -198,7 +234,7 @@ namespace PocketDb
                         cursor.Collect<int>(5, record, "verdict");
                         cursor.Collect<int>(8, record, "votes");
 
-                        result.push_back(JuryContent{contentId, (TxType)contentType, record});
+                        result.push_back(JuryContent{contentId, (TxType)contentType, addressLikers, record});
                     }
                 });
             }
@@ -232,7 +268,13 @@ namespace PocketDb
                         ifnull(v.Int1, -1),
                         ifnull(jv.Verdict, -1),
                         cc.Uid as ContentId,
-                        c.Type as ContentType
+                        c.Type as ContentType,
+                        ifnull((
+                            select
+                                sum(lp.Value)
+                            from Ratings lp indexed by Ratings_Type_Uid_Last_Value
+                            where lp.Type in (111, 112, 113) and lp.Uid = fcu.Uid and lp.Last = 1
+                        ),0) as likers
                     from
                         addr
                     cross join
@@ -256,6 +298,13 @@ namespace PocketDb
                     cross join
                         Chain cc
                             on cc.TxId = c.RowId
+                    cross join Transactions fu on
+                        fu.Type = 100 and fu.RegId1 = f.RegId3
+                    cross join First ffu on
+                        ffu.TxId = fu.RowId
+                    cross join Chain fcu on
+                        fcu.TxId = ffu.TxId
+
                     left join Transactions v indexed by Transactions_Type_RegId1_RegId2_RegId3
                         on v.Type in (420) and v.RegId1 = u.RegId1 and v.RegId2 = f.RowId and exists (select 1 from Chain cv where cv.TxId = v.RowId)
                     left join JuryVerdict jv
@@ -289,9 +338,9 @@ namespace PocketDb
                         if (auto [ok, value] = cursor.TryGetColumnInt(4); ok && value > -1)
                             record.pushKV("verdict", value);
 
-                        int64_t contentId; int contentType;
-                        if (cursor.CollectAll(contentId, contentType)) {
-                            result.push_back(JuryContent{contentId, (TxType)contentType, record});
+                        int64_t contentId; int contentType; int addressLikers;
+                        if (cursor.CollectAll(contentId, contentType, addressLikers)) {
+                            result.push_back(JuryContent{contentId, (TxType)contentType, addressLikers, record});
                         }
                     }
                 });

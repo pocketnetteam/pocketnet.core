@@ -41,6 +41,7 @@ namespace PocketServices
         static bool Rollback(int height);
 
         static void Migrate_Jury();
+        static ModerationCondition GetConditions(int height, int accountLikers);
 
     protected:
         static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs);
@@ -49,7 +50,6 @@ namespace PocketServices
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexBadges(int height);
 
-        static ModerationCondition GetConditions(int height, int accountLikers);
         static void IndexModerationFlag(const TransactionIndexingInfo& txInfo, int height);
         static void IndexModerationVote(const TransactionIndexingInfo& txInfo, int height);
 

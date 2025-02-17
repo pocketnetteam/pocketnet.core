@@ -1852,6 +1852,8 @@ namespace PocketDb
             )sql";
         }
 
+        vector<string> authors;
+
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
@@ -1989,6 +1991,7 @@ namespace PocketDb
                         if (auto[ok, value] = cursor.TryGetColumnString(4); ok) {
                             rootAddress = value;
                             record.pushKV("address", rootAddress);
+                            authors.push_back(rootAddress);
                         }
                         if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", value);
@@ -2051,6 +2054,11 @@ namespace PocketDb
                 });
             }
         );
+
+        // Get profiles for posts
+        auto profiles = GetAccountProfiles(authors);
+        for (auto& [hash, id, record] : result)
+            record.pushKV("userprofile", profiles[record["address"].get_str()]);
 
         return result;
     }
