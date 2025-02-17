@@ -262,7 +262,77 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[4].isBool())
                 pagination.OrderDesc = request.params[4].get_bool();
 
-            return request.DbConnection()->ModerationRepoInst->GetAllJury(pagination);
+            UniValue result(UniValue::VARR);
+
+            auto juryList = request.DbConnection()->ModerationRepoInst->GetAllJury(pagination);
+
+            // Collect content ids
+            vector<int64_t> accountIds;
+            vector<int64_t> commentIds;
+            vector<int64_t> contentIds;
+            for (const auto& rcrd : juryList)
+            {
+                switch (rcrd.ContentType)
+                {
+                    case TxType::ACCOUNT_USER:
+                        accountIds.push_back(rcrd.ContentId);
+                        break;
+                    case TxType::CONTENT_COMMENT:
+                    case TxType::CONTENT_COMMENT_EDIT:
+                        commentIds.push_back(rcrd.ContentId);
+                        break;
+                    default:
+                        contentIds.push_back(rcrd.ContentId);
+                        break;
+                }
+            }
+
+            // Collect accounts data
+            if (!accountIds.empty())
+            {
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(accountIds);
+                for (const auto& rcrd : juryList)
+                {
+                    auto cnt = contentMap.find(rcrd.ContentId);
+                    if (cnt != contentMap.end())
+                    {
+                        cnt->second.pushKV("jury", rcrd.JuryData);
+                        result.push_back(cnt->second);
+                    }
+                }
+            }
+
+            // Collect comments data
+            if (!commentIds.empty())
+            {
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetCommentsByIds(commentIds, "");
+                for (const auto& rcrd : juryList)
+                {
+                    auto cnt = contentMap.find(rcrd.ContentId);
+                    if (cnt != contentMap.end())
+                    {
+                        cnt->second.pushKV("jury", rcrd.JuryData);
+                        result.push_back(cnt->second);
+                    }
+                }
+            }
+
+            // Collect contents data
+            if (!contentIds.empty())
+            {
+                auto contentMap = request.DbConnection()->WebRpcRepoInst->GetContentsData(contentIds);
+                for (const auto& rcrd : juryList)
+                {
+                    auto cnt = contentMap.find(rcrd.ContentId);
+                    if (cnt != contentMap.end())
+                    {
+                        cnt->second.pushKV("jury", rcrd.JuryData);
+                        result.push_back(cnt->second);
+                    }
+                }
+            }
+
+            return result;
         }};
     }
 

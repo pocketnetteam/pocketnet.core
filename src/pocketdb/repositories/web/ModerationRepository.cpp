@@ -133,9 +133,9 @@ namespace PocketDb
         return result;
     }
 
-    UniValue ModerationRepository::GetAllJury(const Pagination& pagination)
+    vector<JuryContent> ModerationRepository::GetAllJury(const Pagination& pagination)
     {
-        UniValue result(UniValue::VARR);
+        vector<JuryContent> result;
 
         SqlTransaction(
             __func__,
@@ -145,10 +145,17 @@ namespace PocketDb
                         cf.Height,
                         (select r.String from Registry r where r.RowId = f.RowId),
                         (select r.String from Registry r where r.RowId = f.RegId2),
-                        c.Type,
                         (select r.String from Registry r where r.RowId = f.RegId3),
                         j.Reason,
-                        ifnull(jv.Verdict, -1)
+                        ifnull(jv.Verdict, -1),
+                        cc.Uid,
+                        c.Type,
+                        (
+                            select count()
+                            from Transactions v
+                            cross join Chain vc on vc.TxId = v.RowId
+                            where v.Type = 420 and v.RegId2 = j.FlagRowId
+                        ) as votes
                     from
                         Jury j
                     cross join Transactions f on
@@ -157,6 +164,10 @@ namespace PocketDb
                         cf.TxId = f.RowId and cf.Height )sql" + (pagination.OrderDesc ? " <= "s : " > "s) + R"sql( ?
                     cross join Transactions c on
                         c.RowId = f.RegId2
+                    cross join Chain cc on
+                        cc.TxId = c.RowId
+                    cross join First fc on
+                        fc.TxId = cc.TxId
                     left join JuryVerdict jv on
                         jv.FlagRowId = j.FlagRowId
                     order by cf.Height )sql" + (pagination.OrderDesc ? " desc "s : " asc "s) + R"sql(
@@ -172,17 +183,22 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        UniValue rcrd(UniValue::VOBJ);
+                        int64_t contentId;
+                        cursor.Collect<int64_t>(6, contentId);
+                        int contentType;
+                        cursor.Collect<int>(7, contentType);
 
-                        cursor.Collect<int>(0, rcrd, "height");
-                        cursor.Collect<string>(1, rcrd, "id");
-                        cursor.Collect<string>(2, rcrd, "content_id");
-                        cursor.Collect<int>(3, rcrd, "content_type");
-                        cursor.Collect<string>(4, rcrd, "address");
-                        cursor.Collect<int>(5, rcrd, "reason");
-                        cursor.Collect<int>(6, rcrd, "verdict");
+                        UniValue record(UniValue::VOBJ);
+                        cursor.Collect<int64_t>(0, record, "height");
+                        cursor.Collect<string>(1, record, "juryid");
+                        cursor.Collect<string>(2, record, "content_id");
+                        record.pushKV("content_type", contentType);
+                        cursor.Collect<string>(3, record, "address");
+                        cursor.Collect<int>(4, record, "reason");
+                        cursor.Collect<int>(5, record, "verdict");
+                        cursor.Collect<int>(8, record, "votes");
 
-                        result.push_back(rcrd);
+                        result.push_back(JuryContent{contentId, (TxType)contentType, record});
                     }
                 });
             }
@@ -210,7 +226,6 @@ namespace PocketDb
                             r.String = ?
                     )
                     select
-
                         (select r.String from Registry r where r.RowId = f.RowId) as FlagHash,
                         cf.Height as FlagHeight,
                         f.Int1 as Reason,
