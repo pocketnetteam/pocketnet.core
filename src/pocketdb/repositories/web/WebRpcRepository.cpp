@@ -664,6 +664,12 @@ namespace PocketDb
                                 }
                             }
 
+                            if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                UniValue activeJury(UniValue::VOBJ);
+                                activeJury.read(value);
+                                record.pushKV("activeJury", activeJury);
+                            }
+
                             if (!shortForm) {
 
                                 if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
@@ -830,7 +836,23 @@ namespace PocketDb
                         b.Cancel = 0
                     order by
                         b.Height desc
-                ) as badges
+                ) as badges,
+                (
+                    select
+                        json_object(
+                            'id', r.String,
+                            'votes', (select count()
+                                      from JuryModerators jm, Chain vc, First vcl, Transactions u, Transactions v
+                                      where jm.FlagRowId = j.FlagRowId and
+                                            vc.Uid = jm.AccountId and vcl.TxId = vc.TxId and u.RowId=vc.TxId and
+                                            v.Type=420 and v.RegId1=u.RegId1 and v.RegId2=j.FlagRowId
+                            )
+                        )
+                    from Jury j
+                    join Registry r on r.RowId = j.FlagRowId
+                    where j.AccountId = cu.Uid and
+                          not exists(select 1 from JuryVerdict jv where jv.FlagRowId = j.FlagRowId)
+                ) as activeJury
                 <FULLPART>
             from
                 addr,
