@@ -698,22 +698,22 @@ namespace PocketConsensus
 
         // Moderators
         { moderation_jury_moders_cat1_count, {
-            { NetworkMain,    { {0, 80} }},
+            { NetworkMain,    { {0, 80}, {3247300, 240} }},
             { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
         { moderation_jury_moders_cat2_count, {
-            { NetworkMain,    { {0, 80} }},
+            { NetworkMain,    { {0, 80}, {3247300, 240} }},
             { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
         { moderation_jury_moders_cat3_count, {
-            { NetworkMain,    { {0, 80} }},
+            { NetworkMain,    { {0, 80}, {3247300, 240} }},
             { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
         { moderation_jury_moders_cat4_count, {
-            { NetworkMain,    { {0, 80} }},
+            { NetworkMain,    { {0, 80}, {3247300, 240} }},
             { NetworkTest,    { {0, 6} }},
             { NetworkRegTest, { {0, 4} } }
         }},
