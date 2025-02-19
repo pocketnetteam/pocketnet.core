@@ -73,7 +73,8 @@ namespace PocketDb
                     ),
                     regdate as (
                         select
-                            t.Time as val
+                            t.Time as val,
+                            data.uid as uid
                         from
                             data
                             cross join Chain c indexed by Chain_Uid_Height on
@@ -83,15 +84,15 @@ namespace PocketDb
                             cross join Transactions t on
                                 t.RowId = c.TxId
                     ),
-                    rating as (
+                     rating as (
                         select
                             cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val,
                             sum(s.int1) as sum,
-                            count(1) as count
+                            count(1) as count,
+                            data.addrid as ratingAddrId
                         from
                             data,
                             Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            cross join First fo on fo.TxId = o.RowId
                             cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
                                 s.Type = 300 and
                                 s.RegId2 = o.RegId2 and
@@ -101,17 +102,18 @@ namespace PocketDb
                         where
                             o.Type = 211 and
                             o.RegId1 = data.addrid
+                        group by ratingAddrId
                     )
                 select
                     data.txid,
                     regdate.val,
-                    rating.val,
-                    rating.sum,
-                    rating.count
+                    COALESCE(rating.val,0),
+                    COALESCE(rating.sum,0),
+                    COALESCE(rating.count,0)
                 from
-                    data,
-                    regdate,
-                    rating
+                    data
+                left join regdate on data.uid = regdate.uid
+                left join rating on data.addrid = rating.ratingAddrId
             )sql")
             .Bind(txids)
             .Select([&](Cursor& cursor) {
