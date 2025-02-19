@@ -59,62 +59,59 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                data as (
-                    select
-                        t.Hash as txid,
-                        c.Uid as uid,
-                        t.RegId1 as addrid
-                    from
-                        vTx t
-                        cross join Chain c on
-                            c.TxId = t.RowId
-                    where
-                        t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
-                ),
-                regdate as (
-                    select
-                        t.Time as val,
-                        data.uid as uid
-                    from
-                        data
-                        cross join Chain c indexed by Chain_Uid_Height on
-                            c.Uid = data.uid
-                        cross join First f on
-                            f.TxId = c.TxId
-                        cross join Transactions t on
-                            t.RowId = c.TxId
-                ),
-                 rating as (
-                    select
-                        cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val,
-                        sum(s.int1) as sum,
-                        count(1) as count,
-                        addrid as ratingAddrId
-                    from
-                        data,
-                        Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
-                        cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
-                            s.Type = 300 and
-                            s.RegId2 = o.RegId2 and
-                            s.RegId1 != addrid
-                        cross join Chain c on -- chain only
-                            c.TxId = s.RowId
-                    where
-                        o.Type = 211 and
-                        o.RegId1 = addrid
-                        group by ratingAddrId
-                )
-
+                    data as (
+                        select
+                            t.Hash as txid,
+                            c.Uid as uid,
+                            t.RegId1 as addrid
+                        from
+                            vTx t
+                            cross join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Hash in ( )sql" + join(vector<string>(txids.size(), "?"), ",") + R"sql( )
+                    ),
+                    regdate as (
+                        select
+                            t.Time as val
+                        from
+                            data
+                            cross join Chain c indexed by Chain_Uid_Height on
+                                c.Uid = data.uid
+                            cross join First f on
+                                f.TxId = c.TxId
+                            cross join Transactions t on
+                                t.RowId = c.TxId
+                    ),
+                    rating as (
+                        select
+                            cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val,
+                            sum(s.int1) as sum,
+                            count(1) as count
+                        from
+                            data,
+                            Transactions o indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            cross join First fo on fo.TxId = o.RowId
+                            cross join Transactions s indexed by Transactions_Type_RegId2_RegId1 on
+                                s.Type = 300 and
+                                s.RegId2 = o.RegId2 and
+                                s.RegId1 != data.addrid
+                            cross join Chain c on -- chain only
+                                c.TxId = s.RowId
+                        where
+                            o.Type = 211 and
+                            o.RegId1 = data.addrid
+                    )
                 select
                     data.txid,
                     regdate.val,
-                    COALESCE(rating.val,0),
-                    COALESCE(rating.sum,0),
-                    COALESCE(rating.count,0)
+                    rating.val,
+                    rating.sum,
+                    rating.count
                 from
-                    data
-                left join regdate on data.uid = regdate.uid
-                left join rating on addrid = rating.ratingAddrId
+                    data,
+                    regdate,
+                    rating
             )sql")
             .Bind(txids)
             .Select([&](Cursor& cursor) {
