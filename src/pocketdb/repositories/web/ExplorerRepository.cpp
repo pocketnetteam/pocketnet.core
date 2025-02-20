@@ -660,7 +660,10 @@ namespace PocketDb
                         addrFr as ( select RowId as value from Registry where String = ?),
                         addrTo as ( select RowId as value from Registry where String = ?)
                     select
-                        (select r.String from Registry r where r.RowId = t.RowId),
+                        distinct
+                        (select r.String from Registry r where r.RowId = ofr.AddressId) addrFrom,
+                        (select r.String from Registry r where r.RowId = ot.AddressId) addrTo,
+                        (select r.String from Registry r where r.RowId = t.RowId) tx,
                         t.Type,
                         tc.Height,
                         ot.Value,
@@ -672,7 +675,7 @@ namespace PocketDb
                             where
                                 ot0.TxId = ot.TxId and
                                 ot0.Number = 0
-                        )
+                        ) pubkey
                     from
                         addrFr,
                         addrTo
@@ -682,7 +685,7 @@ namespace PocketDb
                     cross join
                         TxOutputs of on
                             of.TxId = ot.TxId and
-                            of.AddressId = addrFr.value
+                            ( ? or of.AddressId = addrFr.value )
                     cross join
                         Transactions t on
                             t.RowId = of.TxId and
@@ -698,9 +701,16 @@ namespace PocketDb
                         TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
                             ofr.TxId = it.TxId and
                             ofr.Number = it.Number and
-                            ofr.AddressId = addrFr.value
+                            ofr.AddressId != addrTo.value and
+                            ( ? or ofr.AddressId = addrFr.value )
                 )sql")
-                .Bind(from, to, minHeight);
+                .Bind(
+                    from,
+                    to,
+                    from.empty(),
+                    minHeight,
+                    from.empty()
+                );
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {

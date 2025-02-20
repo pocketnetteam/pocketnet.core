@@ -474,8 +474,8 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet transactions from/to address.\n",
                 {
                     {"from", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to get transactions from"},
-                    {"to", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to get transactions to"},
-                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of transactions to get"},
+                    {"to", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Address to get transactions to"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of transactions to get"},                    
                 },
                 {
                 },
@@ -484,10 +484,13 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR});
+            RPCTypeCheck(request.params, {UniValue::VSTR});
 
-            auto from = request.params[0].get_str();
-            auto to = request.params[1].get_str();
+            string from = request.params[0].get_str();
+
+            string to;
+            if (request.params[1].isStr())
+                to = request.params[1].get_str();
 
             int depth = ChainActiveSafeHeight() - 1440 * 30 * 1; // 1 month for main network
             if (request.params.size() > 2 && request.params[2].isNum())
