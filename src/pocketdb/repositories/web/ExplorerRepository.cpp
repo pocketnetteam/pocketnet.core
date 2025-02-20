@@ -717,12 +717,14 @@ namespace PocketDb
                     while (cursor.Step())
                     {
                         UniValue record(UniValue::VOBJ);
-                        cursor.Collect<string>(0, record, "hash");
-                        cursor.Collect<int64_t>(1, record, "type");
-                        cursor.Collect<int64_t>(2, record, "height");
-                        cursor.Collect<int64_t>(3, record, "amount");
-                        cursor.Collect<int64_t>(4, record, "time");
-                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok)
+                        cursor.Collect<string>(0, record, "addrFrom");
+                        cursor.Collect<string>(1, record, "addrTo");
+                        cursor.Collect<string>(2, record, "hash");
+                        cursor.Collect<int64_t>(3, record, "type");
+                        cursor.Collect<int64_t>(4, record, "height");
+                        cursor.Collect<int64_t>(5, record, "amount");
+                        cursor.Collect<int64_t>(6, record, "time");
+                        if (auto[ok, value] = cursor.TryGetColumnString(7); ok)
                             record.pushKV("opreturn", TransactionHelper::ParseOpReturn(value));
 
                         result.push_back(record);
