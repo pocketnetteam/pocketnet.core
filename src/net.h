@@ -14,7 +14,7 @@
 #include <compat.h>
 #include <crypto/siphash.h>
 #include <hash.h>
-#include <i2p.h>
+#include <i2p/i2p.h>
 #include <net_permissions.h>
 #include <netaddress.h>
 #include <node/connection_types.h>

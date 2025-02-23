@@ -122,7 +122,7 @@ void BaseIndex::ThreadSync()
 
             int64_t current_time = GetTime();
             if (last_log_time + SYNC_LOG_INTERVAL < current_time) {
-                LogPrint(BCLog::SYNC, "Syncing %s with block chain from height %d\n",
+                LogPrintCategory(BCLog::SYNC, "Syncing %s with block chain from height %d\n",
                           GetName(), pindex->nHeight);
                 last_log_time = current_time;
             }

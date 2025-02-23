@@ -27,10 +27,10 @@ void JSONRPCRequest::parse(const UniValue& valRequest)
     strMethod = valMethod.get_str();
 
     /*if (fLogIPs)
-        LogPrint(BCLog::RPC, "ThreadRPCServer method=%s user=%s peeraddr=%s\n", SanitizeString(strMethod),
+        LogPrintCategory(BCLog::RPC, "ThreadRPCServer method=%s user=%s peeraddr=%s\n", SanitizeString(strMethod),
             this->authUser, this->peerAddr);
     else
-        LogPrint(BCLog::RPC, "ThreadRPCServer method=%s user=%s\n", SanitizeString(strMethod), this->authUser);
+        LogPrintCategory(BCLog::RPC, "ThreadRPCServer method=%s user=%s\n", SanitizeString(strMethod), this->authUser);
     */
 
     // Parse params

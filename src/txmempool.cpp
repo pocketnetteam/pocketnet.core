@@ -528,13 +528,13 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 
     // Remove from SQL Mempool
     PocketDb::TransRepoInst.MempoolRemove(hash.ToString());
-    LogPrint(BCLog::MEMPOOL, "SQL MempoolRemove: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
+    LogPrintCategory(BCLog::MEMPOOL, "SQL MempoolRemove: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
 
     // For some situations, you also need to clear the sql transaction
     if (reason == MemPoolRemovalReason::CONFLICT)
     {
         PocketDb::TransRepoInst.RemoveTransaction(hash.ToString());
-        LogPrint(BCLog::MEMPOOL, "SQL RemoveTransaction: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
+        LogPrintCategory(BCLog::MEMPOOL, "SQL RemoveTransaction: %s - Reason: %s\n", hash.ToString(), ReasonToString(reason));
     }
 
     nTransactionsUpdated++;
@@ -748,7 +748,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
     if (GetRand(std::numeric_limits<uint32_t>::max()) >= nCheckFrequency)
         return;
 
-    LogPrint(BCLog::MEMPOOL, "Checking mempool with %u transactions and %u inputs\n", (unsigned int) mapTx.size(),
+    LogPrintCategory(BCLog::MEMPOOL, "Checking mempool with %u transactions and %u inputs\n", (unsigned int) mapTx.size(),
         (unsigned int) mapNextTx.size());
 
     uint64_t checkTotal = 0;
@@ -1109,7 +1109,7 @@ void CTxMemPool::RemoveUnbroadcastTx(const uint256& txid, const bool unchecked) 
 
     if (m_unbroadcast_txids.erase(txid))
     {
-        LogPrint(BCLog::MEMPOOL, "Removed %i from set of unbroadcast txns%s\n", txid.GetHex(), (unchecked ? " before confirmation that txn was sent out" : ""));
+        LogPrintCategory(BCLog::MEMPOOL, "Removed %i from set of unbroadcast txns%s\n", txid.GetHex(), (unchecked ? " before confirmation that txn was sent out" : ""));
     }
 }
 
@@ -1274,7 +1274,7 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint> *pvNoSpends
 
     if (maxFeeRateRemoved > CFeeRate(0))
     {
-        LogPrint(BCLog::MEMPOOL, "Removed %u txn, rolling minimum fee bumped to %s\n", nTxnRemoved,
+        LogPrintCategory(BCLog::MEMPOOL, "Removed %u txn, rolling minimum fee bumped to %s\n", nTxnRemoved,
             maxFeeRateRemoved.ToString());
     }
 }

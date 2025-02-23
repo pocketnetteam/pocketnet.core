@@ -51,7 +51,7 @@ void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
     // Add data
     static CMedianFilter<int64_t> vTimeOffsets(POCKETCOIN_TIMEDATA_MAX_SAMPLES, 0);
     vTimeOffsets.input(nOffsetSample);
-    LogPrint(BCLog::NET, "added time data, samples %d, offset %+d (%+d minutes)\n", vTimeOffsets.size(), nOffsetSample, nOffsetSample / 60);
+    LogPrintCategory(BCLog::NET, "added time data, samples %d, offset %+d (%+d minutes)\n", vTimeOffsets.size(), nOffsetSample, nOffsetSample / 60);
 
     // There is a known issue here (see issue #4521):
     //
@@ -99,10 +99,10 @@ void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
 
         if (LogAcceptCategory(BCLog::NET)) {
             for (const int64_t n : vSorted) {
-                LogPrint(BCLog::NET, "%+d  ", n); /* Continued */
+                LogPrintCategory(BCLog::NET, "%+d  ", n); /* Continued */
             }
-            LogPrint(BCLog::NET, "|  "); /* Continued */
-            LogPrint(BCLog::NET, "nTimeOffset = %+d  (%+d minutes)\n", nTimeOffset, nTimeOffset / 60);
+            LogPrintCategory(BCLog::NET, "|  "); /* Continued */
+            LogPrintCategory(BCLog::NET, "nTimeOffset = %+d  (%+d minutes)\n", nTimeOffset, nTimeOffset / 60);
         }
     }
 }

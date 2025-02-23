@@ -98,13 +98,13 @@ namespace PocketServices
                 webRepoInst->CollectAccountStatistic();
                 
                 int64_t nTime3 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight (CollectAccountStatistic): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+                LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight (CollectAccountStatistic): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
             }
             
             webRepoInst->SetCurrentHeight(currHeight);
             
             int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight: %.2fms\n", 0.001 * (double)(nTime4 - nTime1));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight: %.2fms\n", 0.001 * (double)(nTime4 - nTime1));
             
             return true;
         }
@@ -130,7 +130,7 @@ namespace PocketServices
                 return;
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Select): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Select): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
 
             // Decode contentTags before upsert
             for (auto& contentTag : contentTags)
@@ -140,13 +140,13 @@ namespace PocketServices
             }
 
             int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
 
             // Insert content tags
             webRepoInst->UpsertContentTags(contentTags);
 
             int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
         }
         catch (const std::exception& e)
         {
@@ -165,7 +165,7 @@ namespace PocketServices
                 return;
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Select): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Select): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
 
             // Decode content before upsert
             for (auto& contentItm : contentList)
@@ -193,13 +193,13 @@ namespace PocketServices
             }
 
             int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
 
             // Insert content
             webRepoInst->UpsertContent(contentList);
 
             int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
+            LogPrintCategory(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
         }
         catch (const std::exception& e)
         {

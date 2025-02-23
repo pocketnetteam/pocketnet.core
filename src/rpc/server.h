@@ -132,10 +132,10 @@ public:
     {
         // TODO (losty): delete this and uncomment CHECK_NONFATAL then all will be fixed up
         if (fn().m_name != name_in) {
-            LogPrint(BCLog::RPC, "Miscorresponding RPC's names: called - %s, binded as - %s\n", fn().m_name, name_in);
+            LogPrintCategory(BCLog::RPC, "Miscorresponding RPC's names: called - %s, binded as - %s\n", fn().m_name, name_in);
         }
         if (fn().GetArgNames() != args_in) {
-            LogPrint(BCLog::RPC, "Miscorresponding RPC's args for %s method\n", name_in);
+            LogPrintCategory(BCLog::RPC, "Miscorresponding RPC's args for %s method\n", name_in);
         }
         // CHECK_NONFATAL(fn().m_name == name_in);
         // CHECK_NONFATAL(fn().GetArgNames() == args_in);

@@ -364,7 +364,7 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, std::chrono::second
 {
     int expired = pool.Expire(GetTime<std::chrono::seconds>() - age);
     if (expired != 0) {
-        LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
+        LogPrintCategory(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
     }
 
     std::vector<COutPoint> vNoSpendsRemaining;
@@ -725,7 +725,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     CAmount nFees = 0;
     if (!Consensus::CheckTxInputs(tx, state, m_view, GetSpendHeight(m_view), nFees, args.m_chainparams)) {
-        LogPrint(BCLog::CONSENSUS, "%s: Consensus::CheckTxInputs: %s, %s\n",
+        LogPrintCategory(BCLog::CONSENSUS, "%s: Consensus::CheckTxInputs: %s, %s\n",
                 __func__, tx.GetHash().ToString(), state.ToString());
 
         return false; // state filled in by CheckTxInputs
@@ -1075,7 +1075,7 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     // Remove conflicting transactions from the mempool
     for (CTxMemPool::txiter it : allConflicting)
     {
-        LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s additional fees, %d delta bytes\n",
+        LogPrintCategory(BCLog::MEMPOOL, "replacing tx %s with %s for %s additional fees, %d delta bytes\n",
                 it->GetTx().GetHash().ToString(),
                 hash.ToString(),
                 FormatMoney(nModifiedFees - nConflictingFees),
@@ -2153,7 +2153,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     {
         arith_uint256 targetProofOfStake;
         // Signature will be checked in CheckInputs(), we can avoid it here (fCheckSignature = false)
-        LogPrint(BCLog::STAKEMODIF, "ConnectBlock(): check proof-of-stake signature for received block %s", block.GetHash().GetHex());
+        LogPrintCategory(BCLog::STAKEMODIF, "ConnectBlock(): check proof-of-stake signature for received block %s", block.GetHash().GetHex());
         if (!CheckProofOfStake(pindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
             targetProofOfStake, nullptr, m_mempool))
         {
@@ -2216,7 +2216,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
-    LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
@@ -2321,7 +2321,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     unsigned int flags = GetBlockScriptFlags(pindex, chainparams.GetConsensus());
 
     int64_t nTime2 = GetTimeMicros(); nTimeForks += nTime2 - nTime1;
-    LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
     CBlockUndo blockundo;
 
@@ -2421,7 +2421,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
-    LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     if(block.IsProofOfWork())
     {
@@ -2487,7 +2487,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
-        LogPrint(BCLog::BENCH, "    - Checking rewards: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+        LogPrintCategory(BCLog::BENCH, "    - Checking rewards: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
             MILLI * (nTime4 - nTime3), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (nInputs - 1), nTimeVerify * MICRO,
             nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2504,11 +2504,11 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus", "", true);
         }
         
-        LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+        LogPrintCategory(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
-        LogPrint(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+        LogPrintCategory(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
             MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
             nTimeVerify * MILLI / nBlocksTotal);
     }
@@ -2539,7 +2539,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - SQLite indexing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+    LogPrintCategory(BCLog::BENCH, "    - SQLite indexing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime6 - nTime5), nInputs <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2557,7 +2557,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     view.SetBestBlock(pindex->GetBlockHash());
 
     int64_t nTime7 = GetTimeMicros(); nTimeIndex += nTime7 - nTime6;
-    LogPrint(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime7 - nTime6), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime7 - nTime6), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
 
     TRACEPOINT(validation, block_connected,
         block.GetHash().ToString().c_str(),
@@ -2822,7 +2822,7 @@ static void UpdateTip(CTxMemPool& mempool, const CBlockIndex* pindexNew, const C
     //LogPrintf("\n");
 
     if (num_unexpected_version > 0) {
-        LogPrint(BCLog::VALIDATION, "%d of last 100 blocks have unexpected version\n", num_unexpected_version);
+        LogPrintCategory(BCLog::VALIDATION, "%d of last 100 blocks have unexpected version\n", num_unexpected_version);
     }
 }
 
@@ -2862,7 +2862,7 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
         bool flushed = view.Flush();
         assert(flushed);
     }
-    LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
+    LogPrintCategory(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
@@ -2996,7 +2996,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros(); nTimeReadFromDisk += nTime2 - nTime1;
     int64_t nTime3;
-    LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
+    LogPrintCategory(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
 
     {
         CCoinsViewCache view(&CoinsTip());
@@ -3020,18 +3020,18 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
         }
         nTime3 = GetTimeMicros(); nTimeConnectTotal += nTime3 - nTime2;
         assert(nBlocksTotal > 0);
-        LogPrint(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime3 - nTime2) * MILLI, nTimeConnectTotal * MICRO, nTimeConnectTotal * MILLI / nBlocksTotal);
+        LogPrintCategory(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime3 - nTime2) * MILLI, nTimeConnectTotal * MICRO, nTimeConnectTotal * MILLI / nBlocksTotal);
         bool flushed = view.Flush();
         assert(flushed);
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
-    LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
 
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
     
     //-----------------------------------------------------
     // Remove conflicting transactions from the mempool.;
@@ -3044,15 +3044,15 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     UpdateTip(m_mempool, pindexNew, chainparams);
 
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
-    LogPrint(BCLog::BENCH, "  - Connect postprocess: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime5) * MILLI, nTimePostConnect * MICRO, nTimePostConnect * MILLI / nBlocksTotal);
-    LogPrint(BCLog::BENCH, "- Connect block: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime1) * MILLI, nTimeTotal * MICRO, nTimeTotal * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "  - Connect postprocess: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime5) * MILLI, nTimePostConnect * MICRO, nTimePostConnect * MILLI / nBlocksTotal);
+    LogPrintCategory(BCLog::BENCH, "- Connect block: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime1) * MILLI, nTimeTotal * MICRO, nTimeTotal * MILLI / nBlocksTotal);
 
     uint256 _block_hash = blockConnecting.GetHash();
     std::string _block_hash_str = _block_hash.GetHex();
 
     NotifyWSClients(blockConnecting, pindexNew);
 
-    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s\n", pindexNew->nHeight,
+    LogPrintCategory(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s\n", pindexNew->nHeight,
         pindexNew->GetBlockHash().GetHex());
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
@@ -4229,7 +4229,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
         }
 
         if (!CheckBlockHeader(block, state, chainparams.GetConsensus())) {
-            LogPrint(BCLog::VALIDATION, "%s: Consensus::CheckBlockHeader: %s, %s\n", __func__, hash.ToString(), state.ToString());
+            LogPrintCategory(BCLog::VALIDATION, "%s: Consensus::CheckBlockHeader: %s, %s\n", __func__, hash.ToString(), state.ToString());
             return false;
         }
 
@@ -4324,7 +4324,7 @@ bool ChainstateManager::ProcessNewBlockHeaders(const std::vector<CBlockHeader>& 
     }
     if (NotifyHeaderTip()) {
         if (::ChainstateActive().IsInitialBlockDownload() && ppindex && *ppindex) {
-            LogPrint(BCLog::SYNC, "Synchronizing blockheaders, height: %d (~%.2f%%)\n", (*ppindex)->nHeight, 100.0/((*ppindex)->nHeight+(GetAdjustedTime() - (*ppindex)->GetBlockTime()) / Params().GetConsensus().nPowTargetSpacing) * (*ppindex)->nHeight);
+            LogPrintCategory(BCLog::SYNC, "Synchronizing blockheaders, height: %d (~%.2f%%)\n", (*ppindex)->nHeight, 100.0/((*ppindex)->nHeight+(GetAdjustedTime() - (*ppindex)->GetBlockTime()) / Params().GetConsensus().nPowTargetSpacing) * (*ppindex)->nHeight);
         }
     }
     return true;
@@ -4438,7 +4438,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
     {
         const std::string hash = pblock->GetHash().GetHex();
-        LogPrint(BCLog::BENCH, "--- ProcessBlock: %s\n", hash);
+        LogPrintCategory(BCLog::BENCH, "--- ProcessBlock: %s\n", hash);
         int64_t nTime1 = GetTimeMicros();
 
         CBlockIndex *pindex = nullptr;
@@ -4450,7 +4450,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
         int64_t nTime2 = GetTimeMicros();
         nTimeVerify += nTime2 - nTime1;
-        LogPrint(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
+        LogPrintCategory(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime2 - nTime1),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime2 - nTime1) / (double)(pocketBlock->size() - 1));
 
@@ -4460,7 +4460,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;
-        LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
+        LogPrintCategory(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime3 - nTime2),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime3 - nTime2) / (double)(pocketBlock->size() - 1));
 
@@ -4483,12 +4483,12 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
                 *fNewBlock = false;
             }
                 
-            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, hash);
+            LogPrintCategory(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, hash);
         }
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
-        LogPrint(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
+        LogPrintCategory(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime4 - nTime3),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime4 - nTime3) / (double)(pocketBlock->size() - 1));
 
@@ -4499,7 +4499,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
         int64_t nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
-        LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
+        LogPrintCategory(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime5 - nTime4),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime5 - nTime4) / (double)(pocketBlock->size() - 1));
 
@@ -4521,7 +4521,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
 
         int64_t nTime6 = GetTimeMicros();
         nTimeVerify += nTime6 - nTime5;
-        LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
+        LogPrintCategory(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
             MILLI * (double)(nTime6 - nTime5),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime6 - nTime5) / (double)(pocketBlock->size() - 1));
 
@@ -4728,7 +4728,7 @@ void BlockManager::FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPr
         }
     }
 
-    LogPrint(BCLog::PRUNE, "Prune: target=%dMiB actual=%dMiB diff=%dMiB max_prune_height=%d removed %d blk/rev pairs\n",
+    LogPrintCategory(BCLog::PRUNE, "Prune: target=%dMiB actual=%dMiB diff=%dMiB max_prune_height=%d removed %d blk/rev pairs\n",
            nPruneTarget/1024/1024, nCurrentUsage/1024/1024,
            ((int64_t)nPruneTarget - (int64_t)nCurrentUsage)/1024/1024,
            nLastBlockWeCanPrune, count);
@@ -5297,7 +5297,7 @@ void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFi
                     LOCK(cs_main);
                     // detect out of order blocks, and store them for later
                     if (hash != chainparams.GetConsensus().hashGenesisBlock && !LookupBlockIndex(block.hashPrevBlock)) {
-                        LogPrint(BCLog::REINDEX, "%s: Out of order block %s, parent %s not known\n", __func__, hash.ToString(),
+                        LogPrintCategory(BCLog::REINDEX, "%s: Out of order block %s, parent %s not known\n", __func__, hash.ToString(),
                                 block.hashPrevBlock.ToString());
                         if (dbp)
                             mapBlocksUnknownParent.insert(std::make_pair(block.hashPrevBlock, *dbp));
@@ -5315,7 +5315,7 @@ void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFi
                           break;
                       }
                     } else if (hash != chainparams.GetConsensus().hashGenesisBlock && pindex->nHeight % 1000 == 0) {
-                      LogPrint(BCLog::REINDEX, "Block Import: already had block %s at height %d\n", hash.ToString(), pindex->nHeight);
+                      LogPrintCategory(BCLog::REINDEX, "Block Import: already had block %s at height %d\n", hash.ToString(), pindex->nHeight);
                     }
                 }
 
@@ -5341,7 +5341,7 @@ void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFi
                         std::shared_ptr<CBlock> pblockrecursive = std::make_shared<CBlock>();
                         if (ReadBlockFromDisk(*pblockrecursive, it->second, chainparams.GetConsensus()))
                         {
-                            LogPrint(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n", __func__, pblockrecursive->GetHash().ToString(),
+                            LogPrintCategory(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n", __func__, pblockrecursive->GetHash().ToString(),
                                     head.ToString());
                             LOCK(cs_main);
                             BlockValidationState dummy;

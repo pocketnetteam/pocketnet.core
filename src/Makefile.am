@@ -407,7 +407,8 @@ POCKETCOIN_CORE_H = \
     eventloop.h \
     httprpc.h \
     httpserver.h \
-    i2p.h \
+    i2p/i2p.h \
+    i2p/i2pdw.h \
     index/base.h \
     index/blockfilterindex.h \
     index/disktxpos.h \
@@ -580,7 +581,8 @@ libpocketcoin_server_a_SOURCES = \
     flatfile.cpp \
     httprpc.cpp \
     httpserver.cpp \
-    i2p.cpp \
+    i2p/i2p.cpp \
+    i2p/i2pdw.cpp \
     index/base.cpp \
     index/blockfilterindex.cpp \
     index/txindex.cpp \

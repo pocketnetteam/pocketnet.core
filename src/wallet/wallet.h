@@ -1214,7 +1214,7 @@ public:
     /** Prepends the wallet name in logging output to ease debugging in multi-wallet use cases */
     template<typename... Params>
     void WalletLogPrintf(std::string fmt, Params... parameters) const {
-        LogPrint(BCLog::WALLET, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
+        LogPrintCategory(BCLog::WALLET, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 
     tuple<uint64_t, uint64_t, uint64_t> GetStakeWeight() const;

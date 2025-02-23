@@ -15,7 +15,7 @@ int CAddrInfo::GetTriedBucket(const uint256& nKey, const std::vector<bool> &asma
     uint64_t hash2 = (CHashWriter(SER_GETHASH, 0) << nKey << GetGroup(asmap) << (hash1 % ADDRMAN_TRIED_BUCKETS_PER_GROUP)).GetCheapHash();
     int tried_bucket = hash2 % ADDRMAN_TRIED_BUCKET_COUNT;
     uint32_t mapped_as = GetMappedAS(asmap);
-    LogPrint(BCLog::NET, "IP %s mapped to AS%i belongs to tried bucket %i\n", ToStringIP(), mapped_as, tried_bucket);
+    LogPrintCategory(BCLog::NET, "IP %s mapped to AS%i belongs to tried bucket %i\n", ToStringIP(), mapped_as, tried_bucket);
     return tried_bucket;
 }
 
@@ -26,7 +26,7 @@ int CAddrInfo::GetNewBucket(const uint256& nKey, const CNetAddr& src, const std:
     uint64_t hash2 = (CHashWriter(SER_GETHASH, 0) << nKey << vchSourceGroupKey << (hash1 % ADDRMAN_NEW_BUCKETS_PER_SOURCE_GROUP)).GetCheapHash();
     int new_bucket = hash2 % ADDRMAN_NEW_BUCKET_COUNT;
     uint32_t mapped_as = GetMappedAS(asmap);
-    LogPrint(BCLog::NET, "IP %s mapped to AS%i belongs to new bucket %i\n", ToStringIP(), mapped_as, new_bucket);
+    LogPrintCategory(BCLog::NET, "IP %s mapped to AS%i belongs to new bucket %i\n", ToStringIP(), mapped_as, new_bucket);
     return new_bucket;
 }
 
@@ -279,12 +279,12 @@ void CAddrMan::Good_(const CService& addr, bool test_before_evict, int64_t nTime
     if (test_before_evict && (vvTried[tried_bucket][tried_bucket_pos] != -1)) {
         // Output the entry we'd be colliding with, for debugging purposes
         auto colliding_entry = mapInfo.find(vvTried[tried_bucket][tried_bucket_pos]);
-        LogPrint(BCLog::ADDRMAN, "Collision inserting element into tried table (%s), moving %s to m_tried_collisions=%d\n", colliding_entry != mapInfo.end() ? colliding_entry->second.ToString() : "", addr.ToString(), m_tried_collisions.size());
+        LogPrintCategory(BCLog::ADDRMAN, "Collision inserting element into tried table (%s), moving %s to m_tried_collisions=%d\n", colliding_entry != mapInfo.end() ? colliding_entry->second.ToString() : "", addr.ToString(), m_tried_collisions.size());
         if (m_tried_collisions.size() < ADDRMAN_SET_TRIED_COLLISION_SIZE) {
             m_tried_collisions.insert(nId);
         }
     } else {
-        LogPrint(BCLog::ADDRMAN, "Moving %s to tried\n", addr.ToString());
+        LogPrintCategory(BCLog::ADDRMAN, "Moving %s to tried\n", addr.ToString());
 
         // move nId to the tried tables
         MakeTried(info, nId);
@@ -566,7 +566,7 @@ void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size
 
         vAddr.push_back(ai);
     }
-    LogPrint(BCLog::ADDRMAN, "GetAddr returned %d random addresses\n", vAddr.size());
+    LogPrintCategory(BCLog::ADDRMAN, "GetAddr returned %d random addresses\n", vAddr.size());
 }
 
 void CAddrMan::Connected_(const CService& addr, int64_t nTime)
@@ -638,7 +638,7 @@ void CAddrMan::ResolveCollisions_()
 
                     // Give address at least 60 seconds to successfully connect
                     if (GetAdjustedTime() - info_old.nLastTry > 60) {
-                        LogPrint(BCLog::ADDRMAN, "Replacing %s with %s in tried table\n", info_old.ToString(), info_new.ToString());
+                        LogPrintCategory(BCLog::ADDRMAN, "Replacing %s with %s in tried table\n", info_old.ToString(), info_new.ToString());
 
                         // Replaces an existing address already in the tried table with the new address
                         Good_(info_new, false, GetAdjustedTime());
@@ -648,7 +648,7 @@ void CAddrMan::ResolveCollisions_()
                     // If the collision hasn't resolved in some reasonable amount of time,
                     // just evict the old entry -- we must not be able to
                     // connect to it for some reason.
-                    LogPrint(BCLog::ADDRMAN, "Unable to test; replacing %s with %s in tried table anyway\n", info_old.ToString(), info_new.ToString());
+                    LogPrintCategory(BCLog::ADDRMAN, "Unable to test; replacing %s with %s in tried table anyway\n", info_old.ToString(), info_new.ToString());
                     Good_(info_new, false, GetAdjustedTime());
                     erase_collision = true;
                 }

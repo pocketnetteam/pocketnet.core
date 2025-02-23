@@ -287,7 +287,7 @@ bool KnapsackSolver(const CAmount& nTargetValue, std::vector<OutputGroup>& group
                     log_message += strprintf("%s ", FormatMoney(applicable_groups[i].m_value));
                 }
             }
-            LogPrint(BCLog::SELECTCOINS, "%stotal %s\n", log_message, FormatMoney(nBest));
+            LogPrintCategory(BCLog::SELECTCOINS, "%stotal %s\n", log_message, FormatMoney(nBest));
         }
     }
 

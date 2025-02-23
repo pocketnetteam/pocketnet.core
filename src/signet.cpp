@@ -133,7 +133,7 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
     const Optional<SignetTxs> signet_txs = SignetTxs::Create(block, challenge);
 
     if (!signet_txs) {
-        LogPrint(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution parse failure)\n");
+        LogPrintCategory(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution parse failure)\n");
         return false;
     }
 
@@ -143,7 +143,7 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
     TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /*nIn=*/ 0, /*amount=*/ signet_txs->m_to_spend.vout[0].nValue);
 
     if (!VerifyScript(scriptSig, signet_txs->m_to_spend.vout[0].scriptPubKey, &witness, BLOCK_SCRIPT_VERIFY_FLAGS, sigcheck)) {
-        LogPrint(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution invalid)\n");
+        LogPrintCategory(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution invalid)\n");
         return false;
     }
     return true;

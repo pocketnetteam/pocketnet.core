@@ -206,17 +206,18 @@ static inline void LogPrintf_(const BCLog::LogFlags flag, const BCLog::Level lev
 
 // Use a macro instead of a function for conditional logging to prevent
 // evaluating arguments when logging for the category is not enabled.
-#define LogPrint(category, ...)              \
-    do {                                     \
+#define LogPrintCategory(category, ...) \
+    do { \
         if (LogAcceptCategory((category))) { \
-            LogPrintf_(category, BCLog::Level::None, __VA_ARGS__);          \
-        }                                    \
+            LogPrintf_(category, BCLog::Level::None, __VA_ARGS__); \
+        } \
     } while (0)
-#define LogPrintLevel(level, category, ...)               \
-    do {                                                  \
-        if (LogAcceptCategory((category))) {              \
+
+#define LogPrintLevel(level, category, ...) \
+    do { \
+        if (LogAcceptCategory((category))) { \
             LogPrintf_(category, level, __VA_ARGS__); \
-        }                                                 \
+        } \
     } while (0)
 
 #endif // POCKETCOIN_LOGGING_H

@@ -142,9 +142,10 @@ wallet_packages_$(NO_WALLET) = $(bdb_packages_) $(sqlite_packages_)
 
 upnp_packages_$(NO_UPNP) = $(upnp_packages)
 zmq_packages_$(NO_ZMQ) = $(zmq_packages)
+i2pd_packages_$(NO_I2PD) = $(i2pd_packages)
 multiprocess_packages_$(MULTIPROCESS) = $(multiprocess_packages)
 
-packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_)
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_) $(i2pd_packages_)
 native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages)
 
 ifneq ($(zmq_packages_),)

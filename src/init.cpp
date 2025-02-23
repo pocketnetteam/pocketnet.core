@@ -78,6 +78,8 @@
 #include "pocketdb/migrations/main.h"
 #include "pocketdb/migrations/web.h"
 
+#include "i2p/i2pdw.h"
+
 #include <functional>
 #include <set>
 #include <stdint.h>
@@ -268,6 +270,9 @@ void Shutdown(NodeContext& node)
 
     StopTorControl();
 
+    // Stop i2p daemon
+    i2pdw::DaemonWrapper::GetInstance().Stop();
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, threadGroup and load block thread.
     if (node.scheduler) node.scheduler->stop();
@@ -419,7 +424,7 @@ static void OnRPCStopped()
     rpc_notify_block_change_connection.disconnect();
     RPCNotifyBlockChange(nullptr);
     g_best_block_cv.notify_all();
-    LogPrint(BCLog::RPC, "RPC stopped.\n");
+    LogPrintCategory(BCLog::RPC, "RPC stopped.\n");
 }
 
 void SetupServerArgs(NodeContext& node)
@@ -522,6 +527,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-maxsendbuffer=<n>", strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-maxtimeadjustment", strprintf("Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)", DEFAULT_MAX_TIME_ADJUSTMENT), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-maxuploadtarget=<n>", strprintf("Tries to keep outbound traffic under the given target (in MiB per 24h). Limit does not apply to peers with 'download' permission. 0 = no limit (default: %d)", DEFAULT_MAX_UPLOAD_TARGET), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
+    argsman.AddArg("-i2pd", "Enable and start internal I2P daemon. (default: false)", ArgsManager::ALLOW_BOOL, OptionsCategory::CONNECTION);
     argsman.AddArg("-i2psam=<ip:port>", "I2P SAM proxy to reach I2P peers and accept I2P connections (default: none)", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-i2pacceptincoming", "If set and -i2psam is also set then incoming I2P connections are accepted via the SAM proxy. If this is not set but -i2psam is set then only outgoing connections will be made to the I2P network. Ignored if -i2psam is not set. Listening for incoming I2P connections is done through the SAM proxy, not by binding to a local address and port (default: 1)", ArgsManager::ALLOW_BOOL, OptionsCategory::CONNECTION);
     argsman.AddArg("-onion=<ip:port>", "Use separate SOCKS5 proxy to reach peers via Tor onion services, set -noonion to disable (default: -proxy)", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
@@ -874,7 +880,7 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
 
                     PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
 
-                    LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+                    LogPrintCategory(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
                     i += 1;
                 }
                 catch (std::exception& e)
@@ -2258,6 +2264,18 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         if (connect.size() != 1 || connect[0] != "0") {
             connOptions.m_specified_outgoing = connect;
         }
+    }
+
+    if (args.GetBoolArg("-i2pd", false)) {
+        i2pdw::DaemonWrapper& i2pd = i2pdw::DaemonWrapper::GetInstance();
+
+        if (!i2pd.Init())
+            return InitError(_("Failed to initialize I2P daemon"));
+
+        if (!i2pd.Start())
+            return InitError(_("Failed to start I2P daemon"));
+
+        args.ForceSetArg("-i2psam", i2pd.GetSAMAddress() + ":" + std::to_string(i2pd.GetSAMPort()));
     }
 
     const std::string& i2psam_arg = args.GetArg("-i2psam", "");

@@ -15,19 +15,19 @@ namespace PocketServices
 
         IndexChain(block.GetHash().GetHex(), height, txs);
         int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
+        LogPrintCategory(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
         IndexRatings(height, txs);
         int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
+        LogPrintCategory(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
 
         IndexModeration(height, txs);
         int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
+        LogPrintCategory(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
 
         IndexBadges(height);
         int64_t nTime5 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexBadges: %.2fms _ %d\n", 0.001 * (double)(nTime5 - nTime4), height);
+        LogPrintCategory(BCLog::BENCH, "    - IndexBadges: %.2fms _ %d\n", 0.001 * (double)(nTime5 - nTime4), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
@@ -40,7 +40,7 @@ namespace PocketServices
             {
                 curHeight = ChainRepoInst.CurrentHeight();
 
-                LogPrint(BCLog::SYNC, "Rollback current block to prev at height %d\n", curHeight - 1);
+                LogPrintCategory(BCLog::SYNC, "Rollback current block to prev at height %d\n", curHeight - 1);
                 
                 ChainRepoInst.Restore(curHeight);
             }

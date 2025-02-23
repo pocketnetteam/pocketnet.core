@@ -312,7 +312,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
             }
         }
     } else {
-        LogPrint(BCLog::STAKEMODIF, "SignBlock() failed: nSearchTime(%s) <= nWalletLastCoinStakeSearchTime(%s)\n", FormatISO8601DateTime(nSearchTime), FormatISO8601DateTime(nWalletLastCoinStakeSearchTime));
+        LogPrintCategory(BCLog::STAKEMODIF, "SignBlock() failed: nSearchTime(%s) <= nWalletLastCoinStakeSearchTime(%s)\n", FormatISO8601DateTime(nSearchTime), FormatISO8601DateTime(nWalletLastCoinStakeSearchTime));
     }
 #endif
 

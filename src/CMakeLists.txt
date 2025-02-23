@@ -1001,8 +1001,10 @@ add_library(${POCKETCOIN_SERVER}
         httprpc.cpp
         httpserver.h
         httpserver.cpp
-        i2p.h
-        i2p.cpp
+        i2p/i2p.h
+        i2p/i2p.cpp
+        i2p/i2pdw.h
+        i2p/i2pdw.cpp
         init.h
         init.cpp
         interfaces/handler.h
@@ -1340,6 +1342,16 @@ if (NOT DISABLE_ZMQ)
     endif ()
 else()
     add_compile_definitions(ENABLE_ZMQ=0)
+endif ()
+
+# I2PD
+if (NOT DISABLE_I2PD)
+    find_package(I2PD REQUIRED)
+    if (I2PD_FOUND)
+        add_compile_definitions(ENABLE_I2PD=1)
+        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE I2PD::i2pd I2PD::i2pdclient I2PD::i2pdlang)
+        target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${I2PD_INCLUDE_DIR})
+    endif ()
 endif ()
 
 set(POCKETCOIND pocketcoind)

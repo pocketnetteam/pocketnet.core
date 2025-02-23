@@ -109,7 +109,7 @@ namespace PocketWeb
         LOCK(CacheMutex);
         Cache.clear();
 
-        LogPrint(BCLog::RESTFRONTEND, "Cache cleared\n");
+        LogPrintCategory(BCLog::RESTFRONTEND, "Cache cleared\n");
     }
 
     void PocketFrontend::CacheEmplace(const string& path, shared_ptr <StaticFile>& content)
@@ -117,7 +117,7 @@ namespace PocketWeb
         LOCK(CacheMutex);
         if (Cache.find(path) == Cache.end())
         {
-            LogPrint(BCLog::RESTFRONTEND, "File '%s' emplaced in cache\n", path);
+            LogPrintCategory(BCLog::RESTFRONTEND, "File '%s' emplaced in cache\n", path);
             Cache.emplace(path, content);
         }
     }
@@ -127,7 +127,7 @@ namespace PocketWeb
         LOCK(CacheMutex);
         if (Cache.find(path) != Cache.end())
         {
-            LogPrint(BCLog::RESTFRONTEND, "File '%s' found in cache\n", path);
+            LogPrintCategory(BCLog::RESTFRONTEND, "File '%s' found in cache\n", path);
             return {true, Cache.at(path)};
         }
 
@@ -178,7 +178,7 @@ namespace PocketWeb
         // Save in cache for future
         CacheEmplace(_path, fileContent);
 
-        LogPrint(BCLog::RESTFRONTEND, "File '%s' readed from disk\n", _path);
+        LogPrintCategory(BCLog::RESTFRONTEND, "File '%s' readed from disk\n", _path);
 
         return {HTTP_OK, fileContent};
     }

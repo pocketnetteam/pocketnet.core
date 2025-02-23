@@ -17,7 +17,7 @@ namespace PocketDb
 
     void BaseRepository::BenchLog(const string& func, double time)
     {
-        LogPrint(BCLog::SQLBENCH, "SQL Bench `%s`: %.2fms\n", func, time);
+        LogPrintCategory(BCLog::SQLBENCH, "SQL Bench `%s`: %.2fms\n", func, time);
         gStatEngineInstance.SetSqlBench(func, time);
     }
 

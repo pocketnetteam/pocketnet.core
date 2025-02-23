@@ -7,7 +7,7 @@
 #include <compat.h>
 #include <compat/endian.h>
 #include <crypto/sha256.h>
-#include <i2p.h>
+#include <i2p/i2p.h>
 #include <logging.h>
 #include <netaddress.h>
 #include <netbase.h>
@@ -200,6 +200,14 @@ bool Session::Accept(Connection& conn)
 
         conn.peer = CService(peer_addr, I2P_SAM31_PORT);
 
+        try {
+            std::string sock_data = conn.sock->RecvUntilTerminator('\n', MAX_WAIT_FOR_IO, *m_interrupt, MAX_MSG_SIZE);
+            Log("sock_data: %s\n", sock_data);
+            continue;
+        } catch (const std::runtime_error& e) {
+            break;
+        }
+
         return true;
     }
 
@@ -286,7 +294,7 @@ std::string Session::Reply::Get(const std::string& key) const
 template <typename... Args>
 void Session::Log(const std::string& fmt, const Args&... args) const
 {
-    LogPrint(BCLog::I2P, "%s\n", tfm::format(fmt, args...));
+    LogPrintCategory(BCLog::I2P, "%s\n", tfm::format(fmt, args...));
 }
 
 Session::Reply Session::SendRequestAndGetReply(const Sock& sock,
