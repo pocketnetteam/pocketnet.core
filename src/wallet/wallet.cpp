@@ -1270,7 +1270,7 @@ void CWallet::blockDisconnected(const CBlock& block, int height)
 	m_last_block_processed_height = height - 1;
 	m_last_block_processed = block.hashPrevBlock;
 	for (const CTransactionRef& ptx : block.vtx) {
-		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0}, false);
+		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0});
 	}
 }
 
