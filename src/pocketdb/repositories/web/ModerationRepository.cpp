@@ -194,8 +194,6 @@ namespace PocketDb
                         c.RowId = f.RegId2
                     cross join Chain cc on
                         cc.TxId = c.RowId
-                    cross join First fc on
-                        fc.TxId = cc.TxId
                     cross join Transactions u on
                         u.Type = 100 and u.RegId1 = f.RegId3
                     cross join First fu on
