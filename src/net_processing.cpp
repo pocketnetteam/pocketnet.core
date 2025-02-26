@@ -766,11 +766,10 @@ static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman& connma
     connman.ForNode(nodeid, [&connman](CNode* pfrom) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
         AssertLockHeld(::cs_main);
 
-	LogPrint(BCLog::NET, "%s: lNodesAnnouncingHeaderAndIDs.size()=%d peer=%d%s\n",
-                        __func__,
-                        lNodesAnnouncingHeaderAndIDs.size(),
-                        pfrom->GetId(),
-                        fLogIPs ? ", peeraddr=" + pfrom->addr.ToString() : "");
+//	LogPrint(BCLog::NET, "MaybeSetPeerAsAnnouncingHeaderAndIDs(): lNodesAnnouncingHeaderAndIDs.size()=%d peer=%d%s\n",
+//                        lNodesAnnouncingHeaderAndIDs.size(),
+//                        pfrom->GetId(),
+//                        fLogIPs ? ", peeraddr=" + pfrom->addr.ToString() : "");
 
         if (lNodesAnnouncingHeaderAndIDs.size() >= 3) {
             // As per BIP152, we only get 3 of our peers to announce
@@ -1518,7 +1517,7 @@ void PeerManager::NewPoSValidBlock(const CBlockIndex *pindex, const std::shared_
         // but we don't think they have this one, go ahead and announce it
         if (state.m_requested_hb_cmpctblocks && !PeerHasHeader(&state, pindex) && PeerHasHeader(&state, pindex->pprev)) {
 
-            LogPrint(BCLog::NET, "%s: sending header-and-ids %s to peer=%d%s\n", "PeerManager::NewPoSValidBlock",
+            LogPrint(BCLog::NET, "PeerManager::NewPoSValidBlock(): sending header-and-ids %s to peer=%d%s\n",
                     hashBlock.ToString(), pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
 
             m_connman.PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, pocketBlockData));
