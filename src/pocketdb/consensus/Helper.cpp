@@ -21,8 +21,8 @@ namespace PocketConsensus
                 if (auto[ok, result] = validate(tx, *it, pBlock, height); !ok)
                 {
                     LogPrint(BCLog::CONSENSUS,
-                        "Warning: SocialConsensus type:%d validate tx:%s blk:%s failed with result:%d at height:%d\n",
-                        (int) *(*it)->GetType(), txHash, block.GetHash().GetHex(), (int) result, height);
+                        "Warning: SocialConsensus type:%d (%s) validate tx:%s blk:%s failed with result:%d (%s) at height:%d\n",
+                        (int) *(*it)->GetType(), TransactionHelper::TxStringType((TxType) *(*it)->GetType()), txHash, block.GetHash().GetHex(), (int) result, SocialConsensusResultString((SocialConsensusResult) result), height);
 
                     return {false, result};
                 }
@@ -40,8 +40,8 @@ namespace PocketConsensus
 
         if (auto[ok, result] = validate(tx, ptx, nullptr, height); !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate failed with result:%d for tx:%s at height:%d\n",
-                (int) *ptx->GetType(), (int)result, *ptx->GetHash(), height);
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d (%s) validate failed with result:%d (%s) for tx:%s at height:%d\n",
+                (int) *ptx->GetType(), TransactionHelper::TxStringType((TxType) *ptx->GetType()), (int)result, SocialConsensusResultString((SocialConsensusResult) result), *ptx->GetHash(), height);
 
             return {false, result};
         }
@@ -53,8 +53,8 @@ namespace PocketConsensus
     {
         if (auto[ok, result] = validate(tx, ptx, pBlock, height); !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate tx:%s failed with result:%d for block construction at height:%d\n",
-                (int)*ptx->GetType(), *ptx->GetHash(), (int)result, height);
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d (%s) validate tx:%s failed with result:%d (%s) for block construction at height:%d\n",
+                (int) *ptx->GetType(), TransactionHelper::TxStringType((TxType) *ptx->GetType()), *ptx->GetHash(), (int) result, SocialConsensusResultString((SocialConsensusResult) result), height);
 
             return {false, result};
         }
