@@ -207,7 +207,7 @@ namespace PocketDb
                 priceMax as (select ? as value),
                 priceMin as (select ? as value)
             select
-                (select r.String from Registry r where r.RowId = t.RowId)
+                distinct (select r.String from Registry r where r.RowId = t.RowId)
             from
                 web.Content f
             cross join
