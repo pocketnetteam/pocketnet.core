@@ -1061,12 +1061,12 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
 
     // Check transaction with pocketnet base rules
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
-        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d (%s)\n", (int) result, PocketConsensus::SocialConsensusResultString((PocketConsensus::SocialConsensusResult) result)), (int)result);
 
     // Check transaction with pocketnet consensus rules
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
-    
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d (%s)\n", (int) result, PocketConsensus::SocialConsensusResultString((PocketConsensus::SocialConsensusResult) result)), (int)result);
+
 
     // At this point, we believe that all the checks have been carried
     // out and we can safely save the transaction to the database for
@@ -2495,8 +2495,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         // Pocketnet Consensus rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pindex->nHeight); !ok)
         {
-            LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
-                (int)result, pindex->GetBlockHash().GetHex());
+            LogPrintf("WARNING: SocialConsensus validating failed with result %d (%s) for block %s\n",
+                (int)result, PocketConsensus::SocialConsensusResultString((PocketConsensus::SocialConsensusResult) result), pindex->GetBlockHash().GetHex());
 
             // We do not mark the block invalid for situations where the chain can be rebuilt.
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
@@ -2504,7 +2504,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             return state.Invalid(BlockValidationResult::BLOCK_INCOMPLETE, "failed-validate-social-consensus", "", true);
         }
         
-        LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+        LogPrint(BCLog::CONSENSUS, "    Block:%s validated at height:%d\n", block.GetHash().GetHex(), pindex->nHeight);
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
@@ -2517,6 +2517,11 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Finalize connect
     if (fJustCheck)
         return true;
+
+    // All good...RELAY NOW
+    // (but if it does not build on our best tip, let the SendMessages loop relay it)
+    if (!IsInitialBlockDownload() && m_chain.Tip() == pindex->pprev)
+        GetMainSignals().NewPoSValidBlock(pindex, std::make_shared<const CBlock>(block), pocketBlock);
 
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
@@ -4407,11 +4412,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const
         return error("%s: %s", __func__, state.ToString());
     }
 
-    // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
-    // (but if it does not build on our best tip, let the SendMessages loop relay it)
-    if (!IsInitialBlockDownload() && m_chain.Tip() == pindex->pprev)
-        GetMainSignals().NewPoSValidBlock(pindex, pblock, pocketBlock);
-
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
@@ -4483,7 +4483,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
                 *fNewBlock = false;
             }
                 
-            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, hash);
+            LogPrint(BCLog::CONSENSUS, "    Block:%s checked at height:%d with result:%d\n", hash, checkHeight, (ret ? 1 : 0));
         }
 
         int64_t nTime4 = GetTimeMicros();
@@ -5048,8 +5048,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
                     pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock, pindex->nHeight); !ok)
-                return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d at %d, hash=%s",
-                    (int)result, pindex->nHeight, pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d (%s) at %d, hash=%s",
+                    (int)result, PocketConsensus::SocialConsensusResultString((PocketConsensus::SocialConsensusResult) result), pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 ResetBlockFailureFlags(pindex);
