@@ -116,11 +116,9 @@ namespace PocketDb
                     cross join
                         Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
                             on t.Type in (211) and t.RegId1 = addressRegId.RowId
-                    left join
-                        Chain c
-                            on c.TxId = t.RowId
-                    where
-                        c.Height is null
+                    cross join
+                        Mempool m on
+                            m.TxId = t.RowId
                 )
             select
                 lastTx.Type,

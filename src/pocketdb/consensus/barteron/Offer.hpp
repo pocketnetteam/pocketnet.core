@@ -37,6 +37,7 @@ namespace PocketConsensus
 
             // Get all the necessary data for transaction validation
             // Validate new or edited transaction
+            LogPrintf("BarteronOfferConsensus::Validate: ptx->IsEdit() = %s\n", ptx->IsEdit() ? "true" : "false");
             if (ptx->IsEdit())
                 ValidateEdit(ptx);
             else
