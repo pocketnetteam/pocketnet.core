@@ -108,7 +108,7 @@ namespace PocketDb
                         Last l
                             on l.TxId = t.RowId
                 ),
-                mempool as (
+                mmpl as (
                     select
                         count()cnt
                     from
@@ -123,11 +123,11 @@ namespace PocketDb
             select
                 lastTx.Type,
                 active.cnt,
-                mempool.cnt
+                mmpl.cnt
             from
                 lastTx,
                 active,
-                mempool
+                mmpl
         )sql";
 
         #pragma endregion
