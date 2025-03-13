@@ -590,8 +590,6 @@ add_library(${POCKETDB}
         pocketdb/migrations/main.cpp
         pocketdb/migrations/web.h
         pocketdb/migrations/web.cpp
-        pocketdb/migrations/old_minimal.h
-        pocketdb/migrations/old_minimal.cpp
 
         pocketdb/models/base/PocketTypes.h
         pocketdb/models/base/DtoModels.h
