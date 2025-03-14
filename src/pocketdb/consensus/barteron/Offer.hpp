@@ -27,17 +27,13 @@ namespace PocketConsensus
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const BarteronOfferRef& ptx, const PocketBlockRef& block) override
         {
-            consensusData = ConsensusRepoInst.BarteronOffer(
-                *ptx->GetAddress(),
-                *ptx->GetRootTxHash()
-            );
+            consensusData = GetConsensusData(ptx);
 
             if (auto[ok, code] = SocialConsensus::Validate(tx, ptx, block); !ok)
                 return {false, code};
 
             // Get all the necessary data for transaction validation
             // Validate new or edited transaction
-            LogPrintf("BarteronOfferConsensus::Validate: ptx->IsEdit() = %s\n", ptx->IsEdit() ? "true" : "false");
             if (ptx->IsEdit())
                 ValidateEdit(ptx);
             else
@@ -69,6 +65,14 @@ namespace PocketConsensus
 
     protected:
         ConsensusData_BarteronOffer consensusData;
+
+        virtual ConsensusData_BarteronOffer GetConsensusData(const BarteronOfferRef& ptx)
+        {
+            return ConsensusRepoInst.BarteronOffer(
+                *ptx->GetAddress(),
+                *ptx->GetRootTxHash()
+            );
+        }
 
         void ValidateNew(const BarteronOfferRef& ptx)
         {
@@ -109,13 +113,28 @@ namespace PocketConsensus
 
     };
 
+    class BarteronOfferConsensus_pip114 : public BarteronOfferConsensus
+    {
+    public:
+        BarteronOfferConsensus_pip114() : BarteronOfferConsensus() { }
+    protected:
+        ConsensusData_BarteronOffer GetConsensusData(const BarteronOfferRef& ptx) override
+        {
+            return ConsensusRepoInst.BarteronOfferFixed(
+                *ptx->GetAddress(),
+                *ptx->GetRootTxHash()
+            );
+        }
+    };
+
     // Factory for select actual rules version
     class BarteronOfferConsensusFactory : public BaseConsensusFactory<BarteronOfferConsensus>
     {
     public:
         BarteronOfferConsensusFactory()
         {
-            Checkpoint({ 2930000, 0, 0, make_shared<BarteronOfferConsensus>() });
+            Checkpoint({ 2930000,       0, -1, make_shared<BarteronOfferConsensus>() });
+            Checkpoint({ 3370000, 3704000,  0, make_shared<BarteronOfferConsensus_pip114>() });
         }
     };
 
