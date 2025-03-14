@@ -96,7 +96,7 @@ class BarteronTest(PocketcoinTestFramework):
         brtOffers = []
         lang = ['en','ru','gb']
         for i, account in enumerate(builder.accounts):
-            for ii in range(10):
+            for ii in range(5):
                 bartOffer = BartOfferPayload()
                 bartOffer.s1 = account.Address
                 bartOffer.p = Payload()
@@ -112,6 +112,20 @@ class BarteronTest(PocketcoinTestFramework):
         
         for i, account in enumerate(builder.accounts):
             assert json.loads(node.public().getbarteronoffersbyaddress(account.Address)[0]['p']['s4'])['test'] == "HOI"
+
+        # ---------------------------------------------------------------------------------
+        self.log.info("Maximum offers count")
+        bartOffer = BartOfferPayload()
+        bartOffer.s1 = builder.accounts[0].Address
+        bartOffer.p = Payload()
+        bartOffer.p.s1 = lang[random.randint(0, 2)]
+        bartOffer.p.s2 = f'Custom caption with random ({random.randint(0, 100)}) number'
+        bartOffer.p.s3 = f'Custom description with random ({random.randint(0, 100)}) number'
+        bartOffer.p.s5 = ['http://image.url.1','http://image.url.2']
+        bartOffer.p.s6 = randomword(random.randint(0, 10))
+        bartOffer.p.i1 = random.randint(0, 1000)
+        bartOffer.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
+        assert_raises_rpc_error(ConsensusResult.ExceededLimit, None, pubGenTx, builder.accounts[0], bartOffer)
 
         # ---------------------------------------------------------------------------------
         self.log.info("Moderation checks")
