@@ -151,3 +151,12 @@ Fork start at:
 
 Changes:
 - Increase the number of moderators for the jury to 240 [PR #831](https://github.com/pocketnetteam/pocketnet.core/pull/831)
+
+## `PIP 114`: Correcting the consensus verification data request for the Barteron Offer
+
+Fork start at:
+- Main net: 3370000
+- Test net: 3704000
+
+Changes:
+- There is a problem that incorrectly processes the data request for "new" offers [PR #841](https://github.com/pocketnetteam/pocketnet.core/pull/841)
