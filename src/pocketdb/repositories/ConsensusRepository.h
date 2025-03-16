@@ -115,6 +115,7 @@ namespace PocketDb
 
         ConsensusData_BarteronAccount BarteronAccount(const string& address);
         ConsensusData_BarteronOffer BarteronOffer(const string& address, const string& rootTxHash);
+        ConsensusData_BarteronOffer BarteronOfferFixed(const string& address, const string& rootTxHash);
 
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);

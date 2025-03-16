@@ -151,6 +151,92 @@ namespace PocketDb
         return result;
     }
 
+    ConsensusData_BarteronOffer ConsensusRepository::BarteronOfferFixed(const string& address, const string& rootTxHash)
+    {
+        #pragma region Prepare
+
+        ConsensusData_BarteronOffer result;
+        
+        string sql = R"sql(
+            with
+                addressRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                ),
+                rootRegId as (
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        String = ?
+                )
+            select
+                ifnull((
+                    select
+                        t.Type
+                    from
+                        addressRegId,
+                        rootRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId and t.RegId2 = rootRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
+                ),211)lastTxType,
+                (
+                    select
+                        count()cnt
+                    from
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
+                )activeCnt,
+                (
+                    select
+                        count()cnt
+                    from
+                        addressRegId
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on t.Type in (211) and t.RegId1 = addressRegId.RowId
+                    -- Fix
+                    cross join
+                        Mempool m on
+                            m.TxId = t.RowId
+                )mmplCnt
+        )sql";
+
+        #pragma endregion
+
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(address, rootTxHash)
+            .Select([&](Cursor& cursor) {
+                if (cursor.Step())
+                {
+                    cursor.CollectAll(
+                        result.LastTxType,
+                        result.ActiveCount,
+                        result.MempoolCount
+                    );
+                }
+            });
+        });
+
+        return result;
+    }
+
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;
