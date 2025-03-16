@@ -487,6 +487,8 @@ namespace PocketWeb::PocketWebRpc
             RPCTypeCheck(request.params, {UniValue::VSTR});
 
             string from = request.params[0].get_str();
+            if (from.empty())
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, from address is required");
 
             string to;
             if (request.params[1].isStr())
