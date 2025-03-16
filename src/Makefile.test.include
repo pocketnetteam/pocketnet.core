@@ -260,6 +260,7 @@ POCKETCOIN_TESTS =\
   test/flatfile_tests.cpp \
   test/fs_tests.cpp \
   test/getarg_tests.cpp \
+  test/i2p_tests.cpp \
   test/interfaces_tests.cpp \
   test/logging_tests.cpp \
   test/dbwrapper_tests.cpp \

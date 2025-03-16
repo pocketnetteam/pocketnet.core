@@ -77,6 +77,7 @@ public:
                 return m_reg_height;
             }
         }
+        return -1;
     }
 
     int GetVersion() const
