@@ -652,65 +652,70 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        string sql = R"sql(
+            select
+                distinct
+                (select r.String from Registry r where r.RowId = ofr.AddressId) addrFrom,
+                (select r.String from Registry r where r.RowId = ot.AddressId) addrTo,
+                (select r.String from Registry r where r.RowId = t.RowId) tx,
+                t.Type,
+                tc.Height,
+                ot.Value,
+                t.Time,
+                (
+                    select
+                        (select r.String from Registry r where r.RowId = ot0.ScriptPubKeyId)
+                    from TxOutputs ot0 indexed by TxOutputs_TxId_Number_AddressId
+                    where
+                        ot0.TxId = ot.TxId and
+                        ot0.Number = 0
+                ) pubkey
+            from
+                TxOutputs ot
+            cross join
+                TxOutputs of on
+                    of.TxId = ot.TxId
+            )sql" + (from.empty() ? ""s : " and of.AddressId = ( select RowId as value from Registry where String = ?) "s) +R"sql(
+            cross join
+                Transactions t on
+                    t.RowId = of.TxId and
+                    t.Type in (1, 204)
+            cross join
+                Chain tc indexed by Chain_TxId_Height on
+                    tc.TxId = t.RowId and
+                    tc.Height >= ?
+            cross join
+                TxInputs it indexed by TxInputs_SpentTxId_Number_TxId on
+                    it.SpentTxId = ot.TxId
+            cross join
+                TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
+                    ofr.TxId = it.TxId and
+                    ofr.Number = it.Number and
+                    ofr.AddressId != ( select RowId as value from Registry where String = ?)
+                    )sql" + (from.empty() ? ""s : " and ofr.AddressId = ( select RowId as value from Registry where String = ?) "s) +R"sql(
+            where
+                ot.AddressId = ( select RowId as value from Registry where String = ?)
+        )sql";
+
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return Sql(R"sql(
-                    with
-                        addrFr as ( select RowId as value from Registry where String = ?),
-                        addrTo as ( select RowId as value from Registry where String = ?)
-                    select
-                        distinct
-                        (select r.String from Registry r where r.RowId = ofr.AddressId) addrFrom,
-                        (select r.String from Registry r where r.RowId = ot.AddressId) addrTo,
-                        (select r.String from Registry r where r.RowId = t.RowId) tx,
-                        t.Type,
-                        tc.Height,
-                        ot.Value,
-                        t.Time,
-                        (
-                            select
-                                (select r.String from Registry r where r.RowId = ot0.ScriptPubKeyId)
-                            from TxOutputs ot0 indexed by TxOutputs_TxId_Number_AddressId
-                            where
-                                ot0.TxId = ot.TxId and
-                                ot0.Number = 0
-                        ) pubkey
-                    from
-                        addrFr,
-                        addrTo
-                    cross join
-                        TxOutputs ot on
-                            ot.AddressId = addrTo.value
-                    cross join
-                        TxOutputs of on
-                            of.TxId = ot.TxId and
-                            ( ? or of.AddressId = addrFr.value )
-                    cross join
-                        Transactions t on
-                            t.RowId = of.TxId and
-                            t.Type in (1, 204)
-                    cross join
-                        Chain tc indexed by Chain_TxId_Height on
-                            tc.TxId = t.RowId and
-                            tc.Height >= ?
-                    cross join
-                        TxInputs it indexed by TxInputs_SpentTxId_Number_TxId on
-                            it.SpentTxId = ot.TxId
-                    cross join
-                        TxOutputs ofr indexed by TxOutputs_TxId_Number_AddressId on
-                            ofr.TxId = it.TxId and
-                            ofr.Number = it.Number and
-                            ofr.AddressId != addrTo.value and
-                            ( ? or ofr.AddressId = addrFr.value )
-                )sql")
-                .Bind(
-                    from,
-                    to,
-                    from.empty(),
+                auto& stmt = Sql(sql);
+
+                if (!from.empty())
+                    stmt.Bind(from);
+
+                stmt.Bind(
                     minHeight,
-                    from.empty()
+                    to
                 );
+
+                if (!from.empty())
+                    stmt.Bind(from);
+
+                stmt.Bind(to);
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
