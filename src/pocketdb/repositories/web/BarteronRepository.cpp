@@ -215,12 +215,12 @@ namespace PocketDb
                     fm.ROWID = f.ROWID and
                     fm.FieldType in (12,13)
             cross join
-                Chain ct indexed by Chain_Uid_Height
-                    on fm.ContentId = ct.Uid and ct.Height <= ?
+                Transactions t indexed by Transactions_RowId_desc_Type_RegId1 on
+                    t.RowId = fm.ContentId and
+                    t.Type in (211)
             cross join
-                Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    t.Type in (211) and
-                    ct.TxId = t.RowId
+                Chain ct indexed by Chain_Uid_Height
+                    on ct.Uid = t.RowId and ct.Height <= ?
             cross join
                 Last lt
                     on lt.TxId = t.RowId
@@ -528,7 +528,7 @@ namespace PocketDb
                     where
                         fm.FieldType in (12,13) and
                         f.Value match ?
-                ) sc on sc.ContentId = ct.Uid
+                ) sc on sc.ContentId = t.RowId
             )sql";
         }
 
@@ -676,7 +676,7 @@ namespace PocketDb
                     where
                         fm.FieldType in (12,13) and
                         f.Value match ?
-                ) sc on sc.ContentId = co2.Uid
+                ) sc on sc.ContentId = to2.RowId
             )sql";
         }
         

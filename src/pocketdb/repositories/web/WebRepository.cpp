@@ -242,7 +242,7 @@ namespace PocketDb
                 height as ( select ? as value )
             select
                 t.Type,
-                c.Uid,
+                t.RowId,
                 p.String1,
                 p.String2,
                 p.String3,
@@ -282,50 +282,52 @@ namespace PocketDb
                         {
                         case ACCOUNT_USER:
 
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, value));
 
-                            if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
+                            if (auto[ok, value] = cursor.TryGetColumnString(5); ok)    
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, value));
 
-                            // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
+                            // if (auto[ok, value] = cursor.TryGetColumnString(6); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, value));
 
                             break;
                         case CONTENT_POST:
 
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
                             
-                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
 
-                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
+                            // if (auto[ok, value] = cursor.TryGetColumnString(8); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, value));
 
                             break;
                         case CONTENT_VIDEO:
 
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, value));
 
-                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
-
-                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, value));
 
                             break;
                         
-                        // TODO (aok): parse JSON for indexing
-                        // case CONTENT_ARTICLE:
+                        case CONTENT_ARTICLE:
+
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
+
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
 
                         // case CONTENT_COMMENT:
                         // case CONTENT_COMMENT_EDIT:
 
                             // TODO (aok): implement extract message from JSON
-                            // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
+                            // if (auto[ok, value] = cursor.TryGetColumnString(2); ok)
+                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, value));
 
                             // break;
 

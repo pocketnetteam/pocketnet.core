@@ -4264,7 +4264,7 @@ namespace PocketDb
         return rslt;
     }
 
-    vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address)
+    vector<UniValue> WebRpcRepository::GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address, bool includeProfiles)
     {
         vector<UniValue> result{};
 
@@ -4538,9 +4538,12 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get profiles for posts
-        auto profiles = GetAccountProfiles(authors);
-        for (auto& record : tmpResult)
-            record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
+        if (includeProfiles)
+        {
+            auto profiles = GetAccountProfiles(authors);
+            for (auto& record : tmpResult)
+                record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
+        }
 
         // ---------------------------------------------
         // Place in result data with source sorting
@@ -5267,7 +5270,7 @@ namespace PocketDb
         // Get content data
         if (!ids.empty())
         {
-            auto contents = GetContentsData({}, ids, address);
+            auto contents = GetContentsData({}, ids, address, false);
             result.push_backV(contents);
         }
 
@@ -5391,7 +5394,7 @@ namespace PocketDb
             select
                 ct.Uid
             from
-                Transactions t indexed by Transactions_RowId_desc_Type
+                Transactions t indexed by Transactions_RowId_desc_Type_RegId1
             cross join
                 Payload p on
                     p.TxId = t.RowId and
@@ -5614,7 +5617,7 @@ namespace PocketDb
             select
                 ct.Uid
             from
-                Transactions t indexed by Transactions_RowId_desc_Type
+                Transactions t indexed by Transactions_RowId_desc_Type_RegId1
             cross join
                 Payload p on
                     p.TxId = t.RowId and
