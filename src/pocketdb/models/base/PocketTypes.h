@@ -160,6 +160,8 @@ namespace PocketTx
         ContentFieldType_BarteronCaption = 12, // Payload.String2
         ContentFieldType_BarteronDescription = 13, // Payload.String3
         ContentFieldType_AppScope = 14, // Payload.String1.s
+        ContentFieldType_ContentArticleCaption = 15, // Payload.String3
+        ContentFieldType_ContentArticleMessage = 16, // Payload.String4
     };
 
     // Transaction info for indexing spents and other

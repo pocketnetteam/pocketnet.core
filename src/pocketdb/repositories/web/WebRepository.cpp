@@ -281,68 +281,36 @@ namespace PocketDb
                         switch ((TxType)type)
                         {
                         case ACCOUNT_USER:
-
                             if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, value));
-
                             if (auto[ok, value] = cursor.TryGetColumnString(5); ok)    
                                 result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, value));
-
-                            // if (auto[ok, value] = cursor.TryGetColumnString(6); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, value));
-
                             break;
                         case CONTENT_POST:
-
                             if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
-                            
                             if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
-
-                            // if (auto[ok, value] = cursor.TryGetColumnString(8); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, value));
-
                             break;
                         case CONTENT_VIDEO:
-
                             if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, value));
-
                             if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, value));
-
-                            break;
-                        
+                            break;                        
                         case CONTENT_ARTICLE:
-
                             if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
-
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleCaption, value));
                             if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
-
-                        // case CONTENT_COMMENT:
-                        // case CONTENT_COMMENT_EDIT:
-
-                            // TODO (aok): implement extract message from JSON
-                            // if (auto[ok, value] = cursor.TryGetColumnString(2); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, value));
-
-                            // break;
-
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
+                            break;
                         case BARTERON_OFFER:
-
                             if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
-
                             if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_BarteronDescription, val));
-
-                            break;
-                        
+                            break;                        
                         case APP:
-
                             if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
                             {
                                 UniValue data(UniValue::VOBJ);
@@ -360,9 +328,7 @@ namespace PocketDb
                                 if (data.exists("s"))
                                     result.emplace_back(WebContent(id, ContentFieldType_AppScope, data["s"].get_str()));
                             }
-
-                            break;
-                        
+                            break;                        
                         default:
                             break;
                         }
