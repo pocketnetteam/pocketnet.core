@@ -437,12 +437,12 @@ namespace PocketDb
                         select
                             c.Uid
                         from
-                            Transactions t
+                            Chain c
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = t.RowId and c.Height = ?
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                                on t.RowId = c.TxId and t.Type in (104)
                         where
-                            t.Type in (104)
+                            c.Height = ?
                     )
             )sql")
             .Bind(height)
@@ -455,17 +455,17 @@ namespace PocketDb
                     c.Uid,
                     pj.value
                 from
-                    Transactions t
+                    Chain c
                 cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = t.RowId and c.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = c.TxId and t.Type in (104)
                 cross join
                     Payload p
                         on p.TxId = t.RowId
                 cross join
                     json_each(p.String4, '$.a') as pj
                 where
-                    t.Type = 104 and
+                    c.Height = ? and
                     json_valid(p.String4) and
                     json_type(p.String4, '$.a') = 'array'
             )sql")
@@ -491,7 +491,7 @@ namespace PocketDb
                             BarteronOffers bo indexed by BarteronOffers_OfferId_Tag_AccountId
                                 on bo.OfferId = c.Uid
                         cross join
-                            Transactions t
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1
                                 on t.RowId = c.TxId and t.Type = 211
                         where
                             c.Height = ?
@@ -509,10 +509,10 @@ namespace PocketDb
                     ct.Uid as OfferId,
                     json_extract(p.String4, '$.t') as Tag
                 from
-                    Transactions t
+                    Chain ct
                 cross join
-                    Chain ct indexed by Chain_TxId_Height
-                        on ct.TxId = t.RowId and ct.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = ct.TxId and t.Type = 211
                 cross join
                     Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                         on u.Type = 104 and u.RegId1 = t.RegId1
@@ -526,7 +526,7 @@ namespace PocketDb
                     Payload p -- primary key
                         on p.TxId = t.RowId
                 where
-                    t.Type = 211 and
+                    ct.Height = ? and
                     json_valid(p.String4)
             )sql")
             .Bind(height)
@@ -562,17 +562,17 @@ namespace PocketDb
                     ct.Uid as OfferId,
                     pj.value as Tag
                 from
-                    Transactions t
+                    Chain ct
                 cross join
-                    Chain ct indexed by Chain_TxId_Height
-                        on ct.TxId = t.RowId and ct.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = ct.TxId and t.Type = 211
                 cross join
                     Payload p -- primary key
                         on p.TxId = t.RowId
                 cross join
                     json_each(p.String4, '$.a') as pj
                 where
-                    t.Type = 211 and
+                    ct.Height = ? and
                     json_valid(p.String4) and
                     json_type(p.String4, '$.a') = 'array'
             )sql")
