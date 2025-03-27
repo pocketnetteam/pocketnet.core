@@ -19,6 +19,7 @@ User=pocketcoin
 Type=forking
 PIDFile=/run/pocketcoind/pocketcoind.pid
 Restart=on-failure
+LimitNOFILE=65536
 
 # Hardening measures
 ####################

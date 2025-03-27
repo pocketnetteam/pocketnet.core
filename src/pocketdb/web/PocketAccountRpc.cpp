@@ -733,11 +733,11 @@ namespace PocketWeb::PocketWebRpc
 
             int offset = 0;
             if (request.params.size() > 3 && request.params[3].isNum())
-                offset = min(0, request.params[3].get_int());
+                offset = request.params[3].get_int();
 
             int limit = 10;
             if (request.params.size() > 4 && request.params[4].isNum())
-                limit = min(0, request.params[4].get_int());
+                limit = request.params[4].get_int();
 
             return request.DbConnection()->WebRpcRepoInst->GetSubscribersAddresses(
                 address, { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE }, orderBy, orderDesc, offset, limit);
