@@ -518,7 +518,6 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
     }
     CNode* pnode = new CNode(id,
                              nLocalServices,
-			     GetBestHeight(),
                              std::move(sock),
                              addrConnect,
                              CalculateKeyedNetGroup(addrConnect),
@@ -1223,7 +1222,6 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
 //    CNode* pnode = new CNode(id, nodeServices, GetBestHeight(), sock->Release(), addr, CalculateKeyedNetGroup(addr), nonce, addr_bind, "", ConnectionType::INBOUND, inbound_onion);
     CNode* pnode = new CNode(id,
                              nodeServices,
-			     GetBestHeight(),
                              std::move(sock),
                              addr,
                              CalculateKeyedNetGroup(addr),
@@ -3022,21 +3020,10 @@ ServiceFlags CConnman::GetLocalServices() const
     return nLocalServices;
 }
 
-void CConnman::SetBestHeight(int height)
-{
-    nBestHeight.store(height, std::memory_order_release);
-}
-
-int CConnman::GetBestHeight() const
-{
-    return nBestHeight.load(std::memory_order_acquire);
-}
-
 unsigned int CConnman::GetReceiveFloodSize() const { return nReceiveFloodSize; }
 
 CNode::CNode(NodeId idIn,
              ServiceFlags nLocalServicesIn,
-             int nMyStartingHeightIn,
              std::shared_ptr<Sock> sock,
              const CAddress& addrIn,
              uint64_t nKeyedNetGroupIn,
@@ -3058,7 +3045,6 @@ CNode::CNode(NodeId idIn,
       nLocalHostNonce(nLocalHostNonceIn),
       m_conn_type(conn_type_in),
       nLocalServices(nLocalServicesIn),
-      nMyStartingHeight(nMyStartingHeightIn),
       m_inbound_onion(inbound_onion),
       m_i2p_sam_session{std::move(node_opts.i2p_sam_session)}
 {

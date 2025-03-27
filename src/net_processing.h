@@ -96,6 +96,9 @@ public:
      */
     void Misbehaving(const NodeId pnode, const int howmuch, const std::string& message);
 
+    /** Set the best height */
+    void SetBestHeight(int height) { m_best_height = height; };
+
 private:
     /**
      * Potentially mark a node discouraged based on the contents of a BlockValidationState object
@@ -136,6 +139,9 @@ private:
     void AddTxAnnouncement(const CNode& node, const GenTxid& gtxid, std::chrono::microseconds current_time)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
+    /** Send a version message to a peer */
+    void PushNodeVersion(CNode& pnode, int64_t nTime);
+
     const CChainParams& m_chainparams;
     CConnman& m_connman;
     /** Pointer to this node's banman. May be nullptr - check existence before dereferencing. */
@@ -143,6 +149,9 @@ private:
     ChainstateManager& m_chainman;
     CTxMemPool& m_mempool;
     TxRequestTracker m_txrequest GUARDED_BY(::cs_main);
+
+    /** The height of the best chain */
+    std::atomic<int> m_best_height{-1};
 
     int64_t m_stale_tip_check_time; //!< Next time to check for stale tip
 };

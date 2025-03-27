@@ -178,7 +178,6 @@ BOOST_AUTO_TEST_CASE(caddrdb_read_corrupted)
 BOOST_AUTO_TEST_CASE(cnode_simple_test)
 {
     NodeId id = 0;
-    int height = 0;
 
     in_addr ipv4Addr;
     ipv4Addr.s_addr = 0xa0b0c001;
@@ -188,7 +187,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 
     std::unique_ptr<CNode> pnode1 = std::make_unique<CNode>(id++,
                                                             NODE_NETWORK,
-							    height,
                                                             /*sock=*/nullptr,
                                                             addr,
                                                             /*nKeyedNetGroupIn=*/0,
@@ -207,7 +205,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 
     std::unique_ptr<CNode> pnode2 = std::make_unique<CNode>(id++,
                                                             NODE_NETWORK,
-							    height,
                                                             /*sock=*/nullptr,
                                                             addr,
                                                             /*nKeyedNetGroupIn=*/1,
@@ -226,7 +223,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 
     std::unique_ptr<CNode> pnode3 = std::make_unique<CNode>(id++,
                                                             NODE_NETWORK,
-							    height,
                                                             /*sock=*/nullptr,
                                                             addr,
                                                             /*nKeyedNetGroupIn=*/0,
@@ -245,7 +241,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 
     std::unique_ptr<CNode> pnode4 = std::make_unique<CNode>(id++,
                                                             NODE_NETWORK,
-							    height,
                                                             /*sock=*/nullptr,
                                                             addr,
                                                             /*nKeyedNetGroupIn=*/1,
@@ -694,7 +689,6 @@ BOOST_AUTO_TEST_CASE(ipv4_peer_with_ipv6_addrMe_test)
     CAddress addr = CAddress(CService(ipv4AddrPeer, 7777), NODE_NETWORK);
     std::unique_ptr<CNode> pnode = std::make_unique<CNode>(/*id=*/0,
                                                            NODE_NETWORK,
-							   /* height */ 0,
                                                            /*sock=*/nullptr,
                                                            addr,
                                                            /*nKeyedNetGroupIn=*/0,
