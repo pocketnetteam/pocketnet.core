@@ -39,6 +39,40 @@ namespace PocketDb
         return result;
     }
 
+    string SearchRepository::FormatSearchKeyword(const string& keyword)
+    {
+        // Разделение ключевого слова на подстроки по пробелам и символам подчеркивания
+        vector<string> keywords;
+        string current;
+        for (char c : keyword) {
+            if (c == ' ' || c == '_') {
+                if (!current.empty()) {
+                    keywords.push_back(current);
+                    current.clear();
+                }
+            } else {
+                current += c;
+            }
+        }
+        if (!current.empty()) {
+            keywords.push_back(current);
+        }
+
+        // Формирование строки запроса в формате: "first_word" "second_word" ... OR "first_word"* "second_word"* ...
+        string formattedKeyword;
+        for (const auto& word : keywords) {
+            if (!formattedKeyword.empty()) formattedKeyword += " ";
+            formattedKeyword += "\"" + word + "\"";
+        }
+        formattedKeyword += " OR ";
+        for (size_t i = 0; i < keywords.size(); ++i) {
+            if (i > 0) formattedKeyword += " ";
+            formattedKeyword += "\"" + keywords[i] + "\"*";
+        }
+
+        return formattedKeyword;
+    }
+
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
         vector<int64_t> ids;
@@ -46,7 +80,7 @@ namespace PocketDb
         if (request.Keyword.empty())
             return ids;
 
-        string _keyword = "\"" + request.Keyword + "\"" + " OR \"" + request.Keyword + "\"*";
+        string _keyword = FormatSearchKeyword(request.Keyword);
 
         SqlTransaction(
             __func__,
@@ -114,7 +148,7 @@ namespace PocketDb
     {
         vector<int64_t> result;
 
-        string _keyword = "\"" + keyword + "\"" + " OR \"" + keyword + "\"*";
+        string _keyword = FormatSearchKeyword(keyword);
 
         SqlTransaction(
             __func__,

@@ -3,7 +3,6 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
-#include "pocketdb/migrations/old_minimal.h"
 #include "util/system.h"
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"

@@ -1559,7 +1559,7 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
-        auto result = UniValue(UniValue::VARR);
+        UniValue result = UniValue(UniValue::VARR);
 
         string parentWhere = " and c.RegId4 is null ";
         if (!parentHash.empty())
@@ -1567,143 +1567,39 @@ namespace PocketDb
 
         auto sql = R"sql(
             with
-            tx as (
-                select
-                    r.RowId as id,
-                    r.String as hash
-                from
-                    Registry r
-                where
-                    r.String = ?
-            ),
-            addr as (
-                select
-                    r.RowId as id,
-                    r.String as hash
-                from
-                    Registry r
-                where
-                    r.String = ?
-            )
-
-            select
-                c.Type,
-                (select r.String from Registry r where r.RowId = c.RowId),
-                (select r.String from Registry r where r.RowId = c.RegId2) as RootTxHash,
-                (select r.String from Registry r where r.RowId = c.RegId3) as PostTxHash,
-                (select r.String from Registry r where r.RowId = c.RegId1) as AddressHash,
-                r.Time AS RootTime,
-                c.Time,
-                cc.Height,
-                pl.String1 AS Msg,
-                (select r.String from Registry r where r.RowId = c.RegId4) as ParentTxHash,
-                (select r.String from Registry r where r.RowId = c.RegId5) as AnswerTxHash,
-                (
-                    select count()
-                    from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                    cross join Chain csc on csc.TxId = sc.RowId
-                    where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = 1
-                ) as ScoreUp,
-                (
-                    select count()
-                    from Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                    cross join Chain csc on csc.TxId = sc.RowId
-                    where sc.Type=301 and sc.RegId2 = c.RegId2 and sc.Int1 = -1
-                ) as ScoreDown,
-                (
-                    select r.Value
-                    from Ratings r indexed by Ratings_Type_Uid_Last_Value
-                    where r.Type = 3 and r.Uid = cc.Uid and r.Last = 1
-                ) as Reputation,
-                ifnull(sc.Int1, 0) as MyScore,
-                (
+                tx as (
                     select
-                        count()
+                        r.RowId as id
                     from
-                        Transactions s indexed by Transactions_Type_RegId4_RegId1
-                    cross join
-                        Last ls
-                            on ls.TxId = s.RowId
-                    cross join
-                        Chain cs
-                            on cs.TxId = s.RowId
-                    -- exclude deleted accounts TODO (aok, block): need?
-                    cross join
-                        Transactions uac indexed by Transactions_Type_RegId1_RegId2_RegId3
-                            on uac.Type = 100 and uac.RegId1 = s.RegId1
-                    cross join
-                        Last luac
-                            on luac.TxId = uac.RowId
+                        Registry r
                     where
-                        s.Type in (204, 205, 206) and
-                        s.RegId4 = c.RegId2
-                ) as ChildrenCount,
-                o.Value as Donate,
-                (select 1 from BlockingLists bl where bl.IdSource = t.RegId1 and bl.IdTarget = c.RegId1 limit 1)ContentBlockedComment,
-                (select 1 from BlockingLists bl where bl.IdSource = c.RegId1 and bl.IdTarget = t.RegId1 limit 1)CommentBlockedContent,
-                (
-                    select
-                        json_group_object(ff.reason, ff.cnt)
-                    from (
-                        select
-                            f.Int1 as reason,
-                            count() as cnt
-                        from
-                            Transactions f indexed by Transactions_Type_RegId2_RegId1
-                        where
-                            f.Type in (410) and
-                            f.RegId2 = c.RowId
-                        group by f.Int1
-                    ) ff
-                ) as Flags
+                        r.String = ?
+                )
+            select
+                cc.Uid
             from
-                tx,
-                addr
+                tx
             cross join
-                Transactions c indexed by Transactions_Type_RegId3_RegId1
-                    on c.Type in (204, 205, 206) and c.RegId3 = tx.id
+                Transactions c indexed by Transactions_Type_RegId3_RegId1 on
+                    c.Type in (204, 205, 206) and c.RegId3 = tx.id
             cross join
-                Last lc
-                    on lc.TxId = c.RowId
+                Last lc on
+                    lc.TxId = c.RowId
             cross join
-                Chain cc
-                    on cc.TxId = c.RowId
-            cross join
-                Transactions ua indexed by Transactions_Type_RegId1_RegId2_RegId3
-                    on ua.Type = 100 and ua.RegId1 = c.RegId1
-            cross join
-                Last lua
-                    on lua.TxId = ua.RowId
-            cross join
-                Transactions r
-                    on r.RowId = c.RegId2
-            left join
-                Payload pl
-                    on pl.TxId = c.RowId
-            cross join
-                Transactions t indexed by Transactions_Type_RegId2_RegId1
-                    on t.Type in (200, 201, 202, 209, 210) and t.RegId2 = c.RegId3
-            cross join
-                Last lt
-                    on lt.TxId = t.RowId
-            cross join
-                Chain ct
-                    on ct.TxId = t.RowId
-            left join
-                Transactions sc indexed by Transactions_Type_RegId2_RegId1
-                    on sc.Type in (301) and sc.RegId2 = c.RegId2 and sc.RegId1 = addr.id and exists (select 1 from Chain csc where csc.TxId = sc.RowId)
-            left join
-                TxOutputs o indexed by TxOutputs_AddressId_TxIdDesc_Number
-                    on o.TxId = r.RowId and o.AddressId = t.RegId1 and o.AddressId != c.RegId1
+                Chain cc on
+                    cc.TxId = c.RowId
             where 1=1
                 )sql" + parentWhere + R"sql(
         )sql";
+
+        vector<int64_t> cmntIds;
 
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
                 auto& stmt = Sql(sql);
-                stmt.Bind(postHash, addressHash);
+
+                stmt.Bind(postHash);
                 if (!parentHash.empty())
                     stmt.Bind(parentHash);
                     
@@ -1713,71 +1609,16 @@ namespace PocketDb
                 stmt.Select([&](Cursor& cursor) {
                     while (cursor.Step())
                     {
-                        UniValue record(UniValue::VOBJ);
-
-                        auto[ok1, rootTxHash] = cursor.TryGetColumnString(2);
-                        record.pushKV("id", rootTxHash);
-
-                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                            record.pushKV("postid", value);
-
-                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("address", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("time", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(6); ok) record.pushKV("timeUpd", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("block", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnString(8); ok) record.pushKV("msg", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(9); ok) record.pushKV("parentid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnString(10); ok) record.pushKV("answerid", value);
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(11); ok) record.pushKV("scoreUp", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(12); ok) record.pushKV("scoreDown", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(13); ok) record.pushKV("reputation", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(14); ok && !addressHash.empty()) record.pushKV("myScore", to_string(value));
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(15); ok) record.pushKV("children", to_string(value));
-
-                        if (auto[ok, value] = cursor.TryGetColumnInt64(16); ok)
-                        {
-                            record.pushKV("amount", value);
-                            record.pushKV("donation", "true");
-                        }
-
-                        if (auto[ok, value] = cursor.TryGetColumnInt(17); ok && value > 0)
-                            record.pushKV("blck_cnt_cmt", 1);
-                        if (auto[ok, value] = cursor.TryGetColumnInt(18); ok && value > 0)
-                            record.pushKV("blck_cmt_cnt", 1);
-
-                        if (auto[ok, value] = cursor.TryGetColumnString(19); ok)
-                        {
-                            UniValue flags(UniValue::VOBJ);
-                            flags.read(value);
-                            record.pushKV("flags", flags);
-                        };
-
-                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                        {
-                            switch (static_cast<TxType>(value))
-                            {
-                                case PocketTx::CONTENT_COMMENT:
-                                    record.pushKV("deleted", false);
-                                    record.pushKV("edit", false);
-                                    break;
-                                case PocketTx::CONTENT_COMMENT_EDIT:
-                                    record.pushKV("deleted", false);
-                                    record.pushKV("edit", true);
-                                    break;
-                                case PocketTx::CONTENT_COMMENT_DELETE:
-                                    record.pushKV("deleted", true);
-                                    record.pushKV("edit", true);
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-
-                        result.push_back(record);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                            cmntIds.push_back(value);
                     }
                 });
             }
         );
+
+        auto records = GetCommentsByIds(cmntIds, addressHash);
+        for (auto const& [id, record] : records)
+            result.push_back(record);
 
         return result;
     }
@@ -1819,10 +1660,16 @@ namespace PocketDb
             with = R"sql(
                 txs as (
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        t.RowId as id
                     from
                         Registry r
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                            t.Type in (204, 205, 206) and
+                            t.RegId2 = r.RowId
+                    cross join
+                        Last l
+                            on l.TxId = t.RowId
                     where
                         r.String in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
                 )
@@ -1833,8 +1680,7 @@ namespace PocketDb
             with = R"sql(
                 txs as (
                     select
-                        r.RowId as id,
-                        r.String as hash
+                        t.RowId as id
                     from
                         Chain c
                     cross join
@@ -1843,9 +1689,6 @@ namespace PocketDb
                     cross join
                         Last l
                             on l.TxId = t.RowId
-                    cross join
-                        Registry r
-                            on r.RowId = t.RowId
                     where
                         c.Uid in ( )sql" + join(vector<string>(cmntIds.size(), "?"), ",") + R"sql( )
                 )
@@ -1859,16 +1702,16 @@ namespace PocketDb
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                    addr as (
-                        select
-                            r.RowId as id,
-                            r.String as hash
-                        from
-                            Registry r
-                        where
-                            r.String = ?
-                    ),
-                    )sql" + with + R"sql(
+                        addr as (
+                            select
+                                r.RowId as id,
+                                r.String as hash
+                            from
+                                Registry r
+                            where
+                                r.String = ?
+                        ),
+                        )sql" + with + R"sql(
 
                     select
 
@@ -1946,8 +1789,8 @@ namespace PocketDb
                         txs,
                         addr
                     cross join
-                        Transactions c indexed by Transactions_Type_RegId2_RegId1
-                            on c.Type in (204, 205, 206) and c.RegId2 = txs.id
+                        Transactions c
+                            on c.Type in (204, 205, 206) and c.RowId = txs.id
                     cross join
                         Last lc
                             on lc.TxId = c.RowId

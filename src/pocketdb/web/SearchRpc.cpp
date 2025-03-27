@@ -145,7 +145,7 @@ namespace PocketWeb::PocketWebRpc
             searchRequest.OrderByRank = true;
             searchRequest.FieldTypes = {
                 ContentFieldType_AccountUserName,
-                // ContentFieldType_AccountUserAbout,
+                ContentFieldType_AccountUserAbout,
                 // ContentFieldType_AccountUserUrl
             };
 
