@@ -50,7 +50,7 @@ void ConnmanTestMsg::Handshake(CNode& node,
     assert(node.nVersion == version);
     assert(node.GetCommonVersion() == std::min(version, PROTOCOL_VERSION));
     CNodeStateStats statestats;
-    assert(GetNodeStateStats(node.GetId(), statestats));
+    assert(peerman.GetNodeStateStats(node.GetId(), statestats));
     assert(statestats.m_relay_txs == (relay_txs && !node.IsBlockOnlyConn()));
 //    assert(statestats.their_services == remote_services);
     if (successfully_connected) {

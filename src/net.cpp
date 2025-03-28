@@ -624,10 +624,6 @@ void CNode::copyStats(CNodeStats &stats, const std::vector<bool> &m_asmap)
     }
     stats.fInbound = IsInboundConn();
 
-//    stats.m_manual_connection = IsManualConn();		// FIXME!!! Delete!
-
-    X(nStartingHeight);
-
     X(m_bip152_highbandwidth_to);
     X(m_bip152_highbandwidth_from);
     {
@@ -3049,7 +3045,6 @@ CNode::CNode(NodeId idIn,
       m_i2p_sam_session{std::move(node_opts.i2p_sam_session)}
 {
     addrName = addrNameIn == "" ? addr.ToStringIPPort() : addrNameIn;
-    hashContinue = uint256();
     if (conn_type_in != ConnectionType::BLOCK_RELAY) {
         m_tx_relay = MakeUnique<TxRelay>();
     }
