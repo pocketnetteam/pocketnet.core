@@ -219,8 +219,8 @@ namespace PocketDb
                     t.RowId = fm.ContentId and
                     t.Type in (211)
             cross join
-                Chain ct indexed by Chain_Uid_Height
-                    on ct.Uid = t.RowId and ct.Height <= ?
+                Chain ct indexed by Chain_TxId_Height
+                    on ct.TxId = t.RowId and ct.Height <= ?
             cross join
                 Last lt
                     on lt.TxId = t.RowId

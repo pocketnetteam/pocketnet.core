@@ -12,7 +12,7 @@
 
 namespace PocketDb
 {
-    static int dbActualVersion = 2;
+    static int dbActualVersion = 3;
 
     static void ErrorLogCallback(void* arg, int code, const char* msg)
     {
@@ -74,14 +74,14 @@ namespace PocketDb
             dbVersion = dbActualVersion;
             SystemRepoInst.SetDbVersion(dbVersion);
         }
-        LogPrintf("SQLite database version: %d\n", dbVersion);
 
         // Detect old version of database and migrate moderation juries
-        if (dbVersion < dbActualVersion) {
+        int juryMigrationVersion = 2;
+        if (dbVersion < juryMigrationVersion) {
             LOCK(cs_main);
             LogPrintf("Migrating moderation juries\n");
             PocketServices::ChainPostProcessing::Migrate_Jury();
-            dbVersion = dbActualVersion;
+            dbVersion = juryMigrationVersion;
             PocketDb::SystemRepoInst.SetDbVersion(dbVersion);
         }
 
@@ -97,6 +97,18 @@ namespace PocketDb
 
         // Attach `web` db to `main` db
         SQLiteDbInst.AttachDatabase("web");
+
+        // Detect old version of database and migrate search index
+        int searchMigrationVersion = 3;
+        if (dbVersion < searchMigrationVersion) {
+            LOCK(cs_main);
+            LogPrintf("Migrating search index\n");
+            PocketServices::MigrationRepoInst.Migrate_SearchIndex();
+            dbVersion = searchMigrationVersion;
+            PocketDb::SystemRepoInst.SetDbVersion(dbVersion);
+        }
+
+        LogPrintf("SQLite database version: %d\n", dbVersion);
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)

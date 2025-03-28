@@ -28,6 +28,7 @@ namespace PocketDb
         int LikersByVote(const string& txHash, int height);
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int topHeight, int flagsMinCount, int juryModeratorsCount);
         void IndexModerationBan(const string& voteTxHash, int topHeight, int votesCount, int ban1Time, int ban2Time, int ban3Time);
+        void Migrate_SearchIndex();
     };
 
     typedef std::shared_ptr<MigrationRepository> MigrationRepositoryRef;

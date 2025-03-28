@@ -199,7 +199,7 @@ namespace PocketDb
                         from
                             keyword,
                             web.Content f
-                        join
+                        cross join
                             web.ContentMap fm on
                                 fm.ROWID = f.ROWID
                         cross join Transactions t on t.RowId = fm.ContentId
