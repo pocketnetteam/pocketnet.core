@@ -433,8 +433,44 @@ namespace PocketDb
         });
     }
 
+    void MigrationRepository::Migrate_SearchIndex()
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                create table if not exists web.ContentMap_NEW
+                (
+                    ContentId int not null,
+                    FieldType int not null,
+                    primary key (ContentId, FieldType)
+                )
+            )sql")
+            .Run();
 
+            Sql(R"sql(
+                insert into web.ContentMap_NEW (ROWID, ContentId, FieldType)
+                select
+                    cm.ROWID,
+                    t.RowId,
+                    cm.FieldType
+                from web.ContentMap cm
+                cross join Chain c on c.Uid = cm.ContentId
+                cross join Transactions t on t.RowId = c.TxId
+                cross join Last l on l.TxId = t.RowId
+            )sql")
+            .Run();
 
+            Sql(R"sql(
+                drop table if exists web.ContentMap
+            )sql")
+            .Run();
+
+            Sql(R"sql(
+                alter table web.ContentMap_NEW rename to ContentMap
+            )sql")
+            .Run();
+        });
+    }
 
 } // namespace PocketDb
 

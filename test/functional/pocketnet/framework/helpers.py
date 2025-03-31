@@ -31,7 +31,7 @@ def generate_accounts(node, node_address, account_num, amount=10, is_moderator=F
         accounts.append(Account(acc["address"], acc["privkey"], name))
         node.sendtoaddress(address=accounts[i].Address, amount=amount, destaddress=node_address)
 
-    node.stakeblock(10)
+    node.stakeblock(1)
 
     for account in accounts:
         address_info = node.public().getaddressinfo(address=account.Address)

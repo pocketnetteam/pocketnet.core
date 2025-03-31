@@ -130,7 +130,7 @@ namespace PocketDb
 
         map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address = "");
         map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address = "");
-        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address);
+        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address, bool includeProfiles = true);
         vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
 
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);

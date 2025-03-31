@@ -75,12 +75,14 @@ namespace PocketWeb::PocketWebRpc
         // Search posts in caption, message and urls
         if (type == "posts")
         {
-            searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO };
+            searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE };
             searchRequest.FieldTypes = {
                 ContentFieldType_ContentPostCaption,
-                ContentFieldType_ContentVideoCaption,
                 ContentFieldType_ContentPostMessage,
+                ContentFieldType_ContentVideoCaption,
                 ContentFieldType_ContentVideoMessage,
+                ContentFieldType_ContentArticleCaption,
+                ContentFieldType_ContentArticleMessage,
             };
 
             // Search
