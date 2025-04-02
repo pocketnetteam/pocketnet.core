@@ -620,7 +620,15 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
         const CTransaction& tx = it->GetTx();
         LockPoints lp = it->GetLockPoints();
         bool validLP = TestLockPointValidity(&lp);
-        if (!CheckFinalTx(tx, flags) || !CheckSequenceLocks(*this, tx, flags, &lp, validLP))
+        bool isFinal = CheckFinalTx(tx, flags);
+        bool seqLocks = CheckSequenceLocks(*this, tx, flags, &lp, validLP);
+
+        if (seqLocks && !isFinal && PocketHelpers::TransactionHelper::IsPocketTransaction(it->GetSharedTx()) && tx.nLockTime > 0)
+        {
+            // For pocketcoin transactions with locktime, we need to save the tx in mempool
+            LogPrint(BCLog::MEMPOOL, "Skipping removing pocketcoin tx %s with locktime %d\n", tx.GetHash().ToString(), tx.nLockTime);
+        }
+        else if (!isFinal || !seqLocks)
         {
             // Note if CheckSequenceLocks fails the LockPoints may still be invalid
             // So it's critical that we remove the tx and not depend on the LockPoints.

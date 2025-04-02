@@ -13,6 +13,7 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 # Avoid wildcard * imports
+from test_framework.util import assert_raises_rpc_error
 from test_framework.test_framework import PocketcoinTestFramework
 
 # Pocketnet framework
@@ -44,7 +45,14 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         node.stakeblock(10)
         lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury["post"], jury["account"].Address, 1))
         node.stakeblock(1)
-        assert "id" not in node.public().getjury(lastFlagTx)
+        
+        assert_raises_rpc_error(
+            -8,
+            None,
+            node.public().getjury,
+            lastFlagTx,
+        )
+        
         assert len(node.public().getjurymoderators(lastFlagTx)) == 0
 
         # ---------------------------------------------------------------------------------
@@ -52,8 +60,9 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury["post"], jury["account"].Address, 1))
         node.stakeblock(1)
         jury["data"] = node.public().getjury(lastFlagTx)
-        assert "id" in jury["data"] and jury["data"]["id"] == lastFlagTx
+        jury["data"]["id"] = lastFlagTx
         jury["mods"] = node.public().getjurymoderators(lastFlagTx)
+        jury["mods"] = [m["address"] for m in jury["mods"]]
         assert len(jury["mods"]) == 4
 
         return jury
@@ -75,14 +84,13 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         self.log.info(f"Check - jury verdict: {'yes' if expected else 'no'}")
 
         node = self.nodes[0]
-        assert "verdict" in node.public().getjury(jury["data"]["id"])
         assert node.public().getjury(jury["data"]["id"])["verdict"] == expected
 
     def assert_no_verdict(self, jury):
         self.log.info("Check - there is no verdict for the jury")
 
         node = self.nodes[0]
-        assert "verdict" not in node.public().getjury(jury["data"]["id"])
+        assert node.public().getjury(jury["data"]["id"])["verdict"] == -1
 
     def assert_ban(self, account, expected):
         self.log.info(f"Check - account is banned: {'yes' if expected else 'no'}")
@@ -175,7 +183,7 @@ class ModerationJuryNegativeTest(PocketcoinTestFramework):
         # /src/pocketdb/consensus/Base.h:689 moderation_jury_vote_count
         pubGenTx(assigned[0], ModVotePayload(jury1["data"]["id"], 1))
         node.stakeblock(1)
-        assert "verdict" not in node.public().getjury(jury1["data"]["id"])
+        assert node.public().getjury(jury1["data"]["id"])["verdict"] == -1
 
         # Second vote is negative
         pubGenTx(assigned[1], ModVotePayload(jury1["data"]["id"], 0))

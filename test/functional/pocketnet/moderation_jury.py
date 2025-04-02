@@ -127,7 +127,12 @@ class ModerationJuryTest(PocketcoinTestFramework):
         node.stakeblock(10)
         lastFlagTx = pubGenTx(moders[1], ModFlagPayload(jury1["post"], jury1["account"].Address, 1))
         node.stakeblock(1)
-        assert "id" not in node.public().getjury(lastFlagTx)
+        assert_raises_rpc_error(
+            -8,
+            None,
+            node.public().getjury,
+            lastFlagTx,
+        )
         assert len(node.public().getjurymoderators(lastFlagTx)) == 0
 
         # ---------------------------------------------------------------------------------
@@ -136,7 +141,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         lastFlagTx = pubGenTx(moders[3], ModFlagPayload(jury1["post"], jury1["account"].Address, 1))
         node.stakeblock(1)
         jury1["data"] = node.public().getjury(lastFlagTx)
-        assert "id" in jury1["data"] and jury1["data"]["id"] == lastFlagTx
+        jury1["data"]["id"] = lastFlagTx
         jury1["mods"] = node.public().getjurymoderators(lastFlagTx)
         assert len(jury1["mods"]) == 4
 
@@ -148,7 +153,7 @@ class ModerationJuryTest(PocketcoinTestFramework):
         assigned = []
         notAssigned = []
         for mod in moders:
-            if mod.Address not in jury1["mods"]:
+            if not any(jury_mod['address'] == mod.Address for jury_mod in jury1["mods"]):
                 notAssigned.append(mod)
             else:
                 assigned.append(mod)
@@ -173,14 +178,13 @@ class ModerationJuryTest(PocketcoinTestFramework):
         # One vote does not pass verdict
         pubGenTx(assigned[0], ModVotePayload(jury1["data"]["id"], 1))
         node.stakeblock(2)
-        assert "verdict" not in node.public().getjury(jury1["data"]["id"])
+        assert node.public().getjury(jury1["data"]["id"])["verdict"] == -1
         # Check lottery - in last block should be 10% of rating reward for moderation vote
         assert node.public().getblocktransactions(node.public().getlastblocks(1)[0]['hash'])[0]['vout'][0]['scriptPubKey']['hex'] == 'c4'
 
         # Second vote pass verdict
         pubGenTx(assigned[1], ModVotePayload(jury1["data"]["id"], 1))
         node.stakeblock(2)
-        assert "verdict" in node.public().getjury(jury1["data"]["id"])
         assert node.public().getjury(jury1["data"]["id"])["verdict"] == 1
         # Check lottery - in last block should be 10% of rating reward for moderation vote
         assert node.public().getblocktransactions(node.public().getlastblocks(1)[0]['hash'])[0]['vout'][0]['scriptPubKey']['hex'] == 'c4'

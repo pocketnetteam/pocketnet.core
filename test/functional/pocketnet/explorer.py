@@ -56,6 +56,7 @@ class ExplorerTest(PocketcoinTestFramework):
         assert len(result) == 1
 
         values = list(result.values())[0]
+        print(values)
         assert values["1"] == 6
         assert values["100"] == 12
         assert values["200"] == 1

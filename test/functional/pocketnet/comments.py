@@ -46,8 +46,8 @@ class CommentsTest(PocketcoinTestFramework):
 
         comments = public_api.getcomments(post_id, "", account.Address)
         comment_with_likes = comments[0]
-        assert comment_with_likes["reputation"] == "1"
-        assert comment_with_likes["scoreUp"] == "1"
+        assert comment_with_likes["reputation"] == 1
+        assert comment_with_likes["scoreUp"] == 1
 
         self.check_comments(builder, builder.node)
 

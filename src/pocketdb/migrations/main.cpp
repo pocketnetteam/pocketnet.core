@@ -400,6 +400,7 @@ namespace PocketDb
             drop index if exists TxInputs_TxId_Number;
             drop index if exists TxInputs_SpentTxId_TxId_Number;
             drop index if exists TxOutputs_AddressId_TxId_Number;
+            drop index if exists Transactions_RowId_desc_Type;
 
             create index if not exists Chain_Uid_Height on Chain (Uid, Height);
             create index if not exists Chain_Height_Uid on Chain (Height, Uid);
@@ -408,7 +409,6 @@ namespace PocketDb
             create index if not exists Chain_TxId_Height on Chain (TxId, Height);
             create index if not exists Chain_HeightByDay on Chain (Height / 1440 desc);
             create index if not exists Chain_HeightByHour on Chain (Height / 60 desc);
-
 
             create index if not exists Transactions_Type_RegId1_RegId2_RegId3 on Transactions (Type, RegId1, RegId2, RegId3);
             create index if not exists Transactions_Type_RegId1_RegId3 on Transactions (Type, RegId1, RegId3);
@@ -419,7 +419,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_RegId1_Int1_Time on Transactions (Type, RegId1, Int1, Time);
             create index if not exists Transactions_Type_RegId1_Time on Transactions (Type, RegId1, Time);
             create index if not exists Transactions_Type_RegId3_RegId4_RegId5 on Transactions(Type, RegId3, RegId4, RegId5);
-            create index if not exists Transactions_RowId_desc_Type on Transactions(RowId desc, Type);
+            create index if not exists Transactions_RowId_desc_Type_RegId1 on Transactions(RowId desc, Type, RegId1);
 
             create index if not exists TxInputs_SpentTxId_Number_TxId on TxInputs (SpentTxId, Number, TxId);
             create index if not exists TxInputs_TxId_Number_SpentTxId on TxInputs (TxId, Number, SpentTxId);
@@ -430,8 +430,6 @@ namespace PocketDb
             create unique index if not exists Lists_TxId_OrderIndex_RegId on Lists (TxId, OrderIndex asc, RegId);
 
             create index if not exists BlockingLists_IdTarget_IdSource on BlockingLists (IdTarget, IdSource);
-
-            ------------------------------
 
             create index if not exists Ratings_Last_Uid_Height on Ratings (Last, Uid, Height);
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);

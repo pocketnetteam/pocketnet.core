@@ -58,7 +58,7 @@ namespace PocketDb
                                 tag.Value in ( )sql" + join(vector<string>(args.Tags.size(), "?"), ",") + R"sql( ) and
                                 tag.Lang = 'en'
                         )) and
-                        (? or ct.Uid in (
+                        (? or t.RowId in (
                             select
                                 cm.ContentId
                             from
