@@ -597,12 +597,13 @@ static void UpdatePreferredDownload(const CNode& node, CNodeState* state) EXCLUS
     nPreferredDownload += state->fPreferredDownload;
 }
 
-static void PushNodeVersion(CNode& pnode, CConnman& connman, int64_t nTime)
+static void PushNodeVersion(CNode& pnode, CConnman& connman)
 {
     // Note that pnode->GetLocalServices() is a reflection of the local
     // services we were offering when the CNode object was created for this
     // peer.
     ServiceFlags nLocalNodeServices = pnode.GetLocalServices();
+    const int64_t nTime{count_seconds(GetTime<std::chrono::seconds>())};
     uint64_t nonce = pnode.GetLocalNonce();
     int nNodeStartingHeight = pnode.GetMyStartingHeight();
     NodeId nodeid = pnode.GetId();
@@ -765,11 +766,10 @@ static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman& connma
     connman.ForNode(nodeid, [&connman](CNode* pfrom) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
         AssertLockHeld(::cs_main);
 
-	LogPrint(BCLog::NET, "%s: lNodesAnnouncingHeaderAndIDs.size()=%d peer=%d%s\n",
-                        __func__,
-                        lNodesAnnouncingHeaderAndIDs.size(),
-                        pfrom->GetId(),
-                        fLogIPs ? ", peeraddr=" + pfrom->addr.ToString() : "");
+//	LogPrint(BCLog::NET, "MaybeSetPeerAsAnnouncingHeaderAndIDs(): lNodesAnnouncingHeaderAndIDs.size()=%d peer=%d%s\n",
+//                        lNodesAnnouncingHeaderAndIDs.size(),
+//                        pfrom->GetId(),
+//                        fLogIPs ? ", peeraddr=" + pfrom->addr.ToString() : "");
 
         if (lNodesAnnouncingHeaderAndIDs.size() >= 3) {
             // As per BIP152, we only get 3 of our peers to announce
@@ -966,7 +966,7 @@ void PeerManager::InitializeNode(CNode *pnode) {
     }
 
     if (!pnode->IsInboundConn()) {
-        PushNodeVersion(*pnode, m_connman, GetTime());
+        PushNodeVersion(*pnode, m_connman);
     }
 }
 
@@ -1517,7 +1517,7 @@ void PeerManager::NewPoSValidBlock(const CBlockIndex *pindex, const std::shared_
         // but we don't think they have this one, go ahead and announce it
         if (state.m_requested_hb_cmpctblocks && !PeerHasHeader(&state, pindex) && PeerHasHeader(&state, pindex->pprev)) {
 
-            LogPrint(BCLog::NET, "%s: sending header-and-ids %s to peer=%d%s\n", "PeerManager::NewPoSValidBlock",
+            LogPrint(BCLog::NET, "PeerManager::NewPoSValidBlock(): sending header-and-ids %s to peer=%d%s\n",
                     hashBlock.ToString(), pnode->GetId(), fLogIPs ? ", peeraddr=" + pnode->addr.ToString() : "");
 
             m_connman.PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, pocketBlockData));
@@ -2613,7 +2613,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         // Be shy and don't send version until we hear
         if (pfrom.IsInboundConn())
-            PushNodeVersion(pfrom, m_connman, GetAdjustedTime());
+            PushNodeVersion(pfrom, m_connman);
 
         // Change version
         const int greatest_common_version = std::min(nVersion, PROTOCOL_VERSION);
@@ -2731,7 +2731,11 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         int64_t nTimeOffset = nTime - GetTime();
         pfrom.nTimeOffset = nTimeOffset;
-        AddTimeData(pfrom.addr, nTimeOffset);
+        if (!pfrom.IsInboundConn()) {
+            // Don't use timedata samples from inbound peers to make it
+            // harder for others to tamper with our adjusted time.
+            AddTimeData(pfrom.addr, nTimeOffset);
+        }
 
         // If the peer is old enough to have the old alert system, send it the final alert.
         if (greatest_common_version <= 70012) {
