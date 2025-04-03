@@ -196,6 +196,8 @@ namespace PocketDb
             orderBy = " pt.String6 ";
         if (args.Page.OrderBy == "price")
             orderBy = " pt.Int1 ";
+        if (args.Page.OrderBy == "search")
+            orderBy = " round(f.Rank, 0) ";
         if (args.Page.OrderDesc)
             orderBy += " desc ";
 
@@ -257,7 +259,7 @@ namespace PocketDb
                 f.Value match ?
 
             order by
-                    round(f.Rank, 0) asc, )sql" + orderBy + R"sql(
+                    )sql" + orderBy + R"sql(
 
             limit ? offset ?;
         )sql";
