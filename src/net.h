@@ -32,12 +32,13 @@
 #include <util/sock.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <deque>
 #include <map>
 #include <thread>
 #include <memory>
-#include <condition_variable>
+#include <vector>
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -280,7 +281,6 @@ public:
     NetPermissionFlags m_permissionFlags;
     bool m_legacyWhitelisted;		// FIXME!!! Delete!
     int64_t m_ping_usec;
-    int64_t m_ping_wait_usec;
     int64_t m_min_ping_usec;
     CAmount minFeeFilter;
     // Our address, as reported by the peer
@@ -651,17 +651,12 @@ public:
      * in CConnman::AttemptToEvictConnection. */
     std::atomic<int64_t> nLastTXTime{0};
 
-    // Ping time measurement:
-    // The pong reply we're expecting, or 0 if no pong expected.
-    std::atomic<uint64_t> nPingNonceSent{0};
-    /** When the last ping was sent, or 0 if no ping was ever sent */
-    std::atomic<std::chrono::microseconds> m_ping_start{std::chrono::microseconds{0}};
-    // Last measured round-trip time.
-    std::atomic<int64_t> nPingUsecTime{0};
-    // Best measured round-trip time.
-    std::atomic<int64_t> nMinPingUsecTime{std::numeric_limits<int64_t>::max()};
-    // Whether a ping is requested.
-    std::atomic<bool> fPingQueued{false};
+    /** Last measured round-trip time. Used only for RPC/GUI stats/debugging.*/
+    std::atomic<int64_t> m_last_ping_time{0};
+
+    /** Lowest measured round-trip time. Used as an inbound peer eviction
+     * criterium in CConnman::AttemptToEvictConnection. */
+    std::atomic<int64_t> m_min_ping_time{std::numeric_limits<int64_t>::max()};
 
     CNode(NodeId id,
           ServiceFlags nLocalServicesIn,
@@ -780,6 +775,12 @@ public:
 
 //    std::string ConnectionTypeAsString() const;
     std::string ConnectionTypeAsString() const { return ::ConnectionTypeAsString(m_conn_type); }
+
+    /** A ping-pong round trip has completed successfully. Update latest and minimum ping times. */
+    void PongReceived(std::chrono::microseconds ping_time) {
+        m_last_ping_time = count_microseconds(ping_time);
+        m_min_ping_time = std::min(m_min_ping_time.load(), count_microseconds(ping_time));
+    }
 
 private:
     const NodeId id;
@@ -1093,6 +1094,9 @@ public:
     int64_t PoissonNextSendInbound(int64_t now, int average_interval_seconds);
 
     void SetAsmap(std::vector<bool> asmap) { addrman.m_asmap = std::move(asmap); }
+
+    /** Return true if the peer has been connected for long enough to do inactivity checks. */
+    bool RunInactivityChecks(const CNode& node) const;
 
 private:
     struct ListenSocket {
@@ -1410,6 +1414,23 @@ inline std::chrono::microseconds PoissonNextSend(std::chrono::microseconds now, 
 {
     return std::chrono::microseconds{PoissonNextSend(now.count(), average_interval.count())};
 }
+
+struct NodeEvictionCandidate
+{
+    NodeId id;
+    std::chrono::seconds m_connected;
+    int64_t m_min_ping_time;
+    int64_t nLastBlockTime;
+    int64_t nLastTXTime;
+    bool fRelevantServices;
+    bool fRelayTxes;
+    bool fBloomFilter;
+    uint64_t nKeyedNetGroup;
+    bool prefer_evict;
+    bool m_is_local;
+};
+
+[[nodiscard]] Optional<NodeId> SelectNodeToEvict(std::vector<NodeEvictionCandidate>&& vEvictionCandidates);
 
 /** Defaults to `CaptureMessageToFile()`, but can be overridden by unit tests. */
 extern std::function<void(const CAddress& addr,

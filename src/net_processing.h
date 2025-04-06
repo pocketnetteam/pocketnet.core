@@ -39,6 +39,7 @@ struct CNodeStateStats {
     int nSyncHeight = -1;
     int nCommonHeight = -1;
     int m_starting_height = -1;
+    int64_t m_ping_wait_usec;
     std::vector<int> vHeightInFlight;
     bool m_relay_txs;
     uint64_t m_addr_processed = 0;
@@ -86,6 +87,13 @@ struct Peer {
 
     /** This peer's reported block height when we connected */
     std::atomic<int> m_starting_height{-1};
+
+    /** The pong reply we're expecting, or 0 if no pong expected. */
+    std::atomic<uint64_t> m_ping_nonce_sent{0};
+    /** When the last ping was sent, or 0 if no ping was ever sent */
+    std::atomic<std::chrono::microseconds> m_ping_start{0us};
+    /** Whether a ping has been requested by the user */
+    std::atomic<bool> m_ping_queued{false};
 
     /** Set of txids to reconsider once their parent transactions have been accepted **/
     std::set<uint256> m_orphan_work_set GUARDED_BY(g_cs_orphans);
@@ -172,6 +180,9 @@ public:
      */
     void Misbehaving(const NodeId pnode, const int howmuch, const std::string& message);
 
+    /** Send ping message to all peers */
+    void SendPings();
+
     /** Set the best height */
     void SetBestHeight(int height) { m_best_height = height; };
 
@@ -213,7 +224,7 @@ private:
      * @param[in]   pnode     The node to check.
      * @return                True if the peer was marked for disconnection in this function
      */
-    bool MaybeDiscourageAndDisconnect(CNode& pnode);
+    bool MaybeDiscourageAndDisconnect(CNode& pnode, Peer& peer);
 
     void ProcessOrphanTx(std::set<uint256>& orphan_work_set) EXCLUSIVE_LOCKS_REQUIRED(cs_main, g_cs_orphans);
     /** Process a single headers message from a peer. */
@@ -231,6 +242,10 @@ private:
 
     /** Send a version message to a peer */
     void PushNodeVersion(CNode& pnode, int64_t nTime);
+
+    /** Send a ping message every PING_INTERVAL or if requested via RPC. May
+     *  mark the peer to be disconnected if a ping has timed out. */
+    void MaybeSendPing(CNode& node_to, Peer& peer);
 
     const CChainParams& m_chainparams;
     CConnman& m_connman;
