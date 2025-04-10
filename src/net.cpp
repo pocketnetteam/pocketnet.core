@@ -14,6 +14,7 @@
 #include <compat.h>
 #include <consensus/consensus.h>
 #include <crypto/sha256.h>
+#include <node/eviction.h>
 #include <i2p.h>
 #include <net_permissions.h>
 #include <netbase.h>
@@ -891,6 +892,7 @@ size_t CConnman::SocketSendData(CNode *pnode) const EXCLUSIVE_LOCKS_REQUIRED(pno
     return nSentSize;
 }
 
+/* Moved to node/eviction.cpp
 static bool ReverseCompareNodeMinPingTime(const NodeEvictionCandidate &a, const NodeEvictionCandidate &b)
 {
     return a.m_min_ping_time > b.m_min_ping_time;
@@ -950,52 +952,6 @@ static void EraseLastKElements(std::vector<T> &elements, Comparator comparator, 
     size_t eraseSize = std::min(k, elements.size());
     elements.erase(elements.end() - eraseSize, elements.end());
 }
-
-/** Try to find a connection to evict when the node is full.
- *  Extreme care must be taken to avoid opening the node to attacker
- *   triggered network partitioning.
- *  The strategy used here is to protect a small number of peers
- *   for each of several distinct characteristics which are difficult
- *   to forge.  In order to partition a node the attacker must be
- *   simultaneously better at all of them than honest peers.
- */
-/*
-bool CConnman::AttemptToEvictConnection()
-{
-    std::vector<NodeEvictionCandidate> vEvictionCandidates;
-    {
-        LOCK(cs_vNodes);
-
-        for (const CNode* node : vNodes) {
-            if (node->HasPermission(PF_NOBAN))
-                continue;
-            if (!node->IsInboundConn())
-                continue;
-            if (node->fDisconnect)
-                continue;
-            bool peer_relay_txes = false;
-            bool peer_filter_not_null = false;
-            if (node->m_tx_relay != nullptr) {
-                LOCK(node->m_tx_relay->cs_filter);
-                peer_relay_txes = node->m_tx_relay->fRelayTxes;
-                peer_filter_not_null = node->m_tx_relay->pfilter != nullptr;
-            }
-            NodeEvictionCandidate candidate = {
-		node->GetId(),
-		node->m_connected,
-		node->m_min_ping_time,
-                node->nLastBlockTime,
-		node->nLastTXTime,
-        	HasAllDesirableServiceFlags(node->nServices),
-                peer_relay_txes,
-		peer_filter_not_null,
-		node->nKeyedNetGroup,
-                node->m_prefer_evict,
-		node->addr.IsLocal()
-	    };
-            vEvictionCandidates.push_back(candidate);
-        }
-    } */
 
 [[nodiscard]] Optional<NodeId> SelectNodeToEvict(std::vector<NodeEvictionCandidate>&& vEvictionCandidates)
 {
@@ -1070,7 +1026,7 @@ bool CConnman::AttemptToEvictConnection()
 
     // Disconnect from the network group with the most connections
     return vEvictionCandidates.front().id;
-}
+} */
 
 /** Try to find a connection to evict when the node is full.
  *  Extreme care must be taken to avoid opening the node to attacker
@@ -1087,10 +1043,10 @@ bool CConnman::AttemptToEvictConnection()
 
         LOCK(cs_vNodes);
         for (const CNode* node : vNodes) {
-            if (node->HasPermission(PF_NOBAN))
+/*            if (node->HasPermission(PF_NOBAN))
                 continue;
             if (!node->IsInboundConn())
-                continue;
+                continue; */
             if (node->fDisconnect)
                 continue;
             bool peer_relay_txes = false;
@@ -1111,7 +1067,10 @@ bool CConnman::AttemptToEvictConnection()
                 peer_filter_not_null,
                 node->nKeyedNetGroup,
                 node->m_prefer_evict,
-                node->addr.IsLocal()
+                node->addr.IsLocal(),
+                .m_network = node->ConnectedThroughNetwork(),
+                .m_noban = node->HasPermission(NetPermissionFlags::PF_NOBAN),
+                .m_conn_type = node->m_conn_type,
             };
             vEvictionCandidates.push_back(candidate);
         }

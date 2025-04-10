@@ -1415,6 +1415,7 @@ inline std::chrono::microseconds PoissonNextSend(std::chrono::microseconds now, 
     return std::chrono::microseconds{PoissonNextSend(now.count(), average_interval.count())};
 }
 
+/* Moved to node/eviction.h
 struct NodeEvictionCandidate
 {
     NodeId id;
@@ -1430,7 +1431,7 @@ struct NodeEvictionCandidate
     bool m_is_local;
 };
 
-[[nodiscard]] Optional<NodeId> SelectNodeToEvict(std::vector<NodeEvictionCandidate>&& vEvictionCandidates);
+[[nodiscard]] Optional<NodeId> SelectNodeToEvict(std::vector<NodeEvictionCandidate>&& vEvictionCandidates); */
 
 /** Defaults to `CaptureMessageToFile()`, but can be overridden by unit tests. */
 extern std::function<void(const CAddress& addr,

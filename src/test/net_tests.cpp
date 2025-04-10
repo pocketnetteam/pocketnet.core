@@ -13,6 +13,7 @@
 #include <serialize.h>
 #include <span.h>
 #include <streams.h>
+#include <test/util/net.h>
 #include <test/util/setup_common.h>
 #include <util/memory.h>
 #include <util/strencodings.h>
@@ -805,27 +806,6 @@ BOOST_AUTO_TEST_CASE(PoissonNextSend)
     g_mock_deterministic_tests = false;
 }
 
-std::vector<NodeEvictionCandidate> GetRandomNodeEvictionCandidates(const int n_candidates, FastRandomContext& random_context)
-{
-    std::vector<NodeEvictionCandidate> candidates;
-    for (int id = 0; id < n_candidates; ++id) {
-        candidates.push_back({
-            /* id */ id,
-            /* nTimeConnected */ std::chrono::seconds{random_context.randrange(100)},
-            /* m_min_ping_time */ static_cast<int64_t>(random_context.randrange(100)),
-            /* nLastBlockTime */ static_cast<int64_t>(random_context.randrange(100)),
-            /* nLastTXTime */ static_cast<int64_t>(random_context.randrange(100)),
-            /* fRelevantServices */ random_context.randbool(),
-            /* fRelayTxes */ random_context.randbool(),
-            /* fBloomFilter */ random_context.randbool(),
-            /* nKeyedNetGroup */ random_context.randrange(100),
-            /* prefer_evict */ random_context.randbool(),
-            /* m_is_local */ random_context.randbool(),
-        });
-    }
-    return candidates;
-}
-
 // Returns true if any of the node ids in node_ids are selected for eviction.
 bool IsEvicted(std::vector<NodeEvictionCandidate> candidates, const std::vector<NodeId>& node_ids, FastRandomContext& random_context)
 {
@@ -887,7 +867,7 @@ BOOST_AUTO_TEST_CASE(node_eviction_test)
                 number_of_nodes, [number_of_nodes](NodeEvictionCandidate& candidate) {
                     candidate.nLastBlockTime = number_of_nodes - candidate.id;
                     if (candidate.id <= 7) {
-                        candidate.fRelayTxes = false;
+                        candidate.m_relay_txs = false;
                         candidate.fRelevantServices = true;
                     }
                 },
@@ -904,7 +884,7 @@ BOOST_AUTO_TEST_CASE(node_eviction_test)
                 number_of_nodes, [number_of_nodes](NodeEvictionCandidate& candidate) {
                     candidate.nLastBlockTime = number_of_nodes - candidate.id;
                     if (candidate.id <= 7) {
-                        candidate.fRelayTxes = false;
+                        candidate.m_relay_txs = false;
                         candidate.fRelevantServices = true;
                     }
                 },
