@@ -2893,17 +2893,9 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations, const Pagination& pagination)
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height, int confirmations)
     {
         UniValue result(UniValue::VARR);
-
-        string orderBy = " c.Height ";
-        if (pagination.OrderDesc)
-            orderBy += " desc ";
-
-        string limit;
-        if (pagination.UsePagination)
-            limit = " limit " + to_string(pagination.PageSize) + " offset " + to_string(pagination.PageStart * pagination.PageSize) + " ";
 
         SqlTransaction(
             __func__,
@@ -2943,8 +2935,7 @@ namespace PocketDb
                         c.TxId = o.TxId and c.Height <= ?
                     cross join Transactions t on
                         t.RowId = o.TxId
-                    order by )sql" + orderBy + R"sql(
-                    )sql" + limit + R"sql(
+                    order by c.Height asc
                 )sql")
                 .Bind(
                     addresses,

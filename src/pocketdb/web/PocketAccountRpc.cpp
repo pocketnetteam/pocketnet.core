@@ -372,8 +372,7 @@ namespace PocketWeb::PocketWebRpc
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                         }
-                    },
-                    { "pagination", RPCArg::Type::STR, RPCArg::Optional::NO, "JSON object for pagination" },
+                    }
                 },
                 {
                     // TODO (rpc): provide return description
@@ -412,18 +411,16 @@ namespace PocketWeb::PocketWebRpc
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
 
             // Parse pagination args
-            Pagination page;
-            page.UsePagination = false;
-            if (request.params.size() > 1)
-            {
-                auto args = request.params[1].get_obj();
-                page = ParsePaginationArgs(args);
-                page.UsePagination = true;
-            }
+            // Pagination page{ ChainActiveSafeHeight(), 0, 1000, "height", false };
+            // if (request.params.size() > 1)
+            // {
+            //     auto args = request.params[1].get_obj();
+            //     page = ParsePaginationArgs(args);
+            // }
 
             // Get unspents from DB
             int height = ChainActiveSafeHeight();
-            return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0, page);
+            return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0);
         },
         };
     }

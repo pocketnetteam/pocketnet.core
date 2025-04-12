@@ -109,7 +109,7 @@ namespace PocketDb
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
         map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
-        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, const Pagination& pagination);
+        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations);
 
         UniValue GetAccountEarning(const string& address, int height, int depth);
 

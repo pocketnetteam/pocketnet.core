@@ -260,11 +260,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Null connman");
         }
         // Get unspents
-        PocketDb::Pagination page;
-        page.PageSize = 10;
-        page.PageStart = 0;
-        page.UsePagination = false;
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActiveSafeHeight(), confirmations, page);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActiveSafeHeight(), confirmations);
 
         // Build inputs
         int64_t totalAmount = 0;
