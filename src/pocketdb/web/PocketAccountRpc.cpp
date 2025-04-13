@@ -372,10 +372,7 @@ namespace PocketWeb::PocketWebRpc
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                         }
-                    },
-                    {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The minimum confirmations to filter (default=1)"},
-                    {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The maximum confirmations to filter (default=9999999)"},
-
+                    }
                 },
                 {
                     // TODO (rpc): provide return description
@@ -386,84 +383,45 @@ namespace PocketWeb::PocketWebRpc
                     HelpExampleRpc("txunspent", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        // TODO (aok): add pagination
-
-        vector<string> destinations;
-        if (request.params.size() > 0)
         {
-            RPCTypeCheckArgument(request.params[0], UniValue::VARR);
-            UniValue inputs = request.params[0].get_array();
-            for (unsigned int idx = 0; idx < inputs.size(); idx++)
+            // TODO (aok): add pagination
+
+            vector<string> destinations;
+            if (request.params.size() > 0)
             {
-                const UniValue& input = inputs[idx];
-                CTxDestination dest = DecodeDestination(input.get_str());
-
-                if (!IsValidDestination(dest))
+                RPCTypeCheckArgument(request.params[0], UniValue::VARR);
+                UniValue inputs = request.params[0].get_array();
+                for (unsigned int idx = 0; idx < inputs.size(); idx++)
                 {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
-                }
+                    const UniValue& input = inputs[idx];
+                    CTxDestination dest = DecodeDestination(input.get_str());
 
-                if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end())
-                {
-                    destinations.push_back(input.get_str());
+                    if (!IsValidDestination(dest))
+                    {
+                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
+                    }
+
+                    if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end())
+                    {
+                        destinations.push_back(input.get_str());
+                    }
                 }
             }
-        }
-        if (destinations.empty())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
+            if (destinations.empty())
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
 
-        // int minConf = 1;
-        // if (request.params.size() > 1) {
-        //     RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
-        //     minConf = request.params[1].get_int();
-        // }
+            // Parse pagination args
+            // Pagination page{ ChainActiveSafeHeight(), 0, 1000, "height", false };
+            // if (request.params.size() > 1)
+            // {
+            //     auto args = request.params[1].get_obj();
+            //     page = ParsePaginationArgs(args);
+            // }
 
-        // int maxConf = 9999999;
-        // if (request.params.size() > 2) {
-        //     RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
-        //     maxConf = request.params[2].get_int();
-        // }
-
-        // TODO: filter by amount
-        // TODO: filter by depth
-        // bool include_unsafe = true;
-        // if (request.params.size() > 3) {
-        //     RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
-        //     include_unsafe = request.params[3].get_bool();
-        // }
-
-        // CAmount nMinimumAmount = 0;
-        // CAmount nMaximumAmount = MAX_MONEY;
-        // CAmount nMinimumSumAmount = MAX_MONEY;
-        // uint64_t nMaximumCount = UINTMAX_MAX;
-
-        // if (request.params.size() > 4) {
-        //     const UniValue& options = request.params[4].get_obj();
-
-        //     if (options.exists("minimumAmount"))
-        //         nMinimumAmount = AmountFromValue(options["minimumAmount"]);
-
-        //     if (options.exists("maximumAmount"))
-        //         nMaximumAmount = AmountFromValue(options["maximumAmount"]);
-
-        //     if (options.exists("minimumSumAmount"))
-        //         nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
-
-        //     if (options.exists("maximumCount"))
-        //         nMaximumCount = options["maximumCount"].get_int64();
-        // }
-
-        const auto& node = EnsureNodeContext(request.context);
-        // Get exclude inputs already used in mempool
-        vector<pair<string, uint32_t>> mempoolInputs;
-        CHECK_NONFATAL(node.mempool);
-        node.mempool->GetAllInputs(mempoolInputs);
-
-        // Get unspents from DB
-        int height = ChainActiveSafeHeight();
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0, mempoolInputs);
-    },
+            // Get unspents from DB
+            int height = ChainActiveSafeHeight();
+            return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, height, 0);
+        },
         };
     }
 
