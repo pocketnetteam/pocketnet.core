@@ -951,8 +951,8 @@ add_library(${POCKETCOIN_SERVER}
         node/connection_types.cpp
         node/context.h
         node/context.cpp
-        node/eviction.h \
-        node/eviction.cpp \
+        node/eviction.h
+        node/eviction.cpp
         node/psbt.h
         node/psbt.cpp
         node/transaction.h
