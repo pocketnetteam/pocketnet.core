@@ -2284,9 +2284,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         InitWS();
 
-    // TODO: remove this after testing
-    //ChainRepoInst.EnsureSocialRegistry(ChainActive().Height() + 1);
-
     gStatEngineInstance.Run(threadGroup, context);
 
     SetRPCWarmupFinished();
