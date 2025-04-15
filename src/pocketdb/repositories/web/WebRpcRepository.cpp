@@ -1322,26 +1322,25 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                cnt as (
-                    select
-                        r.RowId as id
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
-                )
+                    cnt as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                    )
                 select
                     r.String
                 from
-                    cnt,
-                    Transactions t indexed by Transactions_Type_RegId3_RegId4_RegId5
-                    cross join Last l on
-                        l.TxId = t.RowId
-                    cross join Registry r on
-                        r.RowId = t.RowId
-                where
-                    t.Type in (204, 205, 206) and
-                    t.RegId3 = cnt.id
+                    cnt
+                cross join
+                    Transactions t indexed by Transactions_Type_RegId3_RegId1 on
+                        t.Type in (204, 205, 206) and t.RegId3 = cnt.id
+                cross join Last l on
+                    l.TxId = t.RowId
+                cross join Registry r on
+                    r.RowId = t.RowId
             )sql")
             .Bind(contentHashes)
             .Select([&](Cursor& cursor) {
@@ -1365,24 +1364,22 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                cnt as (
-                    select
-                        r.RowId as id
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
-                )
+                    cnt as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                    )
                 select
                     r.String
                 from
-                    cnt,
-                    Transactions t
-                    cross join Registry r on
-                        r.RowId = t.RowId
-                where
-                    t.Type = 300 and
-                    t.RegId2 = cnt.id
+                    cnt
+                cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                    t.Type = 300 and t.RegId2 = cnt.id
+                cross join Registry r on
+                    r.RowId = t.RowId
             )sql")
             .Bind(contentHashes)
             .Select([&](Cursor& cursor) {
@@ -1406,27 +1403,26 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                cnt as (
-                    select
-                        c.Uid as uid
-                    from
-                        vTx t
-                        cross join Chain c on
-                            c.TxId = t.RowId
-                    where
-                        t.Hash in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
-                )
+                    cnt as (
+                        select
+                            c.Uid as uid
+                        from
+                            vTx t
+                            cross join Chain c on
+                                c.TxId = t.RowId
+                        where
+                            t.Hash in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
+                    )
                 select
                     hash.String
                 from
-                    cnt,
-                    Chain c
-                    cross join Last l on
-                        l.TxId = c.TxId
-                    cross join Registry hash on
-                        hash.RowId = c.TxId
-                where
+                    cnt
+                cross join Chain c on
                     c.Uid = cnt.uid
+                cross join Last l on
+                    l.TxId = c.TxId
+                cross join Registry hash on
+                    hash.RowId = c.TxId
             )sql")
             .Bind(rootHashes)
             .Select([&](Cursor& cursor) {
@@ -1450,24 +1446,22 @@ namespace PocketDb
         {
             Sql(R"sql(
                 with
-                cnt as (
-                    select
-                        r.RowId as id
-                    from
-                        Registry r
-                    where
-                        r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
-                )
+                    cnt as (
+                        select
+                            r.RowId as id
+                        from
+                            Registry r
+                        where
+                            r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
+                    )
                 select
                     r.String
                 from
-                    cnt,
-                    Transactions t
-                    cross join Registry r on
-                        r.RowId = t.RowId
-                where
-                    t.Type = 301 and
-                    t.RegId2 = cnt.id
+                    cnt
+                cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                    t.Type = 301 and t.RegId2 = cnt.id
+                cross join Registry r on
+                    r.RowId = t.RowId
             )sql")
             .Bind(commentHashes)
             .Select([&](Cursor& cursor) {
