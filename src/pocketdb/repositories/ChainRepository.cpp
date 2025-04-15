@@ -340,13 +340,13 @@ namespace PocketDb
         .Run();
     }
 
-    void ChainRepository::EnsureSocialRegistry(int height)
-    {
-        SqlTransaction(__func__, [&]()
-        {
-            EnsureAndTrimSocialRegistry(height);
-        });
-    }
+    // void ChainRepository::EnsureSocialRegistry(int height)
+    // {
+    //     SqlTransaction(__func__, [&]()
+    //     {
+    //         EnsureAndTrimSocialRegistry(height);
+    //     });
+    // }
 
     void ChainRepository::EnsureAndTrimSocialRegistry(int height)
     {
