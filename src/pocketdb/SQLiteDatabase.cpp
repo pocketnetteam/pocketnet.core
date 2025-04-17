@@ -245,18 +245,18 @@ namespace PocketDb
                 string sync = gArgs.GetArg("-sqlsync", "full");
                 if (sqlite3_exec(m_db, ("PRAGMA synchronous = " + sync + ";").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply synchronous = " + sync);
-
-                string tmpType = gArgs.GetArg("-sqltempstore", "memory");
-                if (sqlite3_exec(m_db, ("PRAGMA temp_store = " + tmpType + ";").c_str(), nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply temp_store = " + tmpType);
-                
-                if (tmpType == "file")
-                {
-                    string tmpPath = gArgs.GetArg("-sqltempstorepath", "");
-                    if (tmpPath != "" && sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
-                        throw std::runtime_error("Failed apply temp_store_directory = " + tmpPath);
-                }
             }
+
+            string tmpType = gArgs.GetArg("-sqltempstore", "memory");
+            if (sqlite3_exec(m_db, ("PRAGMA temp_store = " + tmpType + ";").c_str(), nullptr, nullptr, nullptr) != 0)
+                throw std::runtime_error("Failed apply temp_store = " + tmpType);
+            
+            if (tmpType == "file")
+            {
+                string tmpPath = gArgs.GetArg("-sqltempstorepath", "");
+                if (tmpPath != "" && sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply temp_store_directory = " + tmpPath);
+            }            
 
             // TODO (tawmaz): Not working for existed database
             int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
@@ -429,6 +429,33 @@ namespace PocketDb
 
         LogPrintf("Creating database indexes..\n");
         CreateStructure();
+    }
+
+    string SQLiteDatabase::GetPragmaValue(const string& pragmaName)
+    {
+        string value;
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(m_db, ("PRAGMA " + pragmaName + ";").c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+            if (sqlite3_step(stmt) == SQLITE_ROW) {
+                // Получаем значение в зависимости от типа колонки
+                switch (sqlite3_column_type(stmt, 0)) {
+                    case SQLITE_INTEGER:
+                        value = to_string(sqlite3_column_int(stmt, 0));
+                        break;
+                    case SQLITE_FLOAT:
+                        value = to_string(sqlite3_column_double(stmt, 0));
+                        break;
+                    case SQLITE_TEXT:
+                        value = string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+                        break;
+                    default:
+                        value = "null";
+                }
+                LogPrintf("SQLite %s value: %s\n", pragmaName.c_str(), value.c_str());
+            }
+            sqlite3_finalize(stmt);
+        }
+        return value;
     }
 
 } // namespace PocketDb
