@@ -253,11 +253,11 @@ namespace Statistic
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
             sqlStats.pushKV("SharedCacheUsed", FormatSize(current));
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
-            sqlStats.pushKV("CacheHit", FormatSize(current));
+            sqlStats.pushKV("CacheHit", current);
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
-            sqlStats.pushKV("CacheMiss", FormatSize(current));
+            sqlStats.pushKV("CacheMiss", current);
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
-            sqlStats.pushKV("CacheSpill", FormatSize(current));
+            sqlStats.pushKV("CacheSpill", current);
             result.pushKV("SQL", sqlStats);
 
             // SQL benchmark statistic
