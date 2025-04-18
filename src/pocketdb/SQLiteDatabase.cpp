@@ -9,7 +9,7 @@
 #include "validation.h"
 #include <node/ui_interface.h>
 #include "pocketdb/services/ChainPostProcessing.h"
-
+#include "httpserver.h"
 namespace PocketDb
 {
     static int dbActualVersion = 3;
@@ -247,6 +247,7 @@ namespace PocketDb
                     throw std::runtime_error("Failed apply synchronous = " + sync);
             }
 
+            // TEMP store
             string tmpType = gArgs.GetArg("-sqltempstore", "memory");
             if (sqlite3_exec(m_db, ("PRAGMA temp_store = " + tmpType + ";").c_str(), nullptr, nullptr, nullptr) != 0)
                 throw std::runtime_error("Failed apply temp_store = " + tmpType);
@@ -256,14 +257,29 @@ namespace PocketDb
                 string tmpPath = gArgs.GetArg("-sqltempstorepath", "");
                 if (tmpPath != "" && sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply temp_store_directory = " + tmpPath);
-            }            
+            }
 
-            // TODO (tawmaz): Not working for existed database
-            int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
-            int pageCount = cacheSize * 1024 * 1024 / 4096;
-            string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
+            // Cache size
+            int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
+            int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
+            int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
+            int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
+            int rpcRestThreads = std::max((long) gArgs.GetArg("-rpcrestthreads", DEFAULT_HTTP_REST_THREADS), 1L);
+
+            // We calculate the average value for the cache of each connection based on all possible connections
+            // Negative value means that we use bytes, not pages (* -1)
+            // (3 * 2) is the number of connections that we consider as main (3 write connections x 2 to increase cache)
+            int cacheSize = (gArgs.GetArg("-sqlcachesize", 100) * 1024) / 
+                ((3 * 2) + rpcMainThreads + rpcPostThreads + rpcPublicThreads + rpcStaticThreads + rpcRestThreads) * -1;
+
+            if (!isReadOnlyConnect)
+                cacheSize = cacheSize * 2;
+
+            string cmd = "PRAGMA cache_size = " + to_string(cacheSize) + ";";
             if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
                 throw std::runtime_error("Failed to apply cache size");
+
+            LogPrintf("SQLite cache_size (%s:%s): %d\n", dbName, isReadOnlyConnect ? "R" : "W", cacheSize);
         }
         catch (const std::runtime_error&)
         {
