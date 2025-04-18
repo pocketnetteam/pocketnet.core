@@ -23,19 +23,15 @@ namespace PocketDb
 
     Stmt& BaseRepository::Sql(const string& sql)
     {
-        // auto itr = _statements.find(sql);
-        // if (itr == _statements.end())
-        // {
-        //     auto stmt = make_shared<Stmt>();
-        //     stmt->Init(m_database, sql);
-        //     itr = _statements.emplace(sql, std::move(stmt)).first;
-        // }
+        auto itr = _statements.find(sql);
+        if (itr == _statements.end())
+        {
+            auto stmt = make_shared<Stmt>();
+            stmt->Init(m_database, sql);
+            itr = _statements.emplace(sql, std::move(stmt)).first;
+        }
 
-        // return *itr->second;
-        
-        auto stmt = make_shared<Stmt>();
-        stmt->Init(m_database, sql);
-        return *stmt;
+        return *itr->second;
     }
 
     Stmt BaseRepository::SqlSingleton(const string& sql)
