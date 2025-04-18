@@ -11,7 +11,7 @@ on:
 
 jobs:
   prepare:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.version.outputs.value }}
     steps:
@@ -26,7 +26,7 @@ jobs:
           echo "value=$VERSION" >> $GITHUB_OUTPUT
 
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare
     steps:
       - name: OS Information
@@ -71,7 +71,7 @@ jobs:
           path: ./out/*
 
   build-windows:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: prepare
     steps:
       - name: OS Information
