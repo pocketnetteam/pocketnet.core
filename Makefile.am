@@ -94,7 +94,7 @@ $(POCKETCOIN_LINUX_INSTALLER): all-recursive
 	@cp $(abs_top_builddir)/share/pixmaps/logo_color/sky_250.png $(abs_top_builddir)/release/usr/local/share/pixmaps/pocketcoin.png
 	@sed -i "s/Version:.*/Version: $(PACKAGE_VERSION)/" $(abs_top_builddir)/release/DEBIAN/control
 	@sed -i "s/Version=.*/Version=$(PACKAGE_VERSION)/" $(abs_top_builddir)/release/usr/local/share/applications/pocketnetcore.desktop
-	@dpkg -b $(abs_top_builddir)/release
+	@dpkg -Zxz --build --root-owner-group $(abs_top_builddir)/release
 	@mv $(abs_top_builddir)/release.deb $(abs_top_builddir)/$(POCKETCOIN_LINUX_INSTALLER_NAME)_setup.deb
 
 $(OSX_APP)/Contents/PkgInfo:
