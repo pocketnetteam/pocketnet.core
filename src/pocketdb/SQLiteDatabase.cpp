@@ -254,8 +254,8 @@ namespace PocketDb
             
             if (tmpType == "file")
             {
-                string tmpPath = gArgs.GetArg("-sqltempstorepath", "");
-                if (tmpPath != "" && sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
+                string tmpPath = dbPath.string();
+                if (sqlite3_exec(m_db, ("PRAGMA temp_store_directory = '" + tmpPath + "';").c_str(), nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply temp_store_directory = " + tmpPath);
             }
 
