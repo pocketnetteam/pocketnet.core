@@ -474,29 +474,30 @@ void StartHTTPServer()
 
     if (g_socket)
     {
+        LogPrintf("HTTP: starting Main worker threads: %d\n", rpcMainThreads);
         g_socket->StartHTTPSocket(rpcMainThreads);
-        LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
     }
 
     // The same worker threads will service POST and PUBLIC RPC requests
     if (g_webSocket)
     {
+        LogPrintf("HTTP: starting Public HTTP worker threads: GET: %d, POST: %d\n", rpcPublicThreads, rpcPostThreads);
         g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads);
-        LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
         if (g_webSocketHttps)
         {
+            LogPrintf("HTTP: starting Public HTTPS worker threads: GET: %d, POST: %d\n", rpcPublicThreads, rpcPostThreads);
             g_webSocketHttps->StartHTTPSocket(rpcPublicThreads, rpcPostThreads);
         }
     }
     if (g_staticSocket)
     {
+        LogPrintf("HTTP: starting Static worker threads: %d\n", rpcStaticThreads);
         g_staticSocket->StartHTTPSocket(rpcStaticThreads);
-        LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
     }
     if (g_restSocket)
     {
+        LogPrintf("HTTP: starting Rest worker threads: %d\n", rpcRestThreads);
         g_restSocket->StartHTTPSocket(rpcRestThreads);
-        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcRestThreads);
     }
 }
 

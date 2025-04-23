@@ -677,9 +677,8 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-sqlsync", "Experimental: Set journal mode (full|normal|etc, default: full)", ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqlsharedcache", strprintf("Experimental: Enable shared cache for sqlite connections (default: disabled)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
-    argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
+    argsman.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 100), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
     argsman.AddArg("-sqltempstore", strprintf("Experimental: Type of temporary storage (memory|file, default: memory)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
-    argsman.AddArg("-sqltempstorepath", strprintf("Experimental: Directory path of temporary storage, only for 'sqltempstore = file' (default: empty)"), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -2283,7 +2282,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Start WebSocket server
     if (args.GetBoolArg("-api", DEFAULT_API_ENABLE))
         InitWS();
-    ChainRepoInst.EnsureSocialRegistry(ChainActive().Height() + 1);
 
     gStatEngineInstance.Run(threadGroup, context);
 

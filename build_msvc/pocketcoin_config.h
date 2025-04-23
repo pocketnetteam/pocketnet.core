@@ -355,7 +355,7 @@
 #define PACKAGE_URL "https://github.com/pocketnetteam"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.22.13"
+#define PACKAGE_VERSION "0.22.15"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
