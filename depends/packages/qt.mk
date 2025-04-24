@@ -125,7 +125,6 @@ $(package)_config_opts += -no-feature-undoview
 $(package)_config_opts += -no-feature-vnc
 $(package)_config_opts += -no-feature-wizard
 $(package)_config_opts += -no-feature-xml
-$(package)_config_opts += -openssl-linked
 
 $(package)_config_opts_darwin = -no-dbus
 $(package)_config_opts_darwin += -no-opengl
@@ -133,6 +132,7 @@ $(package)_config_opts_darwin += -pch
 $(package)_config_opts_darwin += -no-feature-corewlan
 $(package)_config_opts_darwin += -no-freetype
 $(package)_config_opts_darwin += QMAKE_MACOSX_DEPLOYMENT_TARGET=$(OSX_MIN_VERSION)
+$(package)_config_opts_darwin += -openssl-linked
 
 ifneq ($(build_os),darwin)
 $(package)_config_opts_darwin += -xplatform macx-clang-linux
@@ -156,6 +156,7 @@ $(package)_config_opts_linux += -fontconfig
 $(package)_config_opts_linux += -no-opengl
 $(package)_config_opts_linux += -no-feature-vulkan
 $(package)_config_opts_linux += -dbus-runtime
+$(package)_config_opts_linux += -openssl-linked
 ifneq ($(LTO),)
 $(package)_config_opts_linux += -ltcg
 endif
