@@ -4,8 +4,8 @@ $(package)_download_path=https://qt-mirror.dannhauer.de/official_releases/qt/5.1
 $(package)_suffix=everywhere-opensource-src-$($(package)_version).tar.xz
 $(package)_file_name=qtbase-$($(package)_suffix)
 $(package)_sha256_hash=500d3b390048e9538c28b5f523dfea6936f9c2e10d24ab46580ff57d430b98be
-$(package)_dependencies=openssl
 $(package)_linux_dependencies=freetype fontconfig libxcb libxkbcommon libxcb_util libxcb_util_render libxcb_util_keysyms libxcb_util_image libxcb_util_wm openssl
+$(package)_mingw32_dependencies=openssl
 $(package)_qt_libs=corelib network widgets gui plugins testlib
 $(package)_linguist_tools = lrelease lupdate lconvert
 $(package)_patches = qt.pro
@@ -101,7 +101,6 @@ $(package)_config_opts += -no-feature-image_heuristic_mask
 $(package)_config_opts += -no-feature-keysequenceedit
 $(package)_config_opts += -no-feature-lcdnumber
 $(package)_config_opts += -no-feature-networkdiskcache
-$(package)_config_opts += -no-feature-networkproxy
 $(package)_config_opts += -no-feature-pdf
 $(package)_config_opts += -no-feature-printdialog
 $(package)_config_opts += -no-feature-printer
@@ -173,8 +172,11 @@ endif
 
 $(package)_config_opts_mingw32 = -no-opengl
 $(package)_config_opts_mingw32 += -no-dbus
-$(package)_config_opts_mingw32 += -no-freetype
 $(package)_config_opts_mingw32 += -xplatform win32-g++
+$(package)_config_opts_mingw32 += -openssl-linked
+$(package)_config_opts_mingw32 += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lws2_32 -ladvapi32 -lcrypt32 -lgdi32 -luser32"
+$(package)_config_opts_mingw32 += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
+$(package)_config_opts_mingw32 += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 $(package)_config_opts_mingw32 += "QMAKE_CFLAGS = '$($(package)_cflags) $($(package)_cppflags)'"
 $(package)_config_opts_mingw32 += "QMAKE_CXX = '$($(package)_cxx)'"
 $(package)_config_opts_mingw32 += "QMAKE_CXXFLAGS = '$($(package)_cxxflags) $($(package)_cppflags)'"
