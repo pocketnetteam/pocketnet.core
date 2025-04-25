@@ -12,6 +12,7 @@
 #include "util/rbf.h"
 #include "rpc/rawtransaction_util.h"
 #include "pocketdb/consensus/social/account/AccountUser.hpp"
+#include "pocketdb/repositories/BaseRepository.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -259,9 +260,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Null connman");
         }
         // Get unspents
-        vector<pair<string, uint32_t>> mempoolInputs;
-        node.mempool->GetAllInputs(mempoolInputs);
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActiveSafeHeight(), confirmations, mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActiveSafeHeight(), confirmations);
 
         // Build inputs
         int64_t totalAmount = 0;

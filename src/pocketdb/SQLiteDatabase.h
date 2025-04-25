@@ -34,6 +34,7 @@ namespace PocketDb
         bool isReadOnlyConnect;
 
         bool BulkExecute(string sql);
+        string GetPragmaValue(const string& pragmaName);
 
     public:
         sqlite3* m_db{nullptr};

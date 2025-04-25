@@ -10,6 +10,7 @@ test_runner.py
 
 import sys
 import pathlib
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
@@ -252,6 +253,7 @@ class ExplorerTest(PocketcoinTestFramework):
         builder.register_accounts()
 
         self.set_up(builder)
+        time.sleep(5)
         self.test_getstatistictransactions(builder)
         self.test_getstatisticbyhours(builder)
         self.test_getstatisticbydays(builder)
