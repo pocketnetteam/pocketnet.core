@@ -242,7 +242,7 @@ namespace PocketDb
                 height as ( select ? as value )
             select
                 t.Type,
-                c.Uid,
+                t.RowId,
                 p.String1,
                 p.String2,
                 p.String3,
@@ -281,66 +281,36 @@ namespace PocketDb
                         switch ((TxType)type)
                         {
                         case ACCOUNT_USER:
-
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
-
-                            if (auto[ok, string4] = cursor.TryGetColumnString(5); ok)    
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
-
-                            // if (auto[ok, string5] = cursor.TryGetColumnString(6); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
-
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, value));
+                            if (auto[ok, value] = cursor.TryGetColumnString(5); ok)    
+                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, value));
                             break;
                         case CONTENT_POST:
-
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
-                            
-                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
-
-                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
-
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
                             break;
                         case CONTENT_VIDEO:
-
-                            if (auto[ok, string2] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
-
-                            if (auto[ok, string3] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
-
-                            // if (auto[ok, string7] = cursor.TryGetColumnString(8); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
-
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, value));
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, value));
+                            break;                        
+                        case CONTENT_ARTICLE:
+                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleCaption, value));
+                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
                             break;
-                        
-                        // TODO (aok): parse JSON for indexing
-                        // case CONTENT_ARTICLE:
-
-                        // case CONTENT_COMMENT:
-                        // case CONTENT_COMMENT_EDIT:
-
-                            // TODO (aok): implement extract message from JSON
-                            // if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
-                            //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
-
-                            // break;
-
                         case BARTERON_OFFER:
-
                             if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
-
                             if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
                                 result.emplace_back(WebContent(id, ContentFieldType_BarteronDescription, val));
-
-                            break;
-                        
+                            break;                        
                         case APP:
-
                             if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
                             {
                                 UniValue data(UniValue::VOBJ);
@@ -358,9 +328,7 @@ namespace PocketDb
                                 if (data.exists("s"))
                                     result.emplace_back(WebContent(id, ContentFieldType_AppScope, data["s"].get_str()));
                             }
-
-                            break;
-                        
+                            break;                        
                         default:
                             break;
                         }
@@ -469,12 +437,12 @@ namespace PocketDb
                         select
                             c.Uid
                         from
-                            Transactions t
+                            Chain c
                         cross join
-                            Chain c indexed by Chain_TxId_Height
-                                on c.TxId = t.RowId and c.Height = ?
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                                on t.RowId = c.TxId and t.Type in (104)
                         where
-                            t.Type in (104)
+                            c.Height = ?
                     )
             )sql")
             .Bind(height)
@@ -487,17 +455,17 @@ namespace PocketDb
                     c.Uid,
                     pj.value
                 from
-                    Transactions t
+                    Chain c
                 cross join
-                    Chain c indexed by Chain_TxId_Height
-                        on c.TxId = t.RowId and c.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = c.TxId and t.Type in (104)
                 cross join
                     Payload p
                         on p.TxId = t.RowId
                 cross join
                     json_each(p.String4, '$.a') as pj
                 where
-                    t.Type = 104 and
+                    c.Height = ? and
                     json_valid(p.String4) and
                     json_type(p.String4, '$.a') = 'array'
             )sql")
@@ -523,7 +491,7 @@ namespace PocketDb
                             BarteronOffers bo indexed by BarteronOffers_OfferId_Tag_AccountId
                                 on bo.OfferId = c.Uid
                         cross join
-                            Transactions t
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1
                                 on t.RowId = c.TxId and t.Type = 211
                         where
                             c.Height = ?
@@ -541,10 +509,10 @@ namespace PocketDb
                     ct.Uid as OfferId,
                     json_extract(p.String4, '$.t') as Tag
                 from
-                    Transactions t
+                    Chain ct
                 cross join
-                    Chain ct indexed by Chain_TxId_Height
-                        on ct.TxId = t.RowId and ct.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = ct.TxId and t.Type = 211
                 cross join
                     Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                         on u.Type = 104 and u.RegId1 = t.RegId1
@@ -558,7 +526,7 @@ namespace PocketDb
                     Payload p -- primary key
                         on p.TxId = t.RowId
                 where
-                    t.Type = 211 and
+                    ct.Height = ? and
                     json_valid(p.String4)
             )sql")
             .Bind(height)
@@ -594,17 +562,17 @@ namespace PocketDb
                     ct.Uid as OfferId,
                     pj.value as Tag
                 from
-                    Transactions t
+                    Chain ct
                 cross join
-                    Chain ct indexed by Chain_TxId_Height
-                        on ct.TxId = t.RowId and ct.Height = ?
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                        on t.RowId = ct.TxId and t.Type = 211
                 cross join
                     Payload p -- primary key
                         on p.TxId = t.RowId
                 cross join
                     json_each(p.String4, '$.a') as pj
                 where
-                    t.Type = 211 and
+                    ct.Height = ? and
                     json_valid(p.String4) and
                     json_type(p.String4, '$.a') = 'array'
             )sql")

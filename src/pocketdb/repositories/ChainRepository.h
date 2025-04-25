@@ -50,7 +50,6 @@ namespace PocketDb
 
         // Select max height from Chain
         int CurrentHeight();
-        void EnsureSocialRegistry(int height);
 
     private:
 

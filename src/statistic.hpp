@@ -238,26 +238,27 @@ namespace Statistic
             UniValue sqlStats(UniValue::VOBJ);
             sqlite3_int64 current64 = 0, highWater64 = 0; 
             sqlite3_status64(SQLITE_STATUS_MEMORY_USED, &current64, &highWater64, false);
-            sqlStats.pushKV("MemoryUsed", (int64_t) current64);
-            sqlStats.pushKV("MemoryUsedMax", (int64_t) highWater64);
+            sqlStats.pushKV("MemoryUsed", FormatSize(current64));
+            sqlStats.pushKV("MemoryUsedMax", FormatSize(highWater64));
             sqlite3_status64(SQLITE_STATUS_PAGECACHE_USED, &current64, &highWater64, false);
-            sqlStats.pushKV("PageCacheUsed", (int64_t) current64);
-            sqlStats.pushKV("PageCacheUsedMax", (int64_t) highWater64);
+            sqlStats.pushKV("PageCacheUsed", FormatSize(current64));
+            sqlStats.pushKV("PageCacheUsedMax", FormatSize(highWater64));
             sqlite3_status64(SQLITE_STATUS_PAGECACHE_SIZE, &current64, &highWater64, false);
-            sqlStats.pushKV("PageCacheSize", (int64_t) current64);
-            sqlStats.pushKV("PageCacheSizeMax", (int64_t) highWater64);
+            sqlStats.pushKV("PageCacheSize", FormatSize(current64));
+            sqlStats.pushKV("PageCacheSizeMax", FormatSize(highWater64));
+
+            UniValue sqlStatsDBW(UniValue::VOBJ);
             sqlite3 *db = PocketDb::SQLiteDbInst.m_db;
             int current = 0, highWater = 0; 
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &current, &highWater, false);
-            sqlStats.pushKV("CacheUsed", current);
-            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
-            sqlStats.pushKV("SharedCacheUsed", current);
+            sqlStatsDBW.pushKV("CacheUsed", FormatSize(current));
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
-            sqlStats.pushKV("CacheHit", current);
+            sqlStatsDBW.pushKV("CacheHit", current);
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
-            sqlStats.pushKV("CacheMiss", current);
+            sqlStatsDBW.pushKV("CacheMiss", current);
             sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
-            sqlStats.pushKV("CacheSpill", current);
+            sqlStatsDBW.pushKV("CacheSpill", current);
+            sqlStats.pushKV("Main", sqlStatsDBW);
             result.pushKV("SQL", sqlStats);
 
             // SQL benchmark statistic
@@ -348,6 +349,22 @@ namespace Statistic
         map<string, int> _sqlBenchRecordsCounts;
 
         UniValue _latestPage;
+
+        // Добавим вспомогательную функцию для форматирования размера
+        std::string FormatSize(int64_t bytes) {
+            const double gb = 1024 * 1024 * 1024;
+            const double mb = 1024 * 1024;
+            const double kb = 1024;
+
+            if (bytes >= gb) {
+                return boost::str(boost::format("%.2f GB") % (bytes / gb));
+            } else if (bytes >= mb) {
+                return boost::str(boost::format("%.2f MB") % (bytes / mb));
+            } else if (bytes >= kb) {
+                return boost::str(boost::format("%.2f KB") % (bytes / kb));
+            }
+            return boost::str(boost::format("%d B") % bytes);
+        }
 
         void RemoveSamplesBefore(RequestTime time)
         {

@@ -62,7 +62,7 @@ public:
      * Get the value of the contained socket.
      * @return socket or INVALID_SOCKET if empty
      */
-    virtual SOCKET Get() const;
+//    virtual SOCKET Get() const;
 
     /**
      * Get the value of the contained socket and drop ownership. It will not be closed by the

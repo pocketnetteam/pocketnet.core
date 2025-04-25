@@ -42,7 +42,7 @@ Sock& Sock::operator=(Sock&& other)
     return *this;
 }
 
-SOCKET Sock::Get() const { return m_socket; }
+//SOCKET Sock::Get() const { return m_socket; }
 
 SOCKET Sock::Release()
 {

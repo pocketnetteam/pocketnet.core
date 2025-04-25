@@ -209,7 +209,6 @@ class FeedTest(PocketcoinTestFramework):
         builder.build_init(accounts_num=3, moderators_num=1)
         builder.register_accounts()
         self.generate_posts(builder)
-        time.sleep(10)
         self.test_historical_feed(builder)
         self.test_hierarchical_feed(builder)
         self.test_profile_feed(builder)

@@ -95,12 +95,8 @@ namespace PocketDb
                             c.ROWID = cm.ROWID and
                             cm.FieldType in ( )sql" + join(request.FieldTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
                     cross join
-                        Chain ct indexed by Chain_Uid_Height on
-                            ct.Uid = cm.ContentId and
-                            (? or ct.Height <= ?)
-                    cross join
-                        Transactions t on
-                            ct.TxId = t.RowId and
+                        Transactions t indexed by Transactions_RowId_desc_Type_RegId1 on
+                            t.RowId = cm.ContentId and
                             t.Type in ( )sql" + join(request.TxTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( ) and
                             (? or t.RegId1 in (
                                 select
@@ -110,6 +106,10 @@ namespace PocketDb
                                 where
                                     String = ?
                             ))
+                    cross join
+                        Chain ct indexed by Chain_TxId_Height on
+                            ct.TxId = t.RowId and
+                            (? or ct.Height <= ?)
                     cross join
                         Last lt on
                             lt.TxId = t.RowId
@@ -121,10 +121,10 @@ namespace PocketDb
                     offset ?
                 )sql")
                 .Bind(
-                    !(request.TopBlock > 0),
-                    request.TopBlock,
                     request.Address.empty(),
                     request.Address,
+                    !(request.TopBlock > 0),
+                    request.TopBlock,
                     _keyword,
                     request.PageSize,
                     request.PageStart
@@ -160,19 +160,23 @@ namespace PocketDb
                         names.*
                     from (
                         select
-                            fm.ContentId,
+                            c.Uid,
                             ROW_NUMBER() OVER ( ORDER BY RANK, length(f.Value) ) as ROWNUMBER,
                             RANK as RNK,
-                            r.Value as Rating
+                            r.Value as Rating,
+                            (abs(RANK) * r.Value)RNKRating
                         from
                             keyword,
                             web.Content f
                         cross join
                             web.ContentMap fm on
                                 fm.ROWID = f.ROWID
+                        cross join Transactions t on t.RowId = fm.ContentId
+                        cross join Last l on l.TxId = t.RowId
+                        cross join Chain c on c.TxId = t.RowId
                         left join
                             Ratings r on
-                                r.Uid = fm.ContentId and
+                                r.Uid = c.Uid and
                                 r.Last = 1 and
                                 r.Type = 0
                         where
@@ -187,19 +191,23 @@ namespace PocketDb
                         about.*
                     from (
                         select
-                            fm.ContentId,
+                            c.Uid,
                             ROW_NUMBER() OVER ( ORDER BY r.Value DESC) as ROWNUMBER,
                             RANK as RNK,
-                            r.Value as Rating
+                            r.Value as Rating,
+                            (abs(RANK) * r.Value)RNKRating
                         from
                             keyword,
                             web.Content f
-                        join
+                        cross join
                             web.ContentMap fm on
                                 fm.ROWID = f.ROWID
+                        cross join Transactions t on t.RowId = fm.ContentId
+                        cross join Last l on l.TxId = t.RowId
+                        cross join Chain c on c.TxId = t.RowId
                         left join
                             Ratings r on
-                                r.Uid = fm.ContentId and
+                                r.Uid = c.Uid and
                                 r.Last = 1 and
                                 r.Type = 0
                         where
@@ -208,7 +216,7 @@ namespace PocketDb
                         limit ?
                     ) about
 
-                    order by ROWNUMBER, RNK, Rating desc
+                    order by RNKRating desc
                 )sql")
                 .Bind(
                     _keyword,

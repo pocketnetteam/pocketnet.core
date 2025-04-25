@@ -134,7 +134,7 @@ namespace PocketConsensus
         BarteronOfferConsensusFactory()
         {
             Checkpoint({ 2930000,       0, -1, make_shared<BarteronOfferConsensus>() });
-            Checkpoint({ 3370000, 3704000,  0, make_shared<BarteronOfferConsensus_pip114>() });
+            Checkpoint({ 3370000, 3790000,  0, make_shared<BarteronOfferConsensus_pip114>() });
         }
     };
 

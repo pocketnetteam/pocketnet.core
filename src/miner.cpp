@@ -274,7 +274,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& 
         }
 
         // If prev is pocketnet, check that it's matured
-        if (ChainActive().Height() + 1 - coin.nHeight < POCKETNET_MATURITY)
+        if (coin.IsPocketTX() && (ChainActive().Height() + 1 - coin.nHeight) < POCKETNET_MATURITY)
         {
             LogPrint(BCLog::SELECTCOINS, "Warning: build block skip transaction due to low maturity: tx - %s, prev - %s, %d - %d = %d < %d\n",
                 tx->GetHash().GetHex(), prevout.hash.GetHex(), ChainActive().Height() + 1, coin.nHeight, ChainActive().Height() + 1 - coin.nHeight, POCKETNET_MATURITY);

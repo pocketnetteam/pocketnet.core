@@ -109,7 +109,7 @@ namespace PocketDb
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
         map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
-        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations, vector<pair<string, uint32_t>>& mempoolInputs);
+        UniValue GetUnspents(const vector<string>& addresses, int height, int confirmations);
 
         UniValue GetAccountEarning(const string& address, int height, int depth);
 
@@ -130,7 +130,7 @@ namespace PocketDb
 
         map<string, UniValue> GetContentsData(const vector<string>& hashes, const string& address = "");
         map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address = "");
-        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address);
+        vector<UniValue> GetContentsData(const vector<string>& hashes, const vector<int64_t>& ids, const string& address, bool includeProfiles = true);
         vector<UniValue> GetCollectionsData(const vector<int64_t>& ids);
 
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
