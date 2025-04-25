@@ -182,8 +182,6 @@ $(package)_config_opts_mingw32 += "QMAKE_LFLAGS = '$($(package)_ldflags)'"
 $(package)_config_opts_mingw32 += "QMAKE_LIB = '$($(package)_ar) rc'"
 $(package)_config_opts_mingw32 += -device-option CROSS_COMPILE="$(host)-"
 $(package)_config_opts_mingw32 += -pch
-$(package)_config_opts_mingw32 += -no-feature-schannel
-$(package)_config_opts_mingw32 += -openssl-linked
 ifneq ($(LTO),)
 $(package)_config_opts_mingw32 += -ltcg
 endif
