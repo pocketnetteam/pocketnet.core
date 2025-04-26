@@ -133,7 +133,7 @@ $(package)_config_opts_darwin += -no-feature-corewlan
 $(package)_config_opts_darwin += -no-freetype
 $(package)_config_opts_darwin += QMAKE_MACOSX_DEPLOYMENT_TARGET=$(OSX_MIN_VERSION)
 $(package)_config_opts_darwin += -openssl-linked
-$(package)_config_opts_darwin += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto"
+$(package)_config_opts_darwin += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lpthread"
 $(package)_config_opts_darwin += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
 $(package)_config_opts_darwin += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 
@@ -160,6 +160,9 @@ $(package)_config_opts_linux += -no-opengl
 $(package)_config_opts_linux += -no-feature-vulkan
 $(package)_config_opts_linux += -dbus-runtime
 $(package)_config_opts_linux += -openssl-linked
+$(package)_config_opts_linux += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lpthread"
+$(package)_config_opts_linux += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
+$(package)_config_opts_linux += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 ifneq ($(LTO),)
 $(package)_config_opts_linux += -ltcg
 endif
