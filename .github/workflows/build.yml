@@ -46,6 +46,7 @@ jobs:
       - name: Build in Docker container
         run: |
           docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
+            export DEBIAN_FRONTEND=noninteractive
             apt update && apt install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev libzmq3-dev libminiupnpc-dev
             
             # Проверка наличия кешированных зависимостей
@@ -93,6 +94,7 @@ jobs:
       - name: Build in Docker container
         run: |
           docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
+            export DEBIAN_FRONTEND=noninteractive
             apt update && apt install -y build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
             update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
             
