@@ -6,6 +6,7 @@ $(package)_file_name=qtbase-$($(package)_suffix)
 $(package)_sha256_hash=500d3b390048e9538c28b5f523dfea6936f9c2e10d24ab46580ff57d430b98be
 $(package)_linux_dependencies=freetype fontconfig libxcb libxkbcommon libxcb_util libxcb_util_render libxcb_util_keysyms libxcb_util_image libxcb_util_wm openssl
 $(package)_mingw32_dependencies=openssl
+$(package)_darwin_dependencies=openssl
 $(package)_qt_libs=corelib network widgets gui plugins testlib
 $(package)_linguist_tools = lrelease lupdate lconvert
 $(package)_patches = qt.pro
@@ -133,7 +134,7 @@ $(package)_config_opts_darwin += -no-feature-corewlan
 $(package)_config_opts_darwin += -no-freetype
 $(package)_config_opts_darwin += QMAKE_MACOSX_DEPLOYMENT_TARGET=$(OSX_MIN_VERSION)
 $(package)_config_opts_darwin += -openssl-linked
-$(package)_config_opts_darwin += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lpthread"
+$(package)_config_opts_darwin += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto"
 $(package)_config_opts_darwin += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
 $(package)_config_opts_darwin += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 
