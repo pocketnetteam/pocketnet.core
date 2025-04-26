@@ -29,16 +29,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: prepare
     steps:
-      - name: OS Information
-        run: |
-          uname -a
-          cat /etc/*release
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
-      - name: Install general dependencies
-        run: sudo apt update && sudo apt install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev libzmq3-dev libminiupnpc-dev
       - name: Cache depends
         id: cache-depends
         uses: actions/cache@v4
@@ -46,17 +40,25 @@ jobs:
           path: depends/x86_64-pc-linux-gnu
           key: linux-depends-${{ hashFiles('depends') }}
           restore-keys: linux-depends-
-      - name: Build depends
-        if: steps.cache-depends.outputs.cache-hit != 'true'
-        run: cd depends && make HOST=x86_64-pc-linux-gnu && cd ..
-      - name: Configure
+      - name: Setup Docker
         run: |
-          ./autogen.sh
-          CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
-      - name: Make
+          echo "Using Docker container with Ubuntu 20.04 for building"
+      - name: Build in Docker container
         run: |
-          make -j4
-          make deploy
+          docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
+            apt update && apt install -y build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev libzmq3-dev libminiupnpc-dev
+            
+            # Проверка наличия кешированных зависимостей
+            if [ ! -d "depends/x86_64-pc-linux-gnu" ] || [ -z "$(ls -A depends/x86_64-pc-linux-gnu)" ]; then
+              cd depends && make HOST=x86_64-pc-linux-gnu -j4
+              cd ..
+            fi
+            
+            ./autogen.sh
+            CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure --prefix=/usr/local
+            make -j4
+            make deploy
+          '
       - name: Prepare output binaries
         run: |
           VERSION=${{ needs.prepare.outputs.version }}
@@ -74,18 +76,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: prepare
     steps:
-      - name: OS Information
-        run: |
-          uname -a
-          cat /etc/*release
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
-      - name: Install general dependencies
-        run: |
-          sudo apt update && sudo apt install -y build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
-          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
       - name: Cache depends
         id: cache-depends
         uses: actions/cache@v4
@@ -93,17 +87,26 @@ jobs:
           path: depends/x86_64-w64-mingw32
           key: windows-depends-${{ hashFiles('depends') }}
           restore-keys: windows-depends-
-      - name: Build depends
-        if: steps.cache-depends.outputs.cache-hit != 'true'
-        run: cd depends && make HOST=x86_64-w64-mingw32 && cd ..
-      - name: Configure
+      - name: Setup Docker
         run: |
-          ./autogen.sh
-          CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
-      - name: Make
+          echo "Using Docker container with Ubuntu 20.04 for building Windows binaries"
+      - name: Build in Docker container
         run: |
-          make -j4
-          make deploy
+          docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
+            apt update && apt install -y build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
+            update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+            
+            # Проверка наличия кешированных зависимостей
+            if [ ! -d "depends/x86_64-w64-mingw32" ] || [ -z "$(ls -A depends/x86_64-w64-mingw32)" ]; then
+              cd depends && make HOST=x86_64-w64-mingw32 -j4
+              cd ..
+            fi
+            
+            ./autogen.sh
+            CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
+            make -j4
+            make deploy
+          '
       - name: Prepare output binaries
         run: |
           VERSION=${{ needs.prepare.outputs.version }}
