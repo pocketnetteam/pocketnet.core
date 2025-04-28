@@ -922,6 +922,8 @@ public:
     void transactionAddedToMempool(const CTransactionRef& tx, uint64_t mempool_sequence) override;
     void blockConnected(const CBlock& block, int height) override;
     void blockDisconnected(const CBlock& block, int height) override;
+    /* Function that will remove potentially abandoned coinstakes, returning the input to the wallet. */
+    void AbandonOrphanedCoinstakes();
     void updatedBlockTip() override;
     int64_t RescanFromTime(int64_t startTime, const WalletRescanReserver& reserver, bool update);
 
