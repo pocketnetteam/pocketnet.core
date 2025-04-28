@@ -421,10 +421,10 @@ static RPCHelpMan stakeblock()
             {"count", RPCArg::Type::NUM, /* default */ "1", "Count of new blocks."},
             {"wallet_name", RPCArg::Type::STR, /* default */ "", "Count of new blocks."},
         },
-        RPCResult{RPCResult::Type::NONE, "", ""},
+        RPCResult{RPCResult::Type::STR, "", "The txid of the stake transaction."},
         RPCExamples{
-            HelpExampleCli("stake", "") +
-            HelpExampleRpc("stake", "")
+            HelpExampleCli("stakeblock", "1") +
+            HelpExampleRpc("stakeblock", "1")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -440,11 +440,12 @@ static RPCHelpMan stakeblock()
         std::string wallet_name = "";
         if (request.params.size() > 1 && request.params[1].isStr())
             wallet_name = request.params[1].get_str();
-        
-        if (!Staker::getInstance()->stake(request.context, Params(), num_blocks, wallet_name))
+
+        std::string stake_txid;
+        if (!Staker::getInstance()->stake(request.context, Params(), stake_txid, num_blocks, wallet_name))
             throw JSONRPCError(RPC_MISC_ERROR, "Stake failed, see debug.log");
         
-        return NullUniValue;
+        return stake_txid;
     }};
 }
 
