@@ -474,27 +474,25 @@ void PocketcoinApplication::getLatestVersionFinished() {
 
             if (json_obj.contains("tag_name")) {
                 int current_version = (QString::number(CLIENT_VERSION_MAJOR) + QString::number(CLIENT_VERSION_MINOR) + QString::number(CLIENT_VERSION_REVISION)).toInt();
+                int latest_version = json_obj["tag_name"].toString().replace(QString("v"), QString("")).replace(QString("."), QString("")).toInt();
 
-                QString latest_tag_name = json_obj["tag_name"].toString();
-                int latest_version = latest_tag_name.replace(QString("v"), QString("")).replace(QString("."), QString("")).toInt();
-
-                auto curVersionString = (QString::number(CLIENT_VERSION_MAJOR) + "." + QString::number(CLIENT_VERSION_MINOR) + "." + QString::number(CLIENT_VERSION_REVISION));
-                auto latestVersionString = latest_tag_name.replace(QString("v"), QString(""));
+                auto current_version_string = (QString::number(CLIENT_VERSION_MAJOR) + "." + QString::number(CLIENT_VERSION_MINOR) + "." + QString::number(CLIENT_VERSION_REVISION));
+                auto latest_version_string = json_obj["tag_name"].toString().replace(QString("v"), QString(""));
 
                 if (latest_version > current_version) {
-                    qWarning() << "Check updates result: no new versions (current version: " << curVersionString << ", latest version: " << latestVersionString << ")";
+                    qWarning() << "Check updates result: no new versions (current version: " << current_version_string << ", latest version: " << latest_version_string << ")";
 
                     update_dlg = new UpdateNotificationDialog(
                         QString("https://github.com/pocketnetteam/pocketnet.core/releases/latest"),
-                        (QString::number(CLIENT_VERSION_MAJOR) + "." + QString::number(CLIENT_VERSION_MINOR) + "." + QString::number(CLIENT_VERSION_REVISION)),
-                        latest_tag_name.replace(QString("v"), QString("")),
+                        current_version_string,
+                        latest_version_string,
                         nullptr
                     );
 
                     update_dlg->exec();
                     update_dlg->setFocus();
                 } else {
-                    qWarning() << "Check updates result: no new versions (current version: " << curVersionString << ", latest version: " << latestVersionString << ")";
+                    qWarning() << "Check updates result: no new versions (current version: " << current_version_string << ", latest version: " << latest_version_string << ")";
                 }
             } else {
                 qWarning() << "Check updates result: invalid json: " << json_data;
