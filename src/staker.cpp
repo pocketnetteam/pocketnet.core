@@ -203,7 +203,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     LogPrintf("Staker worker thread stopped for \"%s\"\n", wallet->GetDisplayName());
 }
 
-bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, unsigned int blocks, const std::string& wallet_name)
+bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, std::string& stake_txid, unsigned int blocks, const std::string& wallet_name)
 {
     const auto& node = EnsureNodeContext(context);
     CHECK_NONFATAL(node.mempool); // Mempool should be always available here
@@ -239,7 +239,10 @@ bool Staker::stake(const util::Ref& context, CChainParams const& chainparams, un
                 {
                     // Extend pocketBlock with coinStake transaction
                     if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
+                    {
                         blocktemplate->pocketBlock->emplace_back(ptx);
+                        stake_txid = *ptx->GetHash();
+                    }
 
                     blockSigned = CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
                 }

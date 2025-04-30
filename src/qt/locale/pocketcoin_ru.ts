@@ -1082,7 +1082,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the pocketcoin network, as detailed below.</source>
-        <translation>Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неверным. Информация станет верной после завершения синхронизации с сетью покеткоина, прогресс которой вы можете видеть ниже.</translation>
+        <translation>Недавние транзакции могут быть пока не видны, и поэтому отображаемый баланс вашего кошелька может быть неверным. Информация станет верной после завершения синхронизации с сетью pocketcoin, прогресс которой вы можете видеть ниже.</translation>
     </message>
     <message>
         <source>Attempting to spend pocketcoins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
@@ -1446,7 +1446,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Pocketcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>Показанная информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью покеткоина после подключения, но этот процесс пока не завершён.</translation>
+        <translation>Показанная информация может быть устаревшей. Ваш кошелёк автоматически синхронизируется с сетью pocketcoin после подключения, но этот процесс пока не завершён.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
