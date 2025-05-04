@@ -260,6 +260,10 @@ private:
 
     int64_t m_stale_tip_check_time; //!< Next time to check for stale tip
 
+    /** Whether we've completed initial sync yet, for determining when to turn
+      * on extra block-relay-only peers. */
+    bool m_initial_sync_finished{false};
+
     /** Protects m_peer_map. This mutex must not be locked while holding a lock
      *  on any of the mutexes inside a Peer object. */
     mutable Mutex m_peer_mutex;

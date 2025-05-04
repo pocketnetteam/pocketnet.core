@@ -147,7 +147,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         }
     }
     (void)connman.GetAddedNodeInfo();
-    (void)connman.GetExtraOutboundCount();
+    (void)connman.GetExtraFullOutboundCount();
     (void)connman.GetLocalServices();
     (void)connman.GetMaxOutboundTarget();
     (void)connman.GetMaxOutboundTimeframe();
