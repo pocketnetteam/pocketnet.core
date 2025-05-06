@@ -18,7 +18,6 @@ from framework.helpers import (
 
 
 class ChainBuilder:
-    ACCOUNT_NUM = 10
     FIRST_COINBASE_BLOCKS = 1020
 
     def __init__(self, node, logger=None):
@@ -38,7 +37,7 @@ class ChainBuilder:
         self.generate_accounts_blockings()
         self.log.info("Done generating blockchain activities.")
 
-    def build_init(self, accounts_num=None, moderators_num=None):
+    def build_init(self, accounts_num=10, moderators_num=10):
         self.log.info("Generate general node address")
         self._node_address = self._node.getnewaddress()
 
@@ -48,13 +47,13 @@ class ChainBuilder:
         info = self._node.public().getaddressinfo(self.node_address)
         self.log.info(f"Node balance: {info}")
 
-        if accounts_num > 0:
-            self.log.info(f"Generate {accounts_num or self.ACCOUNT_NUM} account addresses")
-            self._accounts = generate_accounts(self._node, self.node_address, accounts_num or self.ACCOUNT_NUM)
+        if accounts_num and accounts_num > 0:
+            self.log.info(f"Generate {accounts_num} account addresses")
+            self._accounts = generate_accounts(self._node, self.node_address, accounts_num)
 
-        if moderators_num > 0:
-            self.log.info(f"Generate {moderators_num or self.ACCOUNT_NUM} moderator addresses")
-            self._moders = generate_accounts(self._node, self.node_address, moderators_num or self.ACCOUNT_NUM, is_moderator=True)
+        if moderators_num and moderators_num > 0:
+            self.log.info(f"Generate {moderators_num} moderator addresses")
+            self._moders = generate_accounts(self._node, self.node_address, moderators_num, is_moderator=True)
 
     def register_accounts(self):
         self.log.info("Register accounts")
