@@ -49,8 +49,8 @@ namespace PocketWeb::PocketWebRpc
         }
 
         string lang = "en";
-        if (request.params.size() > 2) {
-            lang = request.params[2].get_str();
+        if (request.params.size() > 3) {
+            lang = request.params[3].get_str();
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetTags(lang, pageSize, pageStart);
