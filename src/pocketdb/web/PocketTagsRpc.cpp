@@ -30,11 +30,23 @@ namespace PocketWeb::PocketWebRpc
 
         int pageStart = 0;
         if (request.params.size() > 0)
-            ParseInt32(request.params[0].get_str(), &pageStart);
+        {
+            if (request.params[0].isNum())
+                pageStart = request.params[0].get_int();
+            else if (request.params[0].isStr() && !request.params[0].empty())
+                if (!ParseInt32(request.params[0].get_str(), &pageStart))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
+        }
 
         int pageSize = 50;
         if (request.params.size() > 1)
-            ParseInt32(request.params[1].get_str(), &pageSize);
+        {
+            if (request.params[1].isNum())
+                pageSize = request.params[1].get_int();
+            else if (request.params[1].isStr() && !request.params[1].empty())
+                if (!ParseInt32(request.params[1].get_str(), &pageSize))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed to parse int from string");
+        }
 
         string lang = "en";
         if (request.params.size() > 3) {
