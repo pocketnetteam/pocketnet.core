@@ -120,6 +120,7 @@ namespace PocketTx
         // Barteron transactions
         BARTERON_ACCOUNT = 104,
         BARTERON_OFFER = 211,
+        BARTERON_OFFER_PAYD = 212,
     };
 
     // Rating types

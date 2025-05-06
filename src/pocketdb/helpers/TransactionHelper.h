@@ -86,7 +86,7 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransactionRef& tx, TxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);
-        static bool IsPocketNeededPaymentTransaction(const CTransactionRef& tx);
+        static bool IsPocketNeededPaymentTransaction(TxType& txType);
         static tuple<bool, ScoreDataDtoRef> ParseScore(const CTransactionRef& tx);
         static tuple<bool, ModerationVoteTxDataRef> ParseModerationVote(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(TxType txType);

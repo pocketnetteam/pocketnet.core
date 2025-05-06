@@ -4,6 +4,7 @@
 
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "core_io.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketHelpers
 {
@@ -281,9 +282,21 @@ namespace PocketHelpers
         return IsPocketTransaction(txRef);
     }
 
-    // TODO (o1q): Implement it for setting minimum fee for several PocketNet transactions
-    bool TransactionHelper::IsPocketNeededPaymentTransaction(const CTransactionRef& tx)
+    bool TransactionHelper::IsPocketNeededPaymentTransaction(TxType& txType)
     {
+        if (IsPocketTransaction(txType))
+        {
+            switch (txType)
+            {
+                case TxType::BARTERON_OFFER_PAYD:
+                    return true;
+                // case TxType::APP:
+                //     return true;
+                default:
+                    return false;
+            }
+        }
+
         return false;
     }
 

@@ -772,8 +772,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "bad-txns-too-many-sigops",
                 strprintf("%d", nSigOpsCost));
 
-    // No transactions are allowed below minRelayTxFee except from disconnected
-    // blocks
+    // No transactions are allowed below minRelayTxFee except from disconnected blocks
     if (!bypass_limits && !CheckFeeRate(PocketHelpers::TransactionHelper::IsPocketTransaction(ptx), nSize, nModifiedFees, state)) return false;
 
     const CTxMemPool::setEntries setIterConflicting = m_pool.GetIterSet(setConflicts);
