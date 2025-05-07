@@ -273,6 +273,6 @@ jobs:
       - name: Copy HEAD information
         run: cp ./head/head.txt /data/head.txt
       - name: Set permissions
-        run: chmod +r /data/*
+        run: chmod --reference=/data /data/*
       - name: Clean work dir
         run: rm -rf ./*
