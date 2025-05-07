@@ -19,11 +19,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || steps.branch-name.outputs.ref_branch }}
+      - name: Save HEAD information
+        run: git --no-pager log --decorate=short --pretty=oneline -n1 > head.txt
       - name: Detect actual version
         id: version
         run: |
           VERSION=$(./share/version.sh)
           echo "value=$VERSION" >> $GITHUB_OUTPUT
+      - name: Save artifact head.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: head
+          path: ./head.txt
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -252,3 +259,18 @@ jobs:
         with:
           name: MacOS_x64
           path: ./out/*
+
+  deploy-binaries:
+    needs: [ build-macos-arm64, build-macos-amd64, build-linux, build-windows ]
+    runs-on: dev.pocketnet.app
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+      - name: Clear output dir
+        run: rm -rf /data/dev/binaries/core/*
+      - name: Copy artifacts
+        run: cp ./**/* /data/dev/binaries/core/
+      - name: Copy HEAD information
+        run: cp ./head/head.txt /data/dev/binaries/core/head.txt
+      - name: Clean work dir
+        run: rm -rf ./*
