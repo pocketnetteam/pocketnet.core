@@ -262,15 +262,15 @@ jobs:
 
   deploy-binaries:
     needs: [ build-macos-arm64, build-macos-amd64, build-linux, build-windows ]
-    runs-on: dev.pocketnet.app
+    runs-on: dev.core
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
       - name: Clear output dir
-        run: rm -rf /data/dev/binaries/core/*
+        run: rm -rf /data/*
       - name: Copy artifacts
-        run: cp ./**/* /data/dev/binaries/core/
+        run: cp ./**/* /data/
       - name: Copy HEAD information
-        run: cp ./head/head.txt /data/dev/binaries/core/head.txt
+        run: cp ./head/head.txt /data/head.txt
       - name: Clean work dir
         run: rm -rf ./*
