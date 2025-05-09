@@ -1318,39 +1318,43 @@ namespace PocketDb
         vector<string> result;
         result.reserve(contentHashes.size());
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
-                    cnt as (
-                        select
-                            r.RowId as id
-                        from
-                            Registry r
-                        where
-                            r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
-                    )
-                select
-                    r.String
-                from
-                    cnt
-                cross join
-                    Transactions t indexed by Transactions_Type_RegId3_RegId1 on
-                        t.Type in (204, 205, 206) and t.RegId3 = cnt.id
-                cross join Last l on
-                    l.TxId = t.RowId
-                cross join Registry r on
-                    r.RowId = t.RowId
-            )sql")
-            .Bind(contentHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
-                        result.emplace_back(val);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        cnt as (
+                            select
+                                r.RowId as id
+                            from
+                                Registry r
+                            where
+                                r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
+                        )
+                    select
+                        r.String
+                    from
+                        cnt
+                    cross join
+                        Transactions t indexed by Transactions_Type_RegId3_RegId1 on
+                            t.Type in (204, 205, 206) and t.RegId3 = cnt.id
+                    cross join Last l on
+                        l.TxId = t.RowId
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                )sql")
+                .Bind(contentHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                            result.emplace_back(val);
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -1360,10 +1364,11 @@ namespace PocketDb
         vector<string> result;
         result.reserve(contentHashes.size());
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
                     cnt as (
                         select
                             r.RowId as id
@@ -1372,24 +1377,27 @@ namespace PocketDb
                         where
                             r.String in ( )sql" + join(vector<string>(contentHashes.size(), "?"), ",") + R"sql( )
                     )
-                select
-                    r.String
-                from
-                    cnt
-                cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                    t.Type = 300 and t.RegId2 = cnt.id
-                cross join Registry r on
-                    r.RowId = t.RowId
-            )sql")
-            .Bind(contentHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
-                        result.emplace_back(val);
+                    select
+                        r.String
+                    from
+                        cnt
+                    cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                        t.Type = 300 and t.RegId2 = cnt.id
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                )sql")
+                .Bind(contentHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                            result.emplace_back(val);
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -1399,10 +1407,11 @@ namespace PocketDb
         vector<string> result;
         result.reserve(rootHashes.size());
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
                     cnt as (
                         select
                             c.Uid as uid
@@ -1413,26 +1422,29 @@ namespace PocketDb
                         where
                             t.Hash in ( )sql" + join(vector<string>(rootHashes.size(), "?"), ",") + R"sql( )
                     )
-                select
-                    hash.String
-                from
-                    cnt
-                cross join Chain c on
-                    c.Uid = cnt.uid
-                cross join Last l on
-                    l.TxId = c.TxId
-                cross join Registry hash on
-                    hash.RowId = c.TxId
-            )sql")
-            .Bind(rootHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto [ok, val] = cursor.TryGetColumnString(0); ok) {
-                        result.emplace_back(val);
+                    select
+                        hash.String
+                    from
+                        cnt
+                    cross join Chain c on
+                        c.Uid = cnt.uid
+                    cross join Last l on
+                        l.TxId = c.TxId
+                    cross join Registry hash on
+                        hash.RowId = c.TxId
+                )sql")
+                .Bind(rootHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto [ok, val] = cursor.TryGetColumnString(0); ok) {
+                            result.emplace_back(val);
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -1442,10 +1454,11 @@ namespace PocketDb
         vector<string> result;
         result.reserve(commentHashes.size());
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
                     cnt as (
                         select
                             r.RowId as id
@@ -1454,24 +1467,27 @@ namespace PocketDb
                         where
                             r.String in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
                     )
-                select
-                    r.String
-                from
-                    cnt
-                cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                    t.Type = 301 and t.RegId2 = cnt.id
-                cross join Registry r on
-                    r.RowId = t.RowId
-            )sql")
-            .Bind(commentHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
-                        result.emplace_back(val);
+                    select
+                        r.String
+                    from
+                        cnt
+                    cross join Transactions t indexed by Transactions_Type_RegId2_RegId1 on
+                        t.Type = 301 and t.RegId2 = cnt.id
+                    cross join Registry r on
+                        r.RowId = t.RowId
+                )sql")
+                .Bind(commentHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                            result.emplace_back(val);
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }
@@ -1480,28 +1496,31 @@ namespace PocketDb
     {
         vector<string> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                select distinct
-                    r.String
-                from
-                    vTx t
-                    cross join Registry r on
-                        r.RowId = t.RegId1
-                where
-                    t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-            )sql")
-            .Bind(txHashes)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
-                        result.emplace_back(val);
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select distinct
+                        r.String
+                    from
+                        vTx t
+                        cross join Registry r on
+                            r.RowId = t.RegId1
+                    where
+                        t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+                )sql")
+                .Bind(txHashes);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        if (auto[ok, val] = cursor.TryGetColumnString(0); ok) {
+                            result.emplace_back(val);
+                        }
                     }
-                }
-            });
-
-        });
+                });
+            }
+        );
 
         return result;
     }

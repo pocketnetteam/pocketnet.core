@@ -55,10 +55,11 @@ namespace PocketDb
     {
         map<string, BarteronAccountAdditionalInfo> result;
 
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                with
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
                     data as (
                         select
                             t.Hash as txid,
@@ -84,7 +85,7 @@ namespace PocketDb
                             cross join Transactions t on
                                 t.RowId = c.TxId
                     ),
-                     rating as (
+                    rating as (
                         select
                             cast (ifnull(avg(s.Int1), 0) * 10 as integer) as val,
                             sum(s.int1) as sum,
@@ -99,36 +100,41 @@ namespace PocketDb
                                 s.RegId1 != data.addrid
                             cross join Chain c on -- chain only
                                 c.TxId = s.RowId
+                            cross join Last l on
+                                l.TxId = o.RowId
                         where
                             o.Type = 211 and
                             o.RegId1 = data.addrid
                         group by ratingAddrId
                     )
-                select
-                    data.txid,
-                    regdate.val,
-                    COALESCE(rating.val,0),
-                    COALESCE(rating.sum,0),
-                    COALESCE(rating.count,0)
-                from
-                    data
-                left join regdate on data.uid = regdate.uid
-                left join rating on data.addrid = rating.ratingAddrId
-            )sql")
-            .Bind(txids)
-            .Select([&](Cursor& cursor) {
-                while (cursor.Step()) {
-                    string txid;
-                    int64_t regdate;
-                    int rating;
-                    int sum;
+                    select
+                        data.txid,
+                        regdate.val,
+                        COALESCE(rating.val,0),
+                        COALESCE(rating.sum,0),
+                        COALESCE(rating.count,0)
+                    from
+                        data
+                    left join regdate on data.uid = regdate.uid
+                    left join rating on data.addrid = rating.ratingAddrId
+                )sql")
+                .Bind(txids);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step()) {
+                        string txid;
+                        int64_t regdate;
+                        int rating;
+                        int sum;
                     int count;
                     if (cursor.CollectAll(txid, regdate, rating, sum, count)) {
-                        result.insert({std::move(txid), {regdate, rating, sum, count}});
+                            result.insert({std::move(txid), {regdate, rating, sum, count}});
+                        }
                     }
-                }
-            });
-        });
+                });
+            }
+        );
 
         return result;
     }

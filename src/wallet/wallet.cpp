@@ -1272,6 +1272,32 @@ void CWallet::blockDisconnected(const CBlock& block, int height)
 	for (const CTransactionRef& ptx : block.vtx) {
 		SyncTransaction(ptx, {CWalletTx::Status::UNCONFIRMED, /* block height */ 0, /* block hash */ {}, /* index */ 0});
 	}
+
+	// Call to abandon orphaned coinstakes after handling disconnections
+    AbandonOrphanedCoinstakes();
+}
+
+void CWallet::AbandonOrphanedCoinstakes()
+{
+	LOCK(cs_wallet);
+
+    // m_last_block_processed_height can be < 0
+    // when loading the wallet during a reindex. Do nothing in that case.
+    if (m_last_block_processed_height < 0) {
+        return;
+    }
+
+    for (std::pair<const uint256, CWalletTx>& item : mapWallet) {
+        const uint256& wtxid = item.first;
+        CWalletTx& wtx = item.second;
+        assert(wtx.GetHash() == wtxid);
+        if (wtx.GetDepthInMainChain() == 0 && !wtx.isAbandoned() && wtx.IsCoinStake()) {
+            LogPrint(BCLog::WALLET, "Abandoning coinstake wtx %s\n", wtx.GetHash().ToString());
+            if (!AbandonTransaction(wtxid)) {
+                LogPrint(BCLog::WALLET, "Failed to abandon coinstake tx %s\n", wtx.GetHash().ToString());
+            }
+        }
+    }
 }
 
 void CWallet::updatedBlockTip()

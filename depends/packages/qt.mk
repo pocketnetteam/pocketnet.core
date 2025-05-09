@@ -4,7 +4,9 @@ $(package)_download_path=https://qt-mirror.dannhauer.de/official_releases/qt/5.1
 $(package)_suffix=everywhere-opensource-src-$($(package)_version).tar.xz
 $(package)_file_name=qtbase-$($(package)_suffix)
 $(package)_sha256_hash=500d3b390048e9538c28b5f523dfea6936f9c2e10d24ab46580ff57d430b98be
-$(package)_linux_dependencies=freetype fontconfig libxcb libxkbcommon libxcb_util libxcb_util_render libxcb_util_keysyms libxcb_util_image libxcb_util_wm
+$(package)_linux_dependencies=freetype fontconfig libxcb libxkbcommon libxcb_util libxcb_util_render libxcb_util_keysyms libxcb_util_image libxcb_util_wm openssl
+$(package)_mingw32_dependencies=openssl
+$(package)_darwin_dependencies=openssl
 $(package)_qt_libs=corelib network widgets gui plugins testlib
 $(package)_linguist_tools = lrelease lupdate lconvert
 $(package)_patches = qt.pro
@@ -25,6 +27,7 @@ $(package)_patches += utc_from_string_no_optimize.patch
 $(package)_patches += windows_lto.patch
 $(package)_patches += darwin_no_libm.patch
 $(package)_patches += zlib-timebits64.patch
+$(package)_patches += fix_windows_openssl_libs.patch
 
 $(package)_qttranslations_file_name=qttranslations-$($(package)_suffix)
 $(package)_qttranslations_sha256_hash=5b94d1a11b566908622fcca2f8b799744d2f8a68da20be4caa5953ed63b10489
@@ -62,12 +65,9 @@ $(package)_config_opts += -no-libproxy
 $(package)_config_opts += -no-libudev
 $(package)_config_opts += -no-mimetype-database
 $(package)_config_opts += -no-mtdev
-$(package)_config_opts += -no-openssl
 $(package)_config_opts += -no-openvg
 $(package)_config_opts += -no-reduce-relocations
-$(package)_config_opts += -no-schannel
 $(package)_config_opts += -no-sctp
-$(package)_config_opts += -no-securetransport
 $(package)_config_opts += -no-sql-db2
 $(package)_config_opts += -no-sql-ibase
 $(package)_config_opts += -no-sql-oci
@@ -99,12 +99,10 @@ $(package)_config_opts += -no-feature-concurrent
 $(package)_config_opts += -no-feature-dial
 $(package)_config_opts += -no-feature-fontcombobox
 $(package)_config_opts += -no-feature-ftp
-$(package)_config_opts += -no-feature-http
 $(package)_config_opts += -no-feature-image_heuristic_mask
 $(package)_config_opts += -no-feature-keysequenceedit
 $(package)_config_opts += -no-feature-lcdnumber
 $(package)_config_opts += -no-feature-networkdiskcache
-$(package)_config_opts += -no-feature-networkproxy
 $(package)_config_opts += -no-feature-pdf
 $(package)_config_opts += -no-feature-printdialog
 $(package)_config_opts += -no-feature-printer
@@ -135,6 +133,10 @@ $(package)_config_opts_darwin += -pch
 $(package)_config_opts_darwin += -no-feature-corewlan
 $(package)_config_opts_darwin += -no-freetype
 $(package)_config_opts_darwin += QMAKE_MACOSX_DEPLOYMENT_TARGET=$(OSX_MIN_VERSION)
+$(package)_config_opts_darwin += -openssl-linked
+$(package)_config_opts_darwin += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto"
+$(package)_config_opts_darwin += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
+$(package)_config_opts_darwin += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 
 ifneq ($(build_os),darwin)
 $(package)_config_opts_darwin += -xplatform macx-clang-linux
@@ -158,6 +160,10 @@ $(package)_config_opts_linux += -fontconfig
 $(package)_config_opts_linux += -no-opengl
 $(package)_config_opts_linux += -no-feature-vulkan
 $(package)_config_opts_linux += -dbus-runtime
+$(package)_config_opts_linux += -openssl-linked
+$(package)_config_opts_linux += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lpthread"
+$(package)_config_opts_linux += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
+$(package)_config_opts_linux += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 ifneq ($(LTO),)
 $(package)_config_opts_linux += -ltcg
 endif
@@ -176,6 +182,10 @@ $(package)_config_opts_mingw32 = -no-opengl
 $(package)_config_opts_mingw32 += -no-dbus
 $(package)_config_opts_mingw32 += -no-freetype
 $(package)_config_opts_mingw32 += -xplatform win32-g++
+$(package)_config_opts_mingw32 += -openssl-linked
+$(package)_config_opts_mingw32 += "QMAKE_LIBS_OPENSSL = -lssl -lcrypto -lws2_32 -ladvapi32 -lcrypt32 -lgdi32 -luser32"
+$(package)_config_opts_mingw32 += "QMAKE_INCDIR_OPENSSL = '$(host_prefix)/include'"
+$(package)_config_opts_mingw32 += "QMAKE_LIBDIR_OPENSSL = '$(host_prefix)/lib'"
 $(package)_config_opts_mingw32 += "QMAKE_CFLAGS = '$($(package)_cflags) $($(package)_cppflags)'"
 $(package)_config_opts_mingw32 += "QMAKE_CXX = '$($(package)_cxx)'"
 $(package)_config_opts_mingw32 += "QMAKE_CXXFLAGS = '$($(package)_cxxflags) $($(package)_cppflags)'"
@@ -239,6 +249,7 @@ define $(package)_preprocess_cmds
   patch -p1 -i $($(package)_patch_dir)/windows_lto.patch && \
   patch -p1 -i $($(package)_patch_dir)/darwin_no_libm.patch && \
   patch -p1 -i $($(package)_patch_dir)/zlib-timebits64.patch && \
+  patch -p1 -i $($(package)_patch_dir)/fix_windows_openssl_libs.patch && \
   mkdir -p qtbase/mkspecs/macx-clang-linux &&\
   cp -f qtbase/mkspecs/macx-clang/qplatformdefs.h qtbase/mkspecs/macx-clang-linux/ &&\
   cp -f $($(package)_patch_dir)/mac-qmake.conf qtbase/mkspecs/macx-clang-linux/qmake.conf && \

@@ -77,29 +77,26 @@ namespace PocketDb
                 json_each(pp.String4)
         )sql";
 
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                return Sql(sql).Bind(height);
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        auto[okId, id] = cursor.TryGetColumnInt64(0);
-                        if (!okId) continue;
+        SqlTransaction( __func__, [&]()
+        {
+            Sql(sql)
+            .Bind(height)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto[okId, id] = cursor.TryGetColumnInt64(0);
+                    if (!okId) continue;
 
-                        auto[okLang, lang] = cursor.TryGetColumnString(1);
-                        if (!okLang) continue;
+                    auto[okLang, lang] = cursor.TryGetColumnString(1);
+                    if (!okLang) continue;
 
-                        auto[okValue, value] = cursor.TryGetColumnString(2);
-                        if (!okValue) continue;
+                    auto[okValue, value] = cursor.TryGetColumnString(2);
+                    if (!okValue) continue;
 
-                        result.emplace_back(WebTag(id, lang, value));
-                    }
-                });
-            }
-        );
+                    result.emplace_back(WebTag(id, lang, value));
+                }
+            });
+        });
 
         return result;
     }
@@ -134,26 +131,23 @@ namespace PocketDb
                 json_each(json_extract(pp.String1, '$.t'))
         )sql";
 
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                return Sql(sql).Bind(height);
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
-                    {
-                        auto[okId, id] = cursor.TryGetColumnInt64(0);
-                        if (!okId) continue;
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(height)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto[okId, id] = cursor.TryGetColumnInt64(0);
+                    if (!okId) continue;
 
-                        auto[okValue, value] = cursor.TryGetColumnString(1);
-                        if (!okValue) continue;
+                    auto[okValue, value] = cursor.TryGetColumnString(1);
+                    if (!okValue) continue;
 
-                        result.emplace_back(WebTag(id, "en", value));
-                    }
-                });
-            }
-        );
+                    result.emplace_back(WebTag(id, "en", value));
+                }
+            });
+        });
 
         return result;
     }
@@ -264,78 +258,75 @@ namespace PocketDb
                     p.TxId = t.RowId
         )sql";
        
-        SqlTransaction(
-            __func__,
-            [&]() -> Stmt& {
-                return Sql(sql).Bind(height);
-            },
-            [&] (Stmt& stmt) {
-                stmt.Select([&](Cursor& cursor) {
-                    while (cursor.Step())
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(sql)
+            .Bind(height)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    auto[okType, type] = cursor.TryGetColumnInt(0);
+                    auto[okId, id] = cursor.TryGetColumnInt64(1);
+                    if (!okType || !okId)
+                        continue;
+
+                    switch ((TxType)type)
                     {
-                        auto[okType, type] = cursor.TryGetColumnInt(0);
-                        auto[okId, id] = cursor.TryGetColumnInt64(1);
-                        if (!okType || !okId)
-                            continue;
-
-                        switch ((TxType)type)
+                    case ACCOUNT_USER:
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, value));
+                        if (auto[ok, value] = cursor.TryGetColumnString(5); ok)    
+                            result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, value));
+                        break;
+                    case CONTENT_POST:
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
+                        break;
+                    case CONTENT_VIDEO:
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, value));
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, value));
+                        break;                        
+                    case CONTENT_ARTICLE:
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentArticleCaption, value));
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
+                        break;
+                    case BARTERON_OFFER:
+                        if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
+                        if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
+                            result.emplace_back(WebContent(id, ContentFieldType_BarteronDescription, val));
+                        break;                        
+                    case APP:
+                        if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
                         {
-                        case ACCOUNT_USER:
-                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, value));
-                            if (auto[ok, value] = cursor.TryGetColumnString(5); ok)    
-                                result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, value));
-                            break;
-                        case CONTENT_POST:
-                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, value));
-                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, value));
-                            break;
-                        case CONTENT_VIDEO:
-                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, value));
-                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, value));
-                            break;                        
-                        case CONTENT_ARTICLE:
-                            if (auto[ok, value] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleCaption, value));
-                            if (auto[ok, value] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
-                            break;
-                        case BARTERON_OFFER:
-                            if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
-                            if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
-                                result.emplace_back(WebContent(id, ContentFieldType_BarteronDescription, val));
-                            break;                        
-                        case APP:
-                            if (auto[ok, string1] = cursor.TryGetColumnString(2); ok)
-                            {
-                                UniValue data(UniValue::VOBJ);
-                                data.read(string1);
+                            UniValue data(UniValue::VOBJ);
+                            data.read(string1);
 
-                                if (data.isNull() || !data.isObject())
-                                    break;
+                            if (data.isNull() || !data.isObject())
+                                break;
 
-                                if (data.exists("n"))
-                                    result.emplace_back(WebContent(id, ContentFieldType_AppName, data["n"].get_str()));
+                            if (data.exists("n"))
+                                result.emplace_back(WebContent(id, ContentFieldType_AppName, data["n"].get_str()));
 
-                                if (data.exists("d"))
-                                    result.emplace_back(WebContent(id, ContentFieldType_AppDescription, data["d"].get_str()));
+                            if (data.exists("d"))
+                                result.emplace_back(WebContent(id, ContentFieldType_AppDescription, data["d"].get_str()));
 
-                                if (data.exists("s"))
-                                    result.emplace_back(WebContent(id, ContentFieldType_AppScope, data["s"].get_str()));
-                            }
-                            break;                        
-                        default:
-                            break;
+                            if (data.exists("s"))
+                                result.emplace_back(WebContent(id, ContentFieldType_AppScope, data["s"].get_str()));
                         }
+                        break;                        
+                    default:
+                        break;
                     }
-                });
-            }
-        );
+                }
+            });
+        });
 
         return result;
     }
@@ -586,42 +577,38 @@ namespace PocketDb
         // PostsCount
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_PostsCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            count()
-                        from
-                            Transactions t
-                        cross join
-                            Last l on
-                                l.TxId = t.RowId
-                        cross join
-                            Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                po.Type in (200,201,202,209,210) and
-                                po.RegId1 = t.RegId1
-                        cross join
-                            Last lpo
-                                on lpo.TxId = po.RowId
-                        where
-                            t.Type = 100
-                        group by
-                            t.RegId1
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_PostsCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        count()
+                    from
+                        Transactions t
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            po.Type in (200,201,202,209,210) and
+                            po.RegId1 = t.RegId1
+                    cross join
+                        Last lpo
+                            on lpo.TxId = po.RowId
+                    where
+                        t.Type = 100
+                    group by
+                        t.RegId1
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_PostsCount_Set", [&]()
             {
@@ -641,42 +628,38 @@ namespace PocketDb
         // DelCount
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_DelCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            count()
-                        from
-                            Transactions t
-                        cross join
-                            Last l on
-                                l.TxId = t.RowId
-                        cross join
-                            Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                po.Type in (207) and
-                                po.RegId1 = t.RegId1
-                        cross join
-                            Last lpo
-                                on lpo.TxId = po.RowId
-                        where
-                            t.Type = 100
-                        group by
-                            t.RegId1
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_DelCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        count()
+                    from
+                        Transactions t
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Transactions po indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            po.Type in (207) and
+                            po.RegId1 = t.RegId1
+                    cross join
+                        Last lpo
+                            on lpo.TxId = po.RowId
+                    where
+                        t.Type = 100
+                    group by
+                        t.RegId1
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_DelCount_Set", [&]()
             {
@@ -696,48 +679,44 @@ namespace PocketDb
         // SubscribesCount
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_SubscribesCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            count()
-                        from
-                            Transactions t
-                        cross join
-                            Last l on
-                                l.TxId = t.RowId
-                        cross join
-                            Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                subs.Type in (302, 303) and
-                                subs.RegId1 = t.RegId1
-                        cross join
-                            Last lsubs
-                                on lsubs.TxId = subs.RowId
-                        cross join
-                            Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                on uas.Type in (100) and uas.RegId1 = subs.RegId2
-                        cross join
-                            Last luas
-                                on luas.TxId = uas.RowId
-                        where
-                            t.Type = 100
-                        group by
-                            t.RegId1
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_SubscribesCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        count()
+                    from
+                        Transactions t
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Transactions subs indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                            subs.Type in (302, 303) and
+                            subs.RegId1 = t.RegId1
+                    cross join
+                        Last lsubs
+                            on lsubs.TxId = subs.RowId
+                    cross join
+                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on uas.Type in (100) and uas.RegId1 = subs.RegId2
+                    cross join
+                        Last luas
+                            on luas.TxId = uas.RowId
+                    where
+                        t.Type = 100
+                    group by
+                        t.RegId1
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_SubscribesCount_Set", [&]()
             {
@@ -757,48 +736,44 @@ namespace PocketDb
         // SubscribersCount
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_SubscribersCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            count()
-                        from
-                            Transactions t
-                        cross join
-                            Last l on
-                                l.TxId = t.RowId
-                        cross join
-                            Transactions subs indexed by Transactions_Type_RegId2_RegId1 on
-                                subs.Type in (302, 303) and
-                                subs.RegId2 = t.RegId1
-                        cross join
-                            Last lsubs
-                                on lsubs.TxId = subs.RowId
-                        cross join
-                            Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                on uas.Type in (100) and uas.RegId1 = subs.RegId1
-                        cross join
-                            Last luas
-                                on luas.TxId = uas.RowId
-                        where
-                            t.Type = 100
-                        group by
-                            t.RegId1
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_SubscribersCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        count()
+                    from
+                        Transactions t
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Transactions subs indexed by Transactions_Type_RegId2_RegId1 on
+                            subs.Type in (302, 303) and
+                            subs.RegId2 = t.RegId1
+                    cross join
+                        Last lsubs
+                            on lsubs.TxId = subs.RowId
+                    cross join
+                        Transactions uas indexed by Transactions_Type_RegId1_RegId2_RegId3
+                            on uas.Type in (100) and uas.RegId1 = subs.RegId1
+                    cross join
+                        Last luas
+                            on luas.TxId = uas.RowId
+                    where
+                        t.Type = 100
+                    group by
+                        t.RegId1
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_SubscribersCount_Set", [&]()
             {
@@ -818,51 +793,47 @@ namespace PocketDb
         // FlagsJson
         {
             unordered_map<int64_t, string> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_FlagsJson_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
+            SqlTransaction("CollectAccountStatistic_FlagsJson_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        gr.AccId,
+                        json_group_object(gr.Type, gr.Cnt)
+                    from (
                         select
-                            gr.AccId,
-                            json_group_object(gr.Type, gr.Cnt)
-                        from (
-                            select
-                                t.RegId1 as AccId,
-                                f.Int1 as Type,
-                                count() as Cnt
-                            from
-                                Transactions t
-                            cross join
-                                Last l on
-                                    l.TxId = t.RowId
-                            cross join
-                                Transactions f indexed by Transactions_Type_RegId3_RegId1 on
-                                    f.Type in (410) and
-                                    f.RegId3 = t.RegId1
-                            cross join
-                                Chain c on
-                                    c.TxId = f.RowId
-                            where
-                                t.Type = 100
-                            group by
-                                t.RegId1, f.Int1
-                        )gr
+                            t.RegId1 as AccId,
+                            f.Int1 as Type,
+                            count() as Cnt
+                        from
+                            Transactions t
+                        cross join
+                            Last l on
+                                l.TxId = t.RowId
+                        cross join
+                            Transactions f indexed by Transactions_Type_RegId3_RegId1 on
+                                f.Type in (410) and
+                                f.RegId3 = t.RegId1
+                        cross join
+                            Chain c on
+                                c.TxId = f.RowId
+                        where
+                            t.Type = 100
                         group by
-                            gr.AccId
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1;
-                            string value;
-                            if (cursor.CollectAll(regId1, value))
-                                _map.emplace(regId1, value);
-                        }
-                    });
-                }
-            );
+                            t.RegId1, f.Int1
+                    )gr
+                    group by
+                        gr.AccId
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1;
+                        string value;
+                        if (cursor.CollectAll(regId1, value))
+                            _map.emplace(regId1, value);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_FlagsJson_Set", [&]()
             {
@@ -882,67 +853,63 @@ namespace PocketDb
         // FirstFlagsCount
         {
             unordered_map<int64_t, string> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_FirstFlagsCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
+            SqlTransaction("CollectAccountStatistic_FirstFlagsCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        gr.AccRegId,
+                        json_group_object(gr.Type, gr.Cnt)
+                    from (
                         select
                             gr.AccRegId,
-                            json_group_object(gr.Type, gr.Cnt)
+                            gr.Type,
+                            count() as Cnt
                         from (
                             select
-                                gr.AccRegId,
-                                gr.Type,
-                                count() as Cnt
-                            from (
-                                select
-                                    f.RegId3 as AccRegId,
-                                    f.Int1 as Type,
-                                    cf.Height,
-                                    min(cfp.Height) as minHeight
-                                from
-                                    Transactions f indexed by Transactions_Type_RegId3_RegId1
-                                cross join
-                                    Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                        fp.Type in (200, 201, 202, 209, 210) and
-                                        fp.RegId1 = f.RegId3
-                                cross join
-                                    First ffp
-                                        on ffp.TxId = fp.RowId
-                                cross join
-                                    Chain cfp indexed by Chain_TxId_Height
-                                        on cfp.TxId = fp.RowId
-                                cross join
-                                    Chain cf indexed by Chain_TxId_Height
-                                        on cf.TxId = f.RowId
-                                where
-                                    f.Type in (410)
-                                group by
-                                    f.RegId3, f.Int1
-                            )gr
+                                f.RegId3 as AccRegId,
+                                f.Int1 as Type,
+                                cf.Height,
+                                min(cfp.Height) as minHeight
+                            from
+                                Transactions f indexed by Transactions_Type_RegId3_RegId1
+                            cross join
+                                Transactions fp indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    fp.Type in (200, 201, 202, 209, 210) and
+                                    fp.RegId1 = f.RegId3
+                            cross join
+                                First ffp
+                                    on ffp.TxId = fp.RowId
+                            cross join
+                                Chain cfp indexed by Chain_TxId_Height
+                                    on cfp.TxId = fp.RowId
+                            cross join
+                                Chain cf indexed by Chain_TxId_Height
+                                    on cf.TxId = f.RowId
                             where
-                                gr.Height >= gr.minHeight and
-                                gr.Height <= (gr.minHeight + (14 * 1440))
+                                f.Type in (410)
                             group by
-                                gr.AccRegId,
-                                gr.Type
+                                f.RegId3, f.Int1
                         )gr
+                        where
+                            gr.Height >= gr.minHeight and
+                            gr.Height <= (gr.minHeight + (14 * 1440))
                         group by
-                            gr.AccRegId
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1;
-                            string value;
-                            if (cursor.CollectAll(regId1, value))
-                                _map.emplace(regId1, value);
-                        }
-                    });
-                }
-            );
+                            gr.AccRegId,
+                            gr.Type
+                    )gr
+                    group by
+                        gr.AccRegId
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1;
+                        string value;
+                        if (cursor.CollectAll(regId1, value))
+                            _map.emplace(regId1, value);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_FirstFlagsCount_Set", [&]()
             {
@@ -962,32 +929,28 @@ namespace PocketDb
         // ActionsCount
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_ActionsCount_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            count()
-                        from
-                            Transactions t
-                        where
-                            t.Type >= 100
-                        group by
-                            t.RegId1
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_ActionsCount_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        count()
+                    from
+                        Transactions t
+                    where
+                        t.Type >= 100
+                    group by
+                        t.RegId1
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_ActionsCount_Set", [&]()
             {
@@ -1007,57 +970,53 @@ namespace PocketDb
         // Last 5 Contents
         {
             unordered_map<int64_t, int64_t> _map;
-            SqlTransaction(
-                "CollectAccountStatistic_Last5Content_Get",
-                [&]() -> Stmt& {
-                    return Sql(R"sql(
-                        select
-                            t.RegId1,
-                            ifnull((
-                                select sum(ifnull(ptr.Value,0))
-                                from (
-                                    select cpt.Uid
-                                    from Transactions pt indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    join Chain cpt on cpt.TxId = pt.RowId
-                                    join Last lpt on lpt.TxId = pt.RowId
-                                    where pt.Type in ( 200,201,202,209,210,211 )
-                                        and pt.RegId1 = t.RegId1
-                                        and cpt.Height < ctml.Height
-                                        and cpt.Height > (ctml.Height - 43200)
-                                    order by cpt.Height desc
-                                    limit 5
-                                )q
-                                left join Ratings ptr indexed by Ratings_Type_Uid_Last_Height
-                                    on ptr.Type = 2 and ptr.Uid = q.Uid and ptr.Last = 1
-                            ), 0)SumRating
-                        from
-                            Transactions t
-                        cross join
-                            Last l on
-                                l.TxId = t.RowId
-                        cross join
-                            Transactions tm on
-                                tm.Type in ( 200,201,202,209,210,211 ) and
-                                tm.RegId1 = t.RegId1 and
-                                tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211 ) and tml.RegId1 = t.RegId1)
-                        cross join
-                            Chain ctml on
-                                ctml.TxId = tm.RowId
-                        where
-                            t.Type in (100)
-                    )sql");
-                },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                        {
-                            int64_t regId1, count;
-                            if (cursor.CollectAll(regId1, count))
-                                _map.emplace(regId1, count);
-                        }
-                    });
-                }
-            );
+            SqlTransaction("CollectAccountStatistic_Last5Content_Get", [&]()
+            {
+                Sql(R"sql(
+                    select
+                        t.RegId1,
+                        ifnull((
+                            select sum(ifnull(ptr.Value,0))
+                            from (
+                                select cpt.Uid
+                                from Transactions pt indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                join Chain cpt on cpt.TxId = pt.RowId
+                                join Last lpt on lpt.TxId = pt.RowId
+                                where pt.Type in ( 200,201,202,209,210,211 )
+                                    and pt.RegId1 = t.RegId1
+                                    and cpt.Height < ctml.Height
+                                    and cpt.Height > (ctml.Height - 43200)
+                                order by cpt.Height desc
+                                limit 5
+                            )q
+                            left join Ratings ptr indexed by Ratings_Type_Uid_Last_Height
+                                on ptr.Type = 2 and ptr.Uid = q.Uid and ptr.Last = 1
+                        ), 0)SumRating
+                    from
+                        Transactions t
+                    cross join
+                        Last l on
+                            l.TxId = t.RowId
+                    cross join
+                        Transactions tm on
+                            tm.Type in ( 200,201,202,209,210,211 ) and
+                            tm.RegId1 = t.RegId1 and
+                            tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211 ) and tml.RegId1 = t.RegId1)
+                    cross join
+                        Chain ctml on
+                            ctml.TxId = tm.RowId
+                    where
+                        t.Type in (100)
+                )sql")
+                .Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int64_t regId1, count;
+                        if (cursor.CollectAll(regId1, count))
+                            _map.emplace(regId1, count);
+                    }
+                });
+            });
 
             SqlTransaction("CollectAccountStatistic_Last5Content_Set", [&]()
             {

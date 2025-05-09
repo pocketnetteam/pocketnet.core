@@ -5,7 +5,7 @@
 #include <test/util/net.h>
 
 #include <chainparams.h>
-// #include <node/eviction.h>
+#include <node/eviction.h>
 #include <net.h>
 #include <net_processing.h>
 #include <netmessagemaker.h>
@@ -50,7 +50,7 @@ void ConnmanTestMsg::Handshake(CNode& node,
     assert(node.nVersion == version);
     assert(node.GetCommonVersion() == std::min(version, PROTOCOL_VERSION));
     CNodeStateStats statestats;
-    assert(GetNodeStateStats(node.GetId(), statestats));
+    assert(peerman.GetNodeStateStats(node.GetId(), statestats));
     assert(statestats.m_relay_txs == (relay_txs && !node.IsBlockOnlyConn()));
 //    assert(statestats.their_services == remote_services);
     if (successfully_connected) {
@@ -99,27 +99,26 @@ bool ConnmanTestMsg::ReceiveMsgFrom(CNode& node, CSerializedNetMsg& ser_msg) con
     return complete;
 }
 
-//std::vector<NodeEvictionCandidate> GetRandomNodeEvictionCandidates(int n_candidates, FastRandomContext& random_context)
-//{
-//    std::vector<NodeEvictionCandidate> candidates;
-//    candidates.reserve(n_candidates);
-//    for (int id = 0; id < n_candidates; ++id) {
-//        candidates.push_back({
-//            /*id=*/id,
-//            /*m_connected=*/std::chrono::seconds{random_context.randrange(100)},
-//            /*m_min_ping_time=*/std::chrono::microseconds{random_context.randrange(100)},
-//            /*m_last_block_time=*/std::chrono::seconds{random_context.randrange(100)},
-//            /*m_last_tx_time=*/std::chrono::seconds{random_context.randrange(100)},
-//            /*fRelevantServices=*/random_context.randbool(),
-//            /*m_relay_txs=*/random_context.randbool(),
-//            /*fBloomFilter=*/random_context.randbool(),
-//            /*nKeyedNetGroup=*/random_context.randrange(100),
-//            /*prefer_evict=*/random_context.randbool(),
-//            /*m_is_local=*/random_context.randbool(),
-//            /*m_network=*/ALL_NETWORKS[random_context.randrange(ALL_NETWORKS.size())],
-//            /*m_noban=*/false,
-//            /*m_conn_type=*/ConnectionType::INBOUND,
-//        });
-//    }
-//    return candidates;
-//}
+std::vector<NodeEvictionCandidate> GetRandomNodeEvictionCandidates(const int n_candidates, FastRandomContext& random_context)
+{
+    std::vector<NodeEvictionCandidate> candidates;
+    for (int id = 0; id < n_candidates; ++id) {
+        candidates.push_back({
+            /* id */ id,
+            /* nTimeConnected */ std::chrono::seconds{random_context.randrange(100)},
+            /* m_min_ping_time */ static_cast<int64_t>(random_context.randrange(100)),
+            /* nLastBlockTime */ static_cast<int64_t>(random_context.randrange(100)),
+            /* nLastTXTime */ static_cast<int64_t>(random_context.randrange(100)),
+            /* fRelevantServices */ random_context.randbool(),
+            /* m_relay_txs */ random_context.randbool(),
+            /* fBloomFilter */ random_context.randbool(),
+            /* nKeyedNetGroup */ random_context.randrange(100),
+            /* prefer_evict */ random_context.randbool(),
+            /* m_is_local */ random_context.randbool(),
+            /*m_network=*/ ALL_NETWORKS[random_context.randrange(ALL_NETWORKS.size())],
+            /*m_noban=*/ false,
+            /*m_conn_type=*/ ConnectionType::INBOUND,
+        });
+    }
+    return candidates;
+}
