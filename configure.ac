@@ -832,7 +832,7 @@ if test x$use_hardening != xno; then
   dnl stack-clash-protection does not work properly when building for Windows.
   dnl We use the test case from https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458
   dnl to determine if it can be enabled.
-  AX_CHECK_COMPILE_FLAG([-fstack-clash-protection],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fstack-clash-protection"],[],["-O0"],
+  AX_CHECK_COMPILE_FLAG([-fstack-clash-protection], [HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fstack-clash-protection"], [], [$CXXFLAG_WERROR],
     [AC_LANG_SOURCE([[class D {public: unsigned char buf[32768];}; int main() {D d; return 0;}]])])
 
   dnl When enable_debug is yes, all optimizations are disabled.
