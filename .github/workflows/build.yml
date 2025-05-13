@@ -54,7 +54,7 @@ jobs:
         run: |
           docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
             export DEBIAN_FRONTEND=noninteractive
-            apt update && apt install -y build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 libprotobuf-dev protobuf-compiler curl bison byacc
+            apt update && apt install -y git build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 libprotobuf-dev protobuf-compiler curl bison byacc
 
             if [ ! -d "depends/x86_64-pc-linux-gnu" ] || [ -z "$(ls -A depends/x86_64-pc-linux-gnu)" ]; then
               cd depends && make HOST=x86_64-pc-linux-gnu -j4
@@ -101,7 +101,7 @@ jobs:
         run: |
           docker run --rm -v $PWD:/source -w /source ubuntu:20.04 /bin/bash -c '
             export DEBIAN_FRONTEND=noninteractive
-            apt update && apt install -y curl build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
+            apt update && apt install -y git curl build-essential libtool autotools-dev automake pkg-config nsis g++-mingw-w64-x86-64
             update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
             
             if [ ! -d "depends/x86_64-w64-mingw32" ] || [ -z "$(ls -A depends/x86_64-w64-mingw32)" ]; then
