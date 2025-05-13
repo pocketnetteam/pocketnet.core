@@ -1,16 +1,3 @@
-# Ubuntu 20.04.6 LTS Focal Fossa, https://wiki.ubuntu.com/Releases, EOSS in May 2025:
-#  - CMake 3.16.3, https://packages.ubuntu.com/focal/cmake
-cmake_minimum_required(VERSION 3.16)
-
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
-  message(FATAL_ERROR "In-source builds are not allowed.")
-endif()
-
-if(POLICY CMP0167)
-  # See: https://cmake.org/cmake/help/latest/policy/CMP0167.html
-  cmake_policy(SET CMP0167 NEW)
-endif()
-
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSymbolExists)
@@ -964,8 +951,6 @@ add_library(${POCKETCOIN_SERVER}
         node/connection_types.cpp
         node/context.h
         node/context.cpp
-        node/eviction.h
-        node/eviction.cpp
         node/psbt.h
         node/psbt.cpp
         node/transaction.h

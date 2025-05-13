@@ -34,90 +34,6 @@ static const bool DEFAULT_DISCONNECT_OLD = false;
 static const int DISCOURAGEMENT_THRESHOLD{100};
 
 
-struct CNodeStateStats {
-    int m_misbehavior_score = 0;
-    int nSyncHeight = -1;
-    int nCommonHeight = -1;
-    int m_starting_height = -1;
-    int64_t m_ping_wait_usec;
-    std::vector<int> vHeightInFlight;
-    bool m_relay_txs;
-    uint64_t m_addr_processed = 0;
-    uint64_t m_addr_rate_limited = 0;
-};
-
-/**
- * Data structure for an individual peer. This struct is not protected by
- * cs_main since it does not contain validation-critical data.
- *
- * Memory is owned by shared pointers and this object is destructed when
- * the refcount drops to zero.
- *
- * Mutexes inside this struct must not be held when locking m_peer_mutex.
- *
- * TODO: move most members from CNodeState to this structure.
- * TODO: move remaining application-layer data members from CNode to this structure.
- */
-struct Peer {
-    /** Same id as the CNode object for this peer */
-    const NodeId m_id{0};
-
-    /** Protects misbehavior data members */
-    Mutex m_misbehavior_mutex;
-    /** Accumulated misbehavior score for this peer */
-    int m_misbehavior_score GUARDED_BY(m_misbehavior_mutex){0};
-    /** Whether this peer should be disconnected and marked as discouraged (unless it has the noban permission). */
-    bool m_should_discourage GUARDED_BY(m_misbehavior_mutex){false};
-
-    /** Protects block inventory data members */
-    Mutex m_block_inv_mutex;
-    /** List of blocks that we'll anounce via an `inv` message.
-     * There is no final sorting before sending, as they are always sent
-     * immediately and in the order requested. */
-    std::vector<uint256> m_blocks_for_inv_relay GUARDED_BY(m_block_inv_mutex);
-    /** Unfiltered list of blocks that we'd like to announce via a `headers`
-     * message. If we can't announce via a `headers` message, we'll fall back to
-     * announcing via `inv`. */
-    std::vector<uint256> m_blocks_for_headers_relay GUARDED_BY(m_block_inv_mutex);
-    /** The final block hash that we sent in an `inv` message to this peer.
-     * When the peer requests this block, we send an `inv` message to trigger
-     * the peer to request the next sequence of block hashes.
-     * Most peers use headers-first syncing, which doesn't use this mechanism */
-    uint256 m_continuation_block GUARDED_BY(m_block_inv_mutex) {};
-
-    /** This peer's reported block height when we connected */
-    std::atomic<int> m_starting_height{-1};
-
-    /** The pong reply we're expecting, or 0 if no pong expected. */
-    std::atomic<uint64_t> m_ping_nonce_sent{0};
-    /** When the last ping was sent, or 0 if no ping was ever sent */
-    std::atomic<std::chrono::microseconds> m_ping_start{0us};
-    /** Whether a ping has been requested by the user */
-    std::atomic<bool> m_ping_queued{false};
-
-    /** Set of txids to reconsider once their parent transactions have been accepted **/
-    std::set<uint256> m_orphan_work_set GUARDED_BY(g_cs_orphans);
-
-    /** Protects m_getdata_requests **/
-    Mutex m_getdata_requests_mutex;
-    /** Work queue of items requested by this peer **/
-    std::deque<CInv> m_getdata_requests GUARDED_BY(m_getdata_requests_mutex);
-
-    /** Number of addr messages that can be processed from this peer. Start at 1 to
-     *  permit self-announcement. */
-    double m_addr_token_bucket{1.0};
-    /** When m_addr_token_bucket was last updated */
-    std::chrono::microseconds m_addr_token_timestamp{GetTime<std::chrono::microseconds>()};
-    /** Total number of addresses that were dropped due to rate limiting. */
-    std::atomic<uint64_t> m_addr_rate_limited{0};
-    /** Total number of addresses that were processed (excludes rate limited ones). */
-    std::atomic<uint64_t> m_addr_processed{0};
-
-    explicit Peer(NodeId id) : m_id(id) {}
-};
-
-using PeerRef = std::shared_ptr<Peer>;
-
 class PeerManager final : public CValidationInterface, public NetEventsInterface {
 public:
     PeerManager(const CChainParams& chainparams, CConnman& connman, BanMan* banman,
@@ -180,25 +96,7 @@ public:
      */
     void Misbehaving(const NodeId pnode, const int howmuch, const std::string& message);
 
-    /** Send ping message to all peers */
-    void SendPings();
-
-    /** Set the best height */
-    void SetBestHeight(int height) { m_best_height = height; };
-
-    /** Get statistics from node state */
-    bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
-    bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats &stats);
-
 private:
-    /** Get a shared pointer to the Peer object.
-     *  May return an empty shared_ptr if the Peer object can't be found. */
-    PeerRef GetPeerRef(NodeId id) const;
-
-    /** Get a shared pointer to the Peer object and remove it from m_peer_map.
-     *  May return an empty shared_ptr if the Peer object can't be found. */
-    PeerRef RemovePeer(NodeId id);
-
     /**
      * Potentially mark a node discouraged based on the contents of a BlockValidationState object
      *
@@ -224,13 +122,11 @@ private:
      * @param[in]   pnode     The node to check.
      * @return                True if the peer was marked for disconnection in this function
      */
-    bool MaybeDiscourageAndDisconnect(CNode& pnode, Peer& peer);
+    bool MaybeDiscourageAndDisconnect(CNode& pnode);
 
     void ProcessOrphanTx(std::set<uint256>& orphan_work_set) EXCLUSIVE_LOCKS_REQUIRED(cs_main, g_cs_orphans);
     /** Process a single headers message from a peer. */
-    void ProcessHeadersMessage(CNode& pfrom, const Peer& peer,
-                               const std::vector<CBlockHeader>& headers,
-                               bool via_compact_block);
+    void ProcessHeadersMessage(CNode& pfrom, const std::vector<CBlockHeader>& headers, bool via_compact_block);
 
     void SendBlockTransactions(CNode& pfrom, const CBlock& block, const BlockTransactionsRequest& req);
 
@@ -240,13 +136,6 @@ private:
     void AddTxAnnouncement(const CNode& node, const GenTxid& gtxid, std::chrono::microseconds current_time)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
-    /** Send a version message to a peer */
-    void PushNodeVersion(CNode& pnode, int64_t nTime);
-
-    /** Send a ping message every PING_INTERVAL or if requested via RPC. May
-     *  mark the peer to be disconnected if a ping has timed out. */
-    void MaybeSendPing(CNode& node_to, Peer& peer);
-
     const CChainParams& m_chainparams;
     CConnman& m_connman;
     /** Pointer to this node's banman. May be nullptr - check existence before dereferencing. */
@@ -255,26 +144,22 @@ private:
     CTxMemPool& m_mempool;
     TxRequestTracker m_txrequest GUARDED_BY(::cs_main);
 
-    /** The height of the best chain */
-    std::atomic<int> m_best_height{-1};
-
     int64_t m_stale_tip_check_time; //!< Next time to check for stale tip
-
-    /** Whether we've completed initial sync yet, for determining when to turn
-      * on extra block-relay-only peers. */
-    bool m_initial_sync_finished{false};
-
-    /** Protects m_peer_map. This mutex must not be locked while holding a lock
-     *  on any of the mutexes inside a Peer object. */
-    mutable Mutex m_peer_mutex;
-    /**
-     * Map of all Peer objects, keyed by peer id. This map is protected
-     * by the m_peer_mutex. Once a shared pointer reference is
-     * taken, the lock may be released. Individual fields are protected by
-     * their own locks.
-     */
-    std::map<NodeId, PeerRef> m_peer_map GUARDED_BY(m_peer_mutex);
 };
+
+struct CNodeStateStats {
+    int m_misbehavior_score = 0;
+    int nSyncHeight = -1;
+    int nCommonHeight = -1;
+    std::vector<int> vHeightInFlight;
+    bool m_relay_txs;
+    uint64_t m_addr_processed = 0;
+    uint64_t m_addr_rate_limited = 0;
+};
+
+/** Get statistics from node state */
+bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
+bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats &stats);
 
 /** Relay transaction to every node */
 void RelayTransaction(const uint256& txid, const uint256& wtxid, const CConnman& connman) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
