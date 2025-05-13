@@ -289,9 +289,8 @@ namespace PocketHelpers
             switch (txType)
             {
                 case TxType::BARTERON_OFFER_PAYD:
+                case TxType::APP:
                     return true;
-                // case TxType::APP:
-                //     return true;
                 default:
                     return false;
             }
