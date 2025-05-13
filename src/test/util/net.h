@@ -6,7 +6,7 @@
 #define BITCOIN_TEST_UTIL_NET_H
 
 #include <compat.h>
-#include <node/eviction.h>
+// #include <node/eviction.h>
 #include <netaddress.h>
 #include <net.h>
 #include <util/sock.h>
@@ -202,6 +202,6 @@ private:
     mutable size_t m_consumed{0};
 };
 
-std::vector<NodeEvictionCandidate> GetRandomNodeEvictionCandidates(int n_candidates, FastRandomContext& random_context);
+// std::vector<NodeEvictionCandidate> GetRandomNodeEvictionCandidates(int n_candidates, FastRandomContext& random_context);
 
 #endif // BITCOIN_TEST_UTIL_NET_H
