@@ -59,13 +59,22 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 
 int SocialForks::GetLastAcceptedSubVersion(int height) const
 {
-    // TODO (losty): optimize
-    auto res = m_forkPoints.end();
-    for (auto itr = m_forkPoints.begin(); itr != m_forkPoints.end(); itr++) {
-        if (itr->GetHeight(Params().NetworkID()) < height)
-            res = itr;
-    }
-    return res != m_forkPoints.end() ? res->GetVersion() : 0;
+    if (m_forkPoints.empty())
+        return 0;
+
+    auto itr = std::upper_bound(
+        m_forkPoints.begin(),
+        m_forkPoints.end(),
+        height,
+        [&](int target, const ForkPoint& itm) {
+            return target < itm.GetHeight(Params().NetworkID());
+        }
+    );
+
+    if (itr == m_forkPoints.begin())
+        return 0;
+
+    return (--itr)->GetVersion();
 }
 
 /**
@@ -125,9 +134,9 @@ public:
         consensus.sVersion_1_0_0_pre_checkpoint = "128abcf7e0371db3ad595702b456a701539ba5977459fac0cd720dc7b84f09a8";
         consensus.nHeight_version_1_0_0 = 108300;
 
+        // TODO (release): set stable block checkpoint
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000a83622f8366b4e0d7e"); // 3231715
-
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x74ef9933aea8cf7cf89f54bbaf7670368b282e7d56e49da74733060e53f48613"); // 3231715
 
