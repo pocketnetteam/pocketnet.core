@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
+# TODO (release): set version and actual year
 set(_CLIENT_VERSION_MAJOR 0)
 set(_CLIENT_VERSION_MINOR 22)
 set(_CLIENT_VERSION_REVISION 17)
@@ -29,7 +30,6 @@ add_compile_definitions(CLIENT_VERSION_MAJOR=${_CLIENT_VERSION_MAJOR}
                         COPYRIGHT_HOLDERS_FINAL=${_COPYRIGHT_HOLDERS_FINAL}
                         HOMEPAGE=${_HOMEPAGE})
 
-# TODO (build): missing bug report url
 project (
         Pocketnet-Core 
         VERSION ${_CLIENT_VERSION_MAJOR}.${_CLIENT_VERSION_MINOR}.${_CLIENT_VERSION_REVISION}
