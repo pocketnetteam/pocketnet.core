@@ -97,8 +97,6 @@ mapping from a data block offset to the corresponding filter.
 This meta block contains a bunch of stats.  The key is the name
 of the statistic.  The value contains the statistic.
 
-TODO(postrelease): record following stats.
-
     data size
     index size
     key size (uncompressed)

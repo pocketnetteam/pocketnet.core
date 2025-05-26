@@ -149,7 +149,6 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
 
   Slice block_contents;
   CompressionType type = r->options.compression;
-  // TODO(postrelease): Support more compression options: zlib?
   switch (type) {
     case kNoCompression:
       block_contents = raw;
@@ -221,7 +220,6 @@ Status TableBuilder::Finish() {
       meta_index_block.Add(key, handle_encoding);
     }
 
-    // TODO(postrelease): Add stats and other meta blocks
     WriteBlock(&meta_index_block, &metaindex_block_handle);
   }
 
