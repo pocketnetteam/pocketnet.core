@@ -76,6 +76,7 @@ FUZZ_TARGETS = \
   test/fuzz/net_permissions \
   test/fuzz/netaddr_deserialize \
   test/fuzz/netaddress \
+  test/fuzz/node_eviction \
   test/fuzz/out_point_deserialize \
   test/fuzz/p2p_transport_deserializer \
   test/fuzz/parse_hd_keypath \
@@ -799,6 +800,12 @@ test_fuzz_netaddress_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 test_fuzz_netaddress_LDADD = $(FUZZ_SUITE_LD_COMMON)
 test_fuzz_netaddress_LDFLAGS = $(FUZZ_SUITE_LDFLAGS_COMMON)
 test_fuzz_netaddress_SOURCES = test/fuzz/netaddress.cpp
+
+test_fuzz_node_eviction_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
+test_fuzz_node_eviction_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+test_fuzz_node_eviction_LDADD = $(FUZZ_SUITE_LD_COMMON)
+test_fuzz_node_eviction_LDFLAGS = $(FUZZ_SUITE_LDFLAGS_COMMON)
+test_fuzz_node_eviction_SOURCES = test/fuzz/node_eviction.cpp
 
 test_fuzz_out_point_deserialize_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) -DOUT_POINT_DESERIALIZE=1
 test_fuzz_out_point_deserialize_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)

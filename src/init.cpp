@@ -252,7 +252,7 @@ void Shutdown(NodeContext& node)
     // using the other before destroying them.
     if (node.peerman) UnregisterValidationInterface(node.peerman.get());
     // Follow the lock order requirements:
-    // * CheckForStaleTipAndEvictPeers locks cs_main before indirectly calling GetExtraOutboundCount
+    // * CheckForStaleTipAndEvictPeers locks cs_main before indirectly calling GetExtraFullOutboundCount
     //   which locks cs_vNodes.
     // * ProcessMessage locks cs_main and g_cs_orphans before indirectly calling ForEachNode which
     //   locks cs_vNodes.
@@ -2174,6 +2174,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         }
     }
     LogPrintf("Best block: %s (%d)\n", chain_active_hash.GetHex(), chain_active_height);
+    if (node.peerman) node.peerman->SetBestHeight(chain_active_height);
 
     Discover();
 
@@ -2189,7 +2190,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     connOptions.m_max_outbound_block_relay = std::min(MAX_BLOCK_RELAY_ONLY_CONNECTIONS, connOptions.nMaxConnections-connOptions.m_max_outbound_full_relay);
     connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = MAX_FEELER_CONNECTIONS;
-    connOptions.nBestHeight = chain_active_height;
     connOptions.uiInterface = &uiInterface;
     connOptions.m_banman = node.banman.get();
     connOptions.m_msgproc = node.peerman.get();

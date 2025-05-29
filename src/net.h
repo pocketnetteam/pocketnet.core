@@ -32,12 +32,13 @@
 #include <util/sock.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <deque>
 #include <map>
 #include <thread>
 #include <memory>
-#include <condition_variable>
+#include <vector>
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -59,6 +60,8 @@ static const bool DEFAULT_WHITELISTFORCERELAY = false;
 static const int TIMEOUT_INTERVAL = 20 * 60;
 /** Run the feeler connection loop once every 2 minutes or 120 seconds. **/
 static const int FEELER_INTERVAL = 120;
+/** Run the extra block-relay-only connection loop once every 5 minutes. **/
+static const int EXTRA_BLOCK_RELAY_ONLY_PEER_INTERVAL = 300;
 /** The maximum number of addresses from our addrman to return in response to a getaddr message. */
 static constexpr size_t MAX_ADDR_TO_SEND = 1000;
 /** Maximum length of incoming protocol messages (no message over 16 MB is currently acceptable). */
@@ -272,7 +275,7 @@ public:
     bool m_bip152_highbandwidth_to;
     // Peer requested high bandwidth connection
     bool m_bip152_highbandwidth_from;
-    int nStartingHeight;
+    int m_starting_height;
     uint64_t nSendBytes;
     mapMsgCmdSize mapSendBytesPerMsgCmd;
     uint64_t nRecvBytes;
@@ -280,7 +283,6 @@ public:
     NetPermissionFlags m_permissionFlags;
     bool m_legacyWhitelisted;		// FIXME!!! Delete!
     int64_t m_ping_usec;
-    int64_t m_ping_wait_usec;
     int64_t m_min_ping_usec;
     CAmount minFeeFilter;
     // Our address, as reported by the peer
@@ -593,21 +595,12 @@ public:
      */
     Network ConnectedThroughNetwork() const;
 
-    uint256 hashContinue;
-    std::atomic<int> nStartingHeight{-1};
-
     // flood relay
     std::vector<CAddress> vAddrToSend;
     std::unique_ptr<CRollingBloomFilter> m_addr_known{nullptr};
     bool fGetAddr{false};
     std::chrono::microseconds m_next_addr_send GUARDED_BY(cs_sendProcessing){0};
     std::chrono::microseconds m_next_local_addr_send GUARDED_BY(cs_sendProcessing){0};
-
-    // List of block ids we still have announce.
-    // There is no final sorting before sending, as they are always sent immediately
-    // and in the order requested.
-    std::vector<uint256> vInventoryBlockToSend GUARDED_BY(cs_inventory);
-    Mutex cs_inventory;
 
     struct TxRelay {
         mutable RecursiveMutex cs_filter;
@@ -647,9 +640,6 @@ public:
     // m_tx_relay == nullptr if we're not relaying transactions with this peer
     std::unique_ptr<TxRelay> m_tx_relay;
 
-    // Used for headers announcements - unfiltered blocks to relay
-    std::vector<uint256> vBlockHashesToAnnounce GUARDED_BY(cs_inventory);
-
     /** UNIX epoch time of the last block received from this peer that we had
      * not yet seen (e.g. not already received from another peer), that passed
      * preliminary validity checks and was saved to disk, even if we don't
@@ -663,21 +653,15 @@ public:
      * in CConnman::AttemptToEvictConnection. */
     std::atomic<int64_t> nLastTXTime{0};
 
-    // Ping time measurement:
-    // The pong reply we're expecting, or 0 if no pong expected.
-    std::atomic<uint64_t> nPingNonceSent{0};
-    /** When the last ping was sent, or 0 if no ping was ever sent */
-    std::atomic<std::chrono::microseconds> m_ping_start{std::chrono::microseconds{0}};
-    // Last measured round-trip time.
-    std::atomic<int64_t> nPingUsecTime{0};
-    // Best measured round-trip time.
-    std::atomic<int64_t> nMinPingUsecTime{std::numeric_limits<int64_t>::max()};
-    // Whether a ping is requested.
-    std::atomic<bool> fPingQueued{false};
+    /** Last measured round-trip time. Used only for RPC/GUI stats/debugging.*/
+    std::atomic<int64_t> m_last_ping_time{0};
+
+    /** Lowest measured round-trip time. Used as an inbound peer eviction
+     * criterium in CConnman::AttemptToEvictConnection. */
+    std::atomic<int64_t> m_min_ping_time{std::numeric_limits<int64_t>::max()};
 
     CNode(NodeId id,
           ServiceFlags nLocalServicesIn,
-          int nMyStartingHeightIn,
           std::shared_ptr<Sock> sock,
           const CAddress &addrIn,
           uint64_t nKeyedNetGroupIn,
@@ -698,10 +682,6 @@ public:
 
     uint64_t GetLocalNonce() const {
         return nLocalHostNonce;
-    }
-
-    int GetMyStartingHeight() const {
-        return nMyStartingHeight;
     }
 
     int GetRefCount() const
@@ -798,6 +778,12 @@ public:
 //    std::string ConnectionTypeAsString() const;
     std::string ConnectionTypeAsString() const { return ::ConnectionTypeAsString(m_conn_type); }
 
+    /** A ping-pong round trip has completed successfully. Update latest and minimum ping times. */
+    void PongReceived(std::chrono::microseconds ping_time) {
+        m_last_ping_time = count_microseconds(ping_time);
+        m_min_ping_time = std::min(m_min_ping_time.load(), count_microseconds(ping_time));
+    }
+
 private:
     const NodeId id;
     const uint64_t nLocalHostNonce;
@@ -821,7 +807,6 @@ private:
     //! service advertisements.
     const ServiceFlags nLocalServices;
 
-    const int nMyStartingHeight;
     NetPermissionFlags m_permissionFlags{ PF_NONE };
     std::list<CNetMessage> vRecvMsg;  // Used only by SocketHandler thread
 
@@ -907,7 +892,6 @@ public:
         int m_max_outbound_block_relay = 0;
         int nMaxAddnode = 0;
         int nMaxFeeler = 0;
-        int nBestHeight = 0;
         CClientUIInterface* uiInterface = nullptr;
         NetEventsInterface* m_msgproc = nullptr;
         BanMan* m_banman = nullptr;
@@ -937,7 +921,6 @@ public:
         nMaxAddnode = connOptions.nMaxAddnode;
         nMaxFeeler = connOptions.nMaxFeeler;
         m_max_outbound = m_max_outbound_full_relay + m_max_outbound_block_relay + nMaxFeeler;
-        nBestHeight = connOptions.nBestHeight;
         clientInterface = connOptions.uiInterface;
         m_banman = connOptions.m_banman;
         m_msgproc = connOptions.m_msgproc;
@@ -1048,13 +1031,20 @@ public:
     void SetTryNewOutboundPeer(bool flag);
     bool GetTryNewOutboundPeer();
 
+    void StartExtraBlockRelayPeers() {
+        LogPrint(BCLog::NET, "net: enabling extra block-relay-only peers\n");
+        m_start_extra_block_relay_peers = true;
+    }
+
     // Return the number of outbound peers we have in excess of our target (eg,
     // if we previously called SetTryNewOutboundPeer(true), and have since set
     // to false, we may have extra peers that we wish to disconnect). This may
     // return a value less than (num_outbound_connections - num_outbound_slots)
     // in cases where some outbound connections are not yet fully connected, or
     // not yet fully disconnected.
-    int GetExtraOutboundCount();
+    int GetExtraFullOutboundCount();
+    // Count the number of block-relay-only peers we have over our limit.
+    int GetExtraBlockRelayCount();
 
     bool AddNode(const std::string& node);
     bool RemoveAddedNode(const std::string& node);
@@ -1099,9 +1089,6 @@ public:
     uint64_t GetTotalBytesRecv();
     uint64_t GetTotalBytesSent();
 
-    void SetBestHeight(int height);
-    int GetBestHeight() const;
-
     /** Get a unique deterministic randomizer. */
     CSipHasher GetDeterministicRandomizer(uint64_t id) const;
 
@@ -1116,6 +1103,9 @@ public:
     int64_t PoissonNextSendInbound(int64_t now, int average_interval_seconds);
 
     void SetAsmap(std::vector<bool> asmap) { addrman.m_asmap = std::move(asmap); }
+
+    /** Return true if the peer has been connected for long enough to do inactivity checks. */
+    bool RunInactivityChecks(const CNode& node) const;
 
 private:
     struct ListenSocket {
@@ -1325,7 +1315,6 @@ private:
     int nMaxFeeler;
     int m_max_outbound;
     bool m_use_addrman_outgoing;
-    std::atomic<int> nBestHeight;
     CClientUIInterface* clientInterface;
     NetEventsInterface* m_msgproc;
     /** Pointer to this node's banman. May be nullptr - check existence before dereferencing. */
@@ -1373,6 +1362,12 @@ private:
      *  in excess of m_max_outbound_full_relay
      *  This takes the place of a feeler connection */
     std::atomic_bool m_try_another_outbound_peer;
+
+    /** flag for initiating extra block-relay-only peer connections.
+     *  this should only be enabled after initial chain sync has occurred,
+     *  as these connections are intended to be short-lived and low-bandwidth.
+     */
+    std::atomic_bool m_start_extra_block_relay_peers{false};
 
     std::atomic<int64_t> m_next_send_inv_to_incoming{0};
 
@@ -1434,6 +1429,24 @@ inline std::chrono::microseconds PoissonNextSend(std::chrono::microseconds now, 
 {
     return std::chrono::microseconds{PoissonNextSend(now.count(), average_interval.count())};
 }
+
+/* Moved to node/eviction.h
+struct NodeEvictionCandidate
+{
+    NodeId id;
+    std::chrono::seconds m_connected;
+    int64_t m_min_ping_time;
+    int64_t nLastBlockTime;
+    int64_t nLastTXTime;
+    bool fRelevantServices;
+    bool fRelayTxes;
+    bool fBloomFilter;
+    uint64_t nKeyedNetGroup;
+    bool prefer_evict;
+    bool m_is_local;
+};
+
+[[nodiscard]] Optional<NodeId> SelectNodeToEvict(std::vector<NodeEvictionCandidate>&& vEvictionCandidates); */
 
 /** Defaults to `CaptureMessageToFile()`, but can be overridden by unit tests. */
 extern std::function<void(const CAddress& addr,
