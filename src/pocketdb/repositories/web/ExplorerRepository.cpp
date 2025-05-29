@@ -648,7 +648,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue ExplorerRepository::GetFromToTransactions(const string& from, const string& to, int minHeight, const string& opreturn)
+    UniValue ExplorerRepository::GetFromToTransactions(const string& from, const string& to, int minHeight, const vector<string>& opreturns)
     {
         UniValue result(UniValue::VARR);
 
@@ -674,7 +674,7 @@ namespace PocketDb
             cross join Registry tr on tr.RowId=o.TxId
             cross join Registry rop on rop.RowId=o.ScriptPubKeyId
             where
-                o.ScriptPubKeyId = (select r.RowId from Registry r where r.String=?)
+                o.ScriptPubKeyId in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(opreturns.size(), "?"), ",") + R"sql( ) )
                 )sql" + (from.empty() ? ""s : " and sender.String = ? "s) + R"sql(
                 )sql" + (to.empty() ? ""s : " and receiver.String = ? "s) + R"sql(
         )sql";
@@ -684,7 +684,7 @@ namespace PocketDb
             [&]() -> Stmt& {
                 auto& stmt = Sql(sql);
 
-                stmt.Bind(minHeight, opreturn);
+                stmt.Bind(minHeight, opreturns);
 
                 if (!from.empty())
                     stmt.Bind(from);

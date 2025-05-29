@@ -496,11 +496,21 @@ namespace PocketWeb::PocketWebRpc
             if (request.params.size() > 2 && request.params[2].isNum())
                 depth = request.params[2].get_int();
 
-            string opreturn = "6a0e613a737562736372697074696f6e"; // OP_RETURN a:subscription
-            if (request.params.size() > 3 && request.params[3].isStr())
-                opreturn = request.params[3].get_str();
+            vector<string> opreturns = { "6a0e613a737562736372697074696f6e" }; // OP_RETURN a:subscription
+            if (request.params.size() > 3)
+            {
+                if (request.params[3].isStr())
+                    opreturns = { request.params[3].get_str() };
+                else if (request.params[3].isArray())
+                {
+                    opreturns.clear();
+                    UniValue oprs = request.params[3].get_array();
+                    for (const auto& opr : oprs.getValues())
+                        opreturns.push_back(opr.get_str());
+                }
+            }
 
-            return request.DbConnection()->ExplorerRepoInst->GetFromToTransactions(from, to, depth, opreturn);
+            return request.DbConnection()->ExplorerRepoInst->GetFromToTransactions(from, to, depth, opreturns);
         },
         };
     }
