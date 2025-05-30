@@ -160,3 +160,13 @@ Fork start at:
 
 Changes:
 - There is a problem that incorrectly processes the data request for "new" offers [PR #841](https://github.com/pocketnetteam/pocketnet.core/pull/841)
+
+## `PIP 115`: Lottery payout rules and new types of transactions
+
+Fork start at:
+- Main net: ?
+- Test net: ?
+
+Changes:
+- Cancellation of payments from the issue based on the results of ratings for posts and comments [PR #](https://github.com/pocketnetteam/pocketnet.core/pull/)
+- 
