@@ -156,7 +156,7 @@ class BarteronTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         self.log.info("Check offers feed")
 
-        feed = node.public().getbarteronfeed({})
+        feed = node.public().getbarteronfeed({ "pageSize": 100 })
         # TODO - check?
 
         # ---------------------------------------------------------------------------------

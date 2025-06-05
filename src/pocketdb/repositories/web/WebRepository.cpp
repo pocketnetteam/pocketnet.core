@@ -297,6 +297,7 @@ namespace PocketDb
                             result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
                         break;
                     case BARTERON_OFFER:
+                    case BARTERON_OFFER_PAID:
                         if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
                             result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
                         if (auto[ok, val] = cursor.TryGetColumnString(4); ok)

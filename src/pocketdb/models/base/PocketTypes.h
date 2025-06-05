@@ -199,6 +199,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::BARTERON_OFFER ||
+                   Type == TxType::BARTERON_OFFER_PAID ||
                    Type == TxType::APP ||
                    Type == TxType::CONTENT_DELETE;
         }

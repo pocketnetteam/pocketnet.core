@@ -144,7 +144,7 @@ namespace PocketConsensus
                 CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_STREAM, CONTENT_AUDIO,
                 APP,
                 CONTENT_COMMENT, CONTENT_COMMENT_EDIT,
-                BARTERON_ACCOUNT, BARTERON_OFFER
+                BARTERON_ACCOUNT, BARTERON_OFFER, BARTERON_OFFER_PAID
             };
         }
     };
