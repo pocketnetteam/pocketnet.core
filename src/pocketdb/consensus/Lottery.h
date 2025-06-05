@@ -367,6 +367,7 @@ namespace PocketConsensus
             Checkpoint({ 2162400, 1650652, -1, make_shared<LotteryConsensus_pip_100>() });
             Checkpoint({ 9999999, 3500000,  0, make_shared<LotteryConsensus_pip_110>() });
             Checkpoint({ 9999999, 9999999,  0, make_shared<LotteryConsensus_pip_115>() });
+        }
     };
 
     static LotteryConsensusFactory ConsensusFactoryInst_Lottery;
