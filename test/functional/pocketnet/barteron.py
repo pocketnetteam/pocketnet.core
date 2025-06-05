@@ -126,6 +126,7 @@ class BarteronTest(PocketcoinTestFramework):
         bartOffer.p.i1 = random.randint(0, 1000)
         bartOffer.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
         assert_raises_rpc_error(ConsensusResult.ExceededLimit, None, pubGenTx, builder.accounts[0], bartOffer)
+        assert len(node.public().getbarteronfeed({ "pageSize": 100 })) == 15
 
         # ---------------------------------------------------------------------------------
         self.log.info("Moderation checks")
@@ -152,19 +153,7 @@ class BarteronTest(PocketcoinTestFramework):
         assert_raises_rpc_error(ConsensusResult.BadTransaction, None, pubGenTx, builder.accounts[0], bartOfferPaid)
         pubGenTx(builder.accounts[0], bartOfferPaid, fee=500)
         node.stakeblock(1)
-
-        # ---------------------------------------------------------------------------------
-        self.log.info("Check offers feed")
-
-        feed = node.public().getbarteronfeed({ "pageSize": 100 })
-        # TODO - check?
-
-        # ---------------------------------------------------------------------------------
-        # todo - find deals
-        self.log.info("Check offers deals")
-        for i, offer in enumerate(feed):
-            pass
-
+        assert len(node.public().getbarteronfeed({ "pageSize": 100 })) == 16
 
         
 
