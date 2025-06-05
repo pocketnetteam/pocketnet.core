@@ -42,6 +42,7 @@ namespace PocketTx
     
     #define OR_BARTERON_ACCOUNT "6272746163636f756e74"
     #define OR_BARTERON_OFFER "6272746f66666572"
+    #define OR_BARTERON_OFFER_PAID "6272746f6666657270616964"
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts

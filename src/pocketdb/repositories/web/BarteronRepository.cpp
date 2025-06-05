@@ -103,7 +103,7 @@ namespace PocketDb
                             cross join Last l on
                                 l.TxId = o.RowId
                         where
-                            o.Type = 211 and
+                            o.Type in (211, 212) and
                             o.RegId1 = data.addrid
                         group by ratingAddrId
                     )
@@ -162,7 +162,7 @@ namespace PocketDb
                         addr
                     cross join
                         Transactions o indexed by Transactions_Type_RegId2_RegId1
-                            on o.Type in (211) and o.RegId1 = addr.id
+                            on o.Type in (211, 212) and o.RegId1 = addr.id
                     cross join
                         Last l
                             on l.TxId = o.RowId
@@ -225,7 +225,7 @@ namespace PocketDb
             cross join
                 Transactions t indexed by Transactions_RowId_desc_Type_RegId1 on
                     t.RowId = fm.ContentId and
-                    t.Type in (211)
+                    t.Type in (211, 212)
             cross join
                 Chain ct indexed by Chain_TxId_Height
                     on ct.TxId = t.RowId and ct.Height <= ?
@@ -339,7 +339,7 @@ namespace PocketDb
                     on bo.OfferId = ct.Uid and ct.Height <= ?
             cross join
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                    t.Type in (211) and
+                    t.Type in (211, 212) and
                     ct.TxId = t.RowId
             cross join
                 Last lt
@@ -461,7 +461,7 @@ namespace PocketDb
                     on cu.TxId = u.RowId
 
             where
-                t.Type in (211)
+                t.Type in (211, 212)
 
             order by
                 )sql" + orderBy + R"sql(
@@ -602,7 +602,7 @@ namespace PocketDb
                     -- Filters
                     )sql" + _filters + R"sql(
                     where
-                        t.Type in (211)
+                        t.Type in (211, 212)
                     group by
                         substr(pt.String6, 1, ?)
                 )sql");

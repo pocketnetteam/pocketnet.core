@@ -477,11 +477,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         assert(!inBlock.count(iter));
 
         // Get transaction from pocketdb
-        PTransactionRef ptx = nullptr;
+        PTransactionRef ptx = PocketDb::TransRepoInst.Get(iter->GetTx().GetHash().GetHex(), true);
         TxType txType = NOT_SUPPORTED;
         PocketHelpers::TransactionHelper::IsPocketTransaction(iter->GetSharedTx(), txType);
-        if (PocketHelpers::TransactionHelper::IsPocketTransaction(txType))
-            ptx = PocketDb::TransRepoInst.Get(iter->GetTx().GetHash().GetHex(), true);
 
         uint64_t packageSize = iter->GetSizeWithAncestors();
         CAmount packageFees = iter->GetModFeesWithAncestors();

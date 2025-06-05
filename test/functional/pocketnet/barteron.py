@@ -138,6 +138,22 @@ class BarteronTest(PocketcoinTestFramework):
         pubGenTx(builder.accounts[2], ModFlagPayload(brtOffers[0]["tx"], brtOffers[0]["acc"].Address))
 
         # ---------------------------------------------------------------------------------
+        self.log.info("Check offers paid")
+        bartOfferPaid = BartOfferPaidPayload()
+        bartOfferPaid.s1 = builder.accounts[0].Address
+        bartOfferPaid.p = Payload()
+        bartOfferPaid.p.s1 = lang[random.randint(0, 2)]
+        bartOfferPaid.p.s2 = f'Custom caption with random ({random.randint(0, 100)}) number'
+        bartOfferPaid.p.s3 = f'Custom description with random ({random.randint(0, 100)}) number'
+        bartOfferPaid.p.s5 = ['http://image.url.1','http://image.url.2']
+        bartOfferPaid.p.s6 = randomword(random.randint(0, 10))
+        bartOfferPaid.p.i1 = random.randint(0, 1000)
+        bartOfferPaid.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
+        assert_raises_rpc_error(ConsensusResult.BadTransaction, None, pubGenTx, builder.accounts[0], bartOfferPaid)
+        pubGenTx(builder.accounts[0], bartOfferPaid, fee=500)
+        node.stakeblock(1)
+
+        # ---------------------------------------------------------------------------------
         self.log.info("Check offers feed")
 
         feed = node.public().getbarteronfeed({})
@@ -148,6 +164,8 @@ class BarteronTest(PocketcoinTestFramework):
         self.log.info("Check offers deals")
         for i, offer in enumerate(feed):
             pass
+
+
         
 
 if __name__ == "__main__":

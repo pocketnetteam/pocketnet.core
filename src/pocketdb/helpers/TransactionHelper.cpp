@@ -100,6 +100,8 @@ namespace PocketHelpers
             return TxType::BARTERON_ACCOUNT;
         else if (op == OR_BARTERON_OFFER)
             return TxType::BARTERON_OFFER;
+        else if (op == OR_BARTERON_OFFER_PAID)
+            return TxType::BARTERON_OFFER_PAID;
 
         return TxType::TX_DEFAULT;
     }
@@ -211,6 +213,8 @@ namespace PocketHelpers
                 return "BrtAccount";
             case TxType::BARTERON_OFFER:
                 return "BrtOffer";
+            case TxType::BARTERON_OFFER_PAID:
+                return "BrtOfferPaid";
             default:
                 return "";
         }
@@ -289,7 +293,8 @@ namespace PocketHelpers
             switch (txType)
             {
                 case TxType::BARTERON_OFFER_PAID:
-                case TxType::APP:
+                // TODO (aok) (v0.23.0): need add new transaction type
+                // case TxType::UNIVERSAL_TRANSACTION_NEED_NAME:
                     return true;
                 default:
                     return false;
@@ -448,6 +453,9 @@ namespace PocketHelpers
             case BARTERON_OFFER:
                 ptx = make_shared<BarteronOffer>(tx);
                 break;
+            case BARTERON_OFFER_PAID:
+                ptx = make_shared<BarteronOfferPaid>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -550,6 +558,9 @@ namespace PocketHelpers
             case BARTERON_OFFER:
                 ptx = make_shared<BarteronOffer>();
                 break;
+            case BARTERON_OFFER_PAID:
+                ptx = make_shared<BarteronOfferPaid>();
+                break;
             default:
                 return nullptr;
         }
@@ -618,6 +629,8 @@ namespace PocketHelpers
                 return "brtaccount";
             case BARTERON_OFFER:
                 return "brtoffer";
+            case BARTERON_OFFER_PAID:
+                return "brtofferpaid";
             default:
                 return "";
         }
@@ -649,6 +662,7 @@ namespace PocketHelpers
         else if (type == "modVote") return TxType::MODERATION_VOTE;
         else if (type == "brtaccount") return TxType::BARTERON_ACCOUNT;
         else if (type == "brtoffer") return TxType::BARTERON_OFFER;
+        else if (type == "brtofferpaid") return TxType::BARTERON_OFFER_PAID;
         else return TxType::NOT_SUPPORTED;
     }
 }

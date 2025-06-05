@@ -51,6 +51,7 @@
 
 #include "pocketdb/models/dto/barteron/Account.h"
 #include "pocketdb/models/dto/barteron/Offer.h"
+#include "pocketdb/models/dto/barteron/OfferPaid.h"
 
 namespace PocketHelpers
 {

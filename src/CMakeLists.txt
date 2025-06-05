@@ -666,6 +666,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/barteron/Account.cpp
         pocketdb/models/dto/barteron/Offer.h
         pocketdb/models/dto/barteron/Offer.cpp
+        pocketdb/models/dto/barteron/OfferPaid.h
+        pocketdb/models/dto/barteron/OfferPaid.cpp
 
         pocketdb/models/dto/action/ScoreContent.h
         pocketdb/models/dto/action/ScoreContent.cpp
@@ -1260,6 +1262,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/moderation/Vote.hpp
         pocketdb/consensus/barteron/Offer.hpp
+        pocketdb/consensus/barteron/OfferPaid.hpp
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         )

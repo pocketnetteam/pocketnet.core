@@ -78,6 +78,7 @@ class ConsensusResult(Enum):
     LowReputation = 66
     AccountDeleted = 67
     AccountBanned = 68
+    BadTransaction = -26
 
 # -----------------------------------------------------------------------------------------------------------------
 
@@ -402,6 +403,10 @@ class BartAccountPayload(Transaction):
 @dataclass
 class BartOfferPayload(Transaction):
     TxType = "6272746f66666572"
+
+@dataclass
+class BartOfferPaidPayload(Transaction):
+    TxType = "6272746f6666657270616964"
 
 # -----------------------------------------------------------------------------------------------------------------
 

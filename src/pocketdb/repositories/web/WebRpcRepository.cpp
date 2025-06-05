@@ -4443,7 +4443,7 @@ namespace PocketDb
                         addr
                     cross join
                         Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                            t.Type in (200,201,202,209,210,221,211,220,207) and
+                            t.Type in (200,201,202,209,210,221,211,212,220,207) and
                             t.RegId2 = txs.id
                     cross join
                         Chain c on
@@ -4538,7 +4538,8 @@ namespace PocketDb
                             record.pushKV("flags", flags);
                         });
 
-                        tmpResult[id] = record;                
+                        //tmpResult.emplace(id, record);
+                        tmpResult[id] = record;
                     }
                 });
             }

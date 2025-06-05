@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_BARTERON_OFFER_HPP
-#define POCKETCONSENSUS_BARTERON_OFFER_HPP
+#ifndef POCKETCONSENSUS_BARTERON_OFFER_PAID_HPP
+#define POCKETCONSENSUS_BARTERON_OFFER_PAID_HPP
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
@@ -14,7 +14,7 @@ namespace PocketConsensus
     typedef shared_ptr<BarteronOfferPaid> BarteronOfferPaidRef;
 
     /*******************************************************************************************************************
-    *  BarteronOffer consensus base class
+    *  BarteronOfferPaid consensus base class
     *******************************************************************************************************************/
     class BarteronOfferPaidConsensus : public SocialConsensus<BarteronOfferPaid>
     {
@@ -115,4 +115,4 @@ namespace PocketConsensus
     static BarteronOfferPaidConsensusFactory ConsensusFactoryInst_BarteronOfferPaid;
 }
 
-#endif // POCKETCONSENSUS_BARTERON_OFFER_HPP
+#endif // POCKETCONSENSUS_BARTERON_OFFER_PAID_HPP
