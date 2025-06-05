@@ -149,7 +149,7 @@ class BarteronTest(PocketcoinTestFramework):
         bartOfferPaid.p.s5 = ['http://image.url.1','http://image.url.2']
         bartOfferPaid.p.s6 = randomword(random.randint(0, 10))
         bartOfferPaid.p.i1 = random.randint(0, 1000)
-        bartOfferPaid.p.s4 = json.dumpsr({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
+        bartOfferPaid.p.s4 = json.dumps({ "t": random.randint(0, 100), "a": [ random.randint(0, 100), random.randint(0, 100), random.randint(0, 100) ], "test": "HOI" })
         assert_raises_rpc_error(ConsensusResult.BadTransaction, None, pubGenTx, builder.accounts[0], bartOfferPaid)
         pubGenTx(builder.accounts[0], bartOfferPaid, fee=500)
         node.stakeblock(1)
