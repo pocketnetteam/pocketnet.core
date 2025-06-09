@@ -299,8 +299,7 @@ namespace PocketHelpers
             switch (txType)
             {
                 case TxType::BARTERON_OFFER_PAID:
-                // TODO (aok) (v0.23.0): need add new transaction type
-                // case TxType::UNIVERSAL_TRANSACTION_NEED_NAME:
+                case TxType::SOCIAL:
                     return true;
                 default:
                     return false;
