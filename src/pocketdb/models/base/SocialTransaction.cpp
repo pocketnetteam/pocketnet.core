@@ -8,10 +8,12 @@ namespace PocketTx
 {
     SocialTransaction::SocialTransaction() : Transaction()
     {
+        SetType(TxType::SOCIAL);
     }
 
     SocialTransaction::SocialTransaction(const CTransactionRef& tx) : Transaction(tx)
     {
+        SetType(TxType::SOCIAL);
     }
 
     optional<UniValue> SocialTransaction::Serialize() const
