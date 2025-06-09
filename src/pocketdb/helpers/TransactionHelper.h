@@ -15,6 +15,7 @@
 
 #include "pocketdb/models/base/DtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 #include "pocketdb/models/dto/money/Coinbase.h"
 #include "pocketdb/models/dto/money/Coinstake.h"

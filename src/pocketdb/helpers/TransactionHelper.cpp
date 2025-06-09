@@ -103,6 +103,10 @@ namespace PocketHelpers
         else if (op == OR_BARTERON_OFFER_PAID)
             return TxType::BARTERON_OFFER_PAID;
 
+        // UST (Universal Social Transaction)
+        else if (op.substr(0, 8) == OR_SOCIAL)
+            return TxType::SOCIAL;
+
         return TxType::TX_DEFAULT;
     }
 
@@ -169,6 +173,8 @@ namespace PocketHelpers
         // TODO (aok) (v0.21.0): need remove for next generation serialization
         switch (*transaction.GetType())
         {
+            case TxType::SOCIAL:
+                return "Social";
             case TxType::ACCOUNT_USER:
                 return "Users";
             case TxType::ACCOUNT_SETTING:
@@ -372,6 +378,9 @@ namespace PocketHelpers
             case TX_DEFAULT:
                 ptx = make_shared<Default>(tx);
                 break;
+            case SOCIAL:
+                ptx = make_shared<SocialTransaction>(tx);
+                break;
             case ACCOUNT_SETTING:
                 ptx = make_shared<AccountSetting>(tx);
                 break;
@@ -477,6 +486,9 @@ namespace PocketHelpers
             case TX_DEFAULT:
                 ptx = make_shared<Default>();
                 break;
+            case SOCIAL:
+                ptx = make_shared<SocialTransaction>();
+                break;
             case ACCOUNT_SETTING:
                 ptx = make_shared<AccountSetting>();
                 break;
@@ -581,6 +593,8 @@ namespace PocketHelpers
     {
         switch (type)
         {
+            case SOCIAL:
+                return "social";
             case CONTENT_DELETE:
                 return "contentDelete";
             case CONTENT_POST:
@@ -638,7 +652,8 @@ namespace PocketHelpers
 
     TxType TransactionHelper::TxIntType(const string& type)
     {
-        if (type == "contentDelete" || type == OR_CONTENT_DELETE) return TxType::CONTENT_DELETE;
+        if (type == "social" || type.substr(0, 8) == OR_SOCIAL) return TxType::SOCIAL;
+        else if (type == "contentDelete" || type == OR_CONTENT_DELETE) return TxType::CONTENT_DELETE;
         else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return TxType::CONTENT_POST;
         else if (type == "video" || type == OR_VIDEO) return TxType::CONTENT_VIDEO;
         else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
@@ -658,11 +673,11 @@ namespace PocketHelpers
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
-        else if (type == "modFlag") return TxType::MODERATION_FLAG;
-        else if (type == "modVote") return TxType::MODERATION_VOTE;
-        else if (type == "brtaccount") return TxType::BARTERON_ACCOUNT;
-        else if (type == "brtoffer") return TxType::BARTERON_OFFER;
-        else if (type == "brtofferpaid") return TxType::BARTERON_OFFER_PAID;
+        else if (type == "modFlag" || type == OR_MODERATION_FLAG) return TxType::MODERATION_FLAG;
+        else if (type == "modVote" || type == OR_MODERATION_VOTE) return TxType::MODERATION_VOTE;
+        else if (type == "brtaccount" || type == OR_BARTERON_ACCOUNT) return TxType::BARTERON_ACCOUNT;
+        else if (type == "brtoffer" || type == OR_BARTERON_OFFER) return TxType::BARTERON_OFFER;
+        else if (type == "brtofferpaid" || type == OR_BARTERON_OFFER_PAID) return TxType::BARTERON_OFFER_PAID;
         else return TxType::NOT_SUPPORTED;
     }
 }
