@@ -24,6 +24,8 @@ class ChainBuilder:
         self._node = node
         self.log = logger or logging.getLogger("ChainBuilder")
         self.log.setLevel(logging.DEBUG)
+        self._accounts = []
+        self._moders = []
 
     def build_full(self):
         self.build_init()
