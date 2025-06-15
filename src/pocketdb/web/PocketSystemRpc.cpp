@@ -87,13 +87,13 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("protocol", stats.nVersion);
             obj.pushKV("version", stats.cleanSubVer);
             obj.pushKV("inbound", stats.fInbound);
+            obj.pushKV("startingheight", stats.nStartingHeight);
             obj.pushKV("whitelisted", stats.m_legacyWhitelisted); // TODO (losty-fur): probably remove this
 
             CNodeStateStats nodeState;
-            if (node.peerman->GetNodeStateStatsView(stats.nodeid, nodeState))
+            if (GetNodeStateStatsView(stats.nodeid, nodeState))
             {
                 obj.pushKV("banscore", nodeState.m_misbehavior_score);
-                obj.pushKV("startingheight", nodeState.m_starting_height);
                 obj.pushKV("synced_headers", nodeState.nSyncHeight);
                 obj.pushKV("synced_blocks", nodeState.nCommonHeight);
             }

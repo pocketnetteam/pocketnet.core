@@ -435,7 +435,6 @@ POCKETCOIN_CORE_H = \
     node/coinstats.h \
     node/connection_types.h \
     node/context.h \
-    node/eviction.h \
     node/psbt.h \
     node/transaction.h \
     node/ui_interface.h \
@@ -595,7 +594,6 @@ libpocketcoin_server_a_SOURCES = \
     node/coinstats.cpp \
     node/connection_types.cpp \
     node/context.cpp \
-    node/eviction.cpp \
     node/psbt.cpp \
     node/transaction.cpp \
     node/ui_interface.cpp \
