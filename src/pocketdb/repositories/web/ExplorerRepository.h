@@ -36,7 +36,7 @@ namespace PocketDb
         map<string, int> GetAddressTransactions(const string& address, int topHeight, int pageStart, int pageSize, int direction, const vector<TxType>& types);
         map<string, int> GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
         UniValue GetBalanceHistory(const vector<string>& addresses, int topHeight, int count);
-        UniValue GetFromToTransactions(const string& from, const string& to, int depth);
+        UniValue GetFromToTransactions(const string& from, const string& to, int depth, const vector<string>& opreturns);
     };
 
     typedef shared_ptr<ExplorerRepository> ExplorerRepositoryRef;

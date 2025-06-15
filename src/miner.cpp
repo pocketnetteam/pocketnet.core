@@ -308,7 +308,7 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
     {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
         {
-            LogPrint(BCLog::SELECTCOINS, "Warning: build block skip transaction: tx - %s, height - %d, locktime - %d\n", it->GetTx().GetHash().GetHex(), nHeight, nLockTimeCutoff);
+            LogPrint(BCLog::SELECTCOINS, "Warning: build block skip transaction: tx - %s, height - %d, locktime - %s\n", it->GetTx().GetHash().GetHex(), nHeight, FormatISO8601DateTime(nLockTimeCutoff));
             return false;
         }
         if (!fIncludeWitness && it->GetTx().HasWitness())

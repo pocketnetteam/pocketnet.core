@@ -18,6 +18,7 @@ src/pocketcoin-tx
 src/pocketcoin-wallet
 src/test/fuzz/*
 !src/test/fuzz/*.*
+!src/test/fuzz/util/*.*
 src/test/test_pocketcoin
 src/qt/test/test_pocketcoin-qt
 src/sqlite/m4/

@@ -475,6 +475,7 @@ namespace PocketWeb::PocketWebRpc
                     {"from", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to get transactions from"},
                     {"to", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Address to get transactions to"},
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of transactions to get"},                    
+                    {"opreturn", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Opreturn to filter by (default: a:subscription)"},
                 },
                 {
                 },
@@ -483,21 +484,33 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            RPCTypeCheck(request.params, {UniValue::VSTR});
-
-            string from = request.params[0].get_str();
-            if (from.empty())
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, from address is required");
+            string from;
+            if (request.params[0].isStr())
+                from = request.params[0].get_str();
 
             string to;
-            if (request.params[1].isStr())
+            if (request.params.size() > 1 && request.params[1].isStr())
                 to = request.params[1].get_str();
 
             int depth = ChainActiveSafeHeight() - 1440 * 30 * 1; // 1 month for main network
             if (request.params.size() > 2 && request.params[2].isNum())
                 depth = request.params[2].get_int();
 
-            return request.DbConnection()->ExplorerRepoInst->GetFromToTransactions(from, to, depth);
+            vector<string> opreturns = { "6a0e613a737562736372697074696f6e" }; // OP_RETURN a:subscription
+            if (request.params.size() > 3)
+            {
+                if (request.params[3].isStr())
+                    opreturns = { request.params[3].get_str() };
+                else if (request.params[3].isArray())
+                {
+                    opreturns.clear();
+                    UniValue oprs = request.params[3].get_array();
+                    for (const auto& opr : oprs.getValues())
+                        opreturns.push_back(opr.get_str());
+                }
+            }
+
+            return request.DbConnection()->ExplorerRepoInst->GetFromToTransactions(from, to, depth, opreturns);
         },
         };
     }

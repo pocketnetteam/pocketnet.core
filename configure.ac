@@ -1,4 +1,5 @@
 AC_PREREQ([2.69])
+# TODO (release): set version and actual year
 define(_CLIENT_VERSION_MAJOR, 0)
 define(_CLIENT_VERSION_MINOR, 22)
 define(_CLIENT_VERSION_REVISION, 17)

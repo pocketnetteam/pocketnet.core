@@ -7,6 +7,8 @@
 /* Version is release */
 #define CLIENT_VERSION_IS_RELEASE false
 
+/* TODO (release): set version and actual year */
+
 /* Major version */
 #define CLIENT_VERSION_MAJOR 0
 

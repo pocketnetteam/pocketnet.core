@@ -191,11 +191,15 @@ protected:
     ChainTxData chainTxData;
     SocialForks socialForks = {{
         // TODO (release): check (may be fulfill with earlier forks)
-        {210300 /* 0.21.3 */, 2360000, 1950500, 0},
-        {220000 /* 0.22.0 */, 2583000, 2267333, 0},
-        {220300 /* 0.22.3 */, 2794500, 2574300, 0},
-        {220400 /* 0.22.4 */, 2930000, 2850000, 0},
-        {220700 /* 0.22.7 */, 3123800, 3100000, 0}
+        // This list specifies versions and heights of soft forks
+        // for each network (main, test, regtest), starting from which
+        // versions below the specified ones will be disconnected if -disconnectold=1
+        {210300 /* 0.21.3  */, 2360000, 1950500, 0},
+        {220000 /* 0.22.0  */, 2583000, 2267333, 0},
+        {220300 /* 0.22.3  */, 2794500, 2574300, 0},
+        {220400 /* 0.22.4  */, 2930000, 2850000, 0},
+        {220700 /* 0.22.7  */, 3123800, 3100000, 0},
+        {221400 /* 0.22.14 */, 3370000, 3704000, 0}
     }};
 };
 
