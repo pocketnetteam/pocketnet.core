@@ -97,6 +97,15 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists UST
+            (
+                TxId int not null,
+                Type int not null,
+                primary key (TxId, Type)
+            );
+        )sql");
+
         //
         // INDEXES
         //
@@ -104,10 +113,9 @@ namespace PocketDb
             create unique index if not exists Tags_Lang_Value on Tags (Lang, Value);
             create index if not exists Tags_Lang_Value_Id on Tags (Lang, Value, Id);
             create index if not exists Tags_Value on Tags (Value);
-            
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
-
             create index if not exists BarteronOffers_OfferId_Tag_AccountId on BarteronOffers(OfferId, Tag, AccountId);
+            create index if not exists UST_Type_TxId on (Type, TxId);
         )sql";
     }
 }

@@ -29,6 +29,7 @@ namespace PocketServices
  
         void ProcessTags(int height);
         void ProcessSearchContent(int height);
+        void ProcessUST(int height);
 
     private:
         SQLiteDatabaseRef sqliteDbInst;

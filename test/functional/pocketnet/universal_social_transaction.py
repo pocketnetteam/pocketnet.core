@@ -43,6 +43,9 @@ class USTTest(PocketcoinTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 1
 
+    def hexType(self, type):
+        return '6a0e' + type.encode('utf-8').hex()
+
     def run_test(self):
         """Main test logic"""
         node = self.nodes[0]
@@ -52,22 +55,37 @@ class USTTest(PocketcoinTestFramework):
         # ---------------------------------------------------------------------------------
         # Prepare chain & accounts
         builder.build_init(accounts_num=3, moderators_num=0)
+        builder.register_accounts()
         node.stakeblock(10)
+
+        acc = builder.accounts[0]
 
         # ---------------------------------------------------------------------------------
         self.log.info("Try send UST with custom identifier")
+        _type = "test01"
+
         ust = UniversalSocialTransactionPayload(
-            tx_type="test01".encode('utf-8').hex(),
-            s1="some_value",
+            tx_type=_type.encode('utf-8').hex(),
+            s1="some value",
             i1=42
         )
 
-        pubGenTx(builder.accounts[0], ust, fee=500)
-        
-        
-        
-        assert_raises_rpc_error(ConsensusResult.BadTransaction, None, pubGenTx, builder.accounts[0], ust, fee=1)
+        assert_raises_rpc_error(ConsensusResult.BadTransaction, None, pubGenTx, acc, ust, fee=1)
+        assert_raises_rpc_error(ConsensusResult.FailedOpReturn, None, pubGenTx, acc, ust, fee=500)
 
+        # Social transactions must have address in s1
+        ust.s1 = acc.Address
+
+        pubGenTx(acc, ust, fee=500)
+        node.stakeblock(1)
+        
+        # node.public().ust_list({
+        #     'address': acc.Address,
+        #     'types': [ '', '' ]
+        # })
+
+        txs = node.public().getfromtotransactions(acc.Address, acc.Address, '', self.hexType(_type))
+        assert len(txs) == 1
 
 
 

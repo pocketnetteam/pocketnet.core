@@ -84,6 +84,7 @@ namespace PocketServices
             ProcessTags(currHeight);
             ProcessSearchContent(currHeight);
         
+            // Barteron
             webRepoInst->UpsertBarteronAccounts(currHeight);
             webRepoInst->UpsertBarteronOffers(currHeight);
 
@@ -91,6 +92,7 @@ namespace PocketServices
             if (gArgs.GetChainName() == CBaseChainParams::REGTEST)
                 period = 1;
             
+            // Account statistics
             if (currHeight % period == 0 && pindexBestHeader && (pindexBestHeader->nHeight - currHeight) < period)
             {
                 int64_t nTime2 = GetTimeMicros();
@@ -100,6 +102,9 @@ namespace PocketServices
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessNextHeight (CollectAccountStatistic): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
             }
+
+            // UST
+            ProcessUST(currHeight);
             
             webRepoInst->SetCurrentHeight(currHeight);
             
@@ -205,6 +210,13 @@ namespace PocketServices
         {
             LogPrintf("Warning: WebPostProcessor::ProcessSearchContent - %s\n", e.what());
         }
+    }
+
+    void WebPostProcessor::ProcessUST(int height)
+    {
+        // Get all op_returns
+        // Decode
+        // Save in WEB::UST
     }
 
 } // PocketServices
