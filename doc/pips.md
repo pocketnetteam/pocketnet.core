@@ -168,5 +168,6 @@ Fork start at:
 - Test net: ?
 
 Changes:
-- Cancellation of payments from the issue based on the results of ratings for posts and comments [PR #](https://github.com/pocketnetteam/pocketnet.core/pull/)
-- 
+- Cancellation of payments from the issue based on the results of ratings for posts and comments [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
+- Increase the registration period for obtaining Shark and Whale Badges to 518,400 blocks (~ 1 year) [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
+- Added the transaction of paid Barteron offers [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)

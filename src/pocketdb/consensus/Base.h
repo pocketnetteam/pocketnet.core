@@ -342,7 +342,7 @@ namespace PocketConsensus
 
         // Thresholds for obtaining badges - SHARK
         { threshold_shark_reg_depth, {
-            { NetworkMain,    { {0, 129600} } },
+            { NetworkMain,    { {0, 129600}, {9999999, 518400} } },
             { NetworkTest,    { {0, 1} } },
             { NetworkRegTest, { {0, 1} } }
         } },
@@ -369,7 +369,7 @@ namespace PocketConsensus
         
         // Thresholds for obtaining badges - WHALE
         { threshold_whale_reg_depth, {
-            { NetworkMain,    { {0, 207360} } },
+            { NetworkMain,    { {0, 207360}, {9999999, 518400} } },
             { NetworkTest,    { {0, 1} } },
             { NetworkRegTest, { {0, 1} } }
         } },
