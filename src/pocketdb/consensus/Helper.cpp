@@ -3,6 +3,8 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/consensus/Helper.h"
+#include "pocketdb/models/base/PocketTypes.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 
 namespace PocketConsensus
 {
@@ -137,6 +139,11 @@ namespace PocketConsensus
         // Check transactions with consensus logic
         switch (*ptx->GetType())
         {
+            // Universal Social Transaction
+            case SOCIAL:
+                return ConsensusFactoryInst_UTS.Instance(height)->Check(tx, static_pointer_cast<SocialTransaction>(ptx));
+
+            // DTOs
             case ACCOUNT_SETTING:
                 return ConsensusFactoryInst_AccountSetting.Instance(height)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
             case ACCOUNT_DELETE:
@@ -211,6 +218,11 @@ namespace PocketConsensus
         // Validate transactions with consensus logic
         switch (*ptx->GetType())
         {
+            // Universal Social Transaction
+            case SOCIAL:
+                return ConsensusFactoryInst_UTS.Instance(height)->Validate(tx, static_pointer_cast<SocialTransaction>(ptx), pBlock);
+
+            // DTOs
             case ACCOUNT_SETTING:
                 return ConsensusFactoryInst_AccountSetting.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
             case ACCOUNT_DELETE:

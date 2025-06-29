@@ -7,8 +7,11 @@
 
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/SocialTransaction.h"
 #include "pocketdb/consensus/Reputation.h"
 
+
+#include "pocketdb/consensus/UTS.hpp"
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
 #include "pocketdb/consensus/social/BoostContent.hpp"
@@ -32,10 +35,8 @@
 #include "pocketdb/consensus/social/account/AccountSetting.hpp"
 #include "pocketdb/consensus/social/account/AccountDelete.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
-
 #include "pocketdb/consensus/moderation/Flag.hpp"
 #include "pocketdb/consensus/moderation/Vote.hpp"
-
 #include "pocketdb/consensus/barteron/Offer.hpp"
 #include "pocketdb/consensus/barteron/OfferPaid.hpp"
 #include "pocketdb/consensus/barteron/Account.hpp"

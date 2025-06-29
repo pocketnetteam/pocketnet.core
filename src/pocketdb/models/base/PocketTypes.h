@@ -15,6 +15,9 @@ namespace PocketTx
 
     // OpReturn hex codes
 
+    // Special op_return code - ust:<custom_identifier>
+    #define OR_SOCIAL "7573743a" // Universal social transaction - "ust:"
+
     #define OR_USERINFO "75736572496e666f"
     #define OR_ACCOUNT_SETTING "616363536574"
     #define OR_ACCOUNT_DELETE "61636344656c"
@@ -59,12 +62,6 @@ namespace PocketTx
     #define OR_COMPLAIN "636f6d706c61696e5368617265"
     #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
     #define OR_MODERATION_VOTE "6d6f64566f7465" // Vote from moderator
-    // #define OR_MODERATOR_REQUEST_SUBS "6d6f6452657153756273"
-    // #define OR_MODERATOR_REQUEST_COIN "6d6f64526571436f696e"
-    // #define OR_MODERATOR_REQUEST_CANCEL "6d6f64526571436e"
-    // #define OR_MODERATOR_REGISTER_SELF "6d6f6452656753656c66"
-    // #define OR_MODERATOR_REGISTER_REQUEST "6d6f64526567526571"
-    // #define OR_MODERATOR_REGISTER_CANCEL "6d6f64526567436e"
 
 
     // Int tx type
@@ -75,6 +72,8 @@ namespace PocketTx
         TX_DEFAULT = 1,
         TX_COINBASE = 2,
         TX_COINSTAKE = 3,
+
+        SOCIAL = 10,
 
         ACCOUNT_USER = 100,
         ACCOUNT_SETTING = 103,
@@ -192,7 +191,8 @@ namespace PocketTx
         }
 
         bool IsContent() const {
-            return Type == TxType::CONTENT_POST ||
+            return Type == TxType::CONTENT_DELETE ||
+                   Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
                    Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_STREAM ||
@@ -200,8 +200,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::BARTERON_OFFER ||
                    Type == TxType::BARTERON_OFFER_PAID ||
-                   Type == TxType::APP ||
-                   Type == TxType::CONTENT_DELETE;
+                   Type == TxType::APP;
         }
 
         bool IsComment() const

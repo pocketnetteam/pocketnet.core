@@ -415,3 +415,13 @@ class AppPayload(Transaction):
     TxType = "6d696e69617070"
 
 # -----------------------------------------------------------------------------------------------------------------
+
+@dataclass
+class UniversalSocialTransactionPayload(Transaction):
+    TxType: str = ""
+    
+    def __init__(self, tx_type: str = "", **kwargs):
+        super().__init__(**kwargs)
+        self.TxType = '7573743a' + tx_type
+
+# -----------------------------------------------------------------------------------------------------------------
