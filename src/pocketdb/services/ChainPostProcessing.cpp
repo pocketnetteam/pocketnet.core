@@ -3,6 +3,8 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/ChainPostProcessing.h"
+#include "pocketdb/helpers/PocketnetHelper.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketServices
 {
@@ -25,7 +27,7 @@ namespace PocketServices
         int64_t nTime4 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexModeration: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
 
-        IndexBadges(height);
+        IndexBadges(height, txs);
         int64_t nTime5 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexBadges: %.2fms _ %d\n", 0.001 * (double)(nTime5 - nTime4), height);
     }
@@ -68,6 +70,7 @@ namespace PocketServices
             txInfo.BlockNumber = (int) i;
             txInfo.Time = tx->nTime;
             txInfo.Type = txType;
+            txInfo.OrReturn = PocketHelpers::TransactionHelper::GetOrReturn(tx);
 
             if (!tx->IsCoinBase())
             {
@@ -300,7 +303,7 @@ namespace PocketServices
         );
     }
 
-    void ChainPostProcessing::IndexBadges(int height)
+    void ChainPostProcessing::IndexBadges(int height, vector<TransactionIndexingInfo>& txs)
     {
         auto reputationConsensus = ConsensusFactoryInst_Reputation.Instance(height);
         if (reputationConsensus->UseBadges() && height % BadgePeriod() == 0)
@@ -315,15 +318,56 @@ namespace PocketServices
             ChainRepoInst.IndexBadges(height, sharkConditions);
 
             const BadgeModeratorConditions moderatorConditions = {
-                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_all),
-                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_content),
-                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment),
-                (int)reputationConsensus->GetConsensusLimit(threshold_shark_likers_comment_answer),
-                (int)reputationConsensus->GetConsensusLimit(threshold_shark_reg_depth)
+                (int)reputationConsensus->GetConsensusLimit(threshold_moderator_likers_all),
+                (int)reputationConsensus->GetConsensusLimit(threshold_moderator_likers_content),
+                (int)reputationConsensus->GetConsensusLimit(threshold_moderator_likers_comment),
+                (int)reputationConsensus->GetConsensusLimit(threshold_moderator_likers_comment_answer),
+                (int)reputationConsensus->GetConsensusLimit(threshold_moderator_reg_depth)
             };
             ChainRepoInst.IndexBadges(height, moderatorConditions);
+        }
 
-            // TODO (moderation): get BadgeWhaleConditions
+        // Index badges by OP_RETURN data
+        for (const auto& tx : txs)
+        {
+            if (tx.OrReturn.empty() || tx.OrReturn.size() < 3)
+                continue;
+
+            // Get badge part from OP_RETURN data
+            auto opreturnV = ParseHex(tx.OrReturn[1]);
+            string opreturn(opreturnV.begin(), opreturnV.end());
+
+            if (opreturn.substr(0, 2) != "a:")
+                continue;
+
+            // Get address from OP_RETURN data
+            auto addressV = ParseHex(tx.OrReturn[2]);
+            string address(addressV.begin(), addressV.end());
+
+            // Add badge
+            if (opreturn.substr(2, 2) == "b:")
+            {
+                BadgeType badgeType = ParseBadgeType(opreturn.substr(4));
+                if (badgeType == BadgeType_None)
+                    continue;
+
+                if (badgeType == PocketTx::BadgeType_Verificated)
+                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                else if (badgeType == PocketTx::BadgeType_Validator)
+                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                else if (badgeType == PocketTx::BadgeType_Verificated_ZN)
+                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
+                else
+                    continue;
+
+                // TODO ?????????????
+            }
+            // Remove badge
+            else if (tx.OrReturn[1].substr(4, 4) == "753a") // 753a = "u:"
+            {
+                
+
+            }
         }
     }
 

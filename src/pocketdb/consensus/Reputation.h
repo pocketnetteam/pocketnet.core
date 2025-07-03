@@ -293,11 +293,11 @@ namespace PocketConsensus
         }
     };
 
-    // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
     class ReputationConsensus_checkpoint_badges : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
     {
     public:
         explicit ReputationConsensus_checkpoint_badges() : ReputationConsensus_checkpoint_scores_content_author_reducing_impact() {}
+
         BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
         {
             BadgeSet badgeSet;
@@ -320,9 +320,22 @@ namespace PocketConsensus
             
             return badgeSet;
         }
+
         bool UseBadges() override
         {
             return true;
+        }
+    };
+
+    class ReputationConsensus_pip_115 : public ReputationConsensus_checkpoint_badges
+    {
+    public:
+        explicit ReputationConsensus_pip_115() : ReputationConsensus_checkpoint_badges() {}
+        
+        // TODO : get badges from DB
+        BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
+        {
+
         }
     };
 
@@ -338,7 +351,8 @@ namespace PocketConsensus
             Checkpoint({ 1180000,      0, -1, make_shared<ReputationConsensus_checkpoint_1180000>() });
             Checkpoint({ 1324655,  65000, -1, make_shared<ReputationConsensus_checkpoint_1324655>() });
             Checkpoint({ 1700000, 761000, -1, make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>() });
-            Checkpoint({ 1757000, 947500,  0, make_shared<ReputationConsensus_checkpoint_badges>() });
+            Checkpoint({ 1757000, 947500, -1, make_shared<ReputationConsensus_checkpoint_badges>() });
+            Checkpoint({ 9999999, 9999999, 0, make_shared<ReputationConsensus_pip_115>() });
         }
     };
     
