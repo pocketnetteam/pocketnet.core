@@ -9,6 +9,7 @@
 #include <vector>
 #include <cstdint>
 
+
 namespace PocketTx
 {
     using namespace std;
@@ -166,6 +167,33 @@ namespace PocketTx
         ContentFieldType_ContentArticleMessage = 16, // Payload.String4
     };
 
+    // Badge types
+    enum BadgeType
+    {
+        BadgeType_None = 0,
+        
+        BadgeType_Shark = 1,
+        BadgeType_Whale = 2,
+        BadgeType_Moderator = 3,
+        BadgeType_Developer = 4,
+        BadgeType_Verificated = 5,
+        BadgeType_Validator = 6,
+        BadgeType_Verificated_ZN = 7,
+    };
+
+    static BadgeType ParseBadgeType(const string& badge)
+    {
+        if (badge == "shark") return BadgeType_Shark;
+        if (badge == "whale") return BadgeType_Whale;
+        if (badge == "moderator") return BadgeType_Moderator;
+        if (badge == "developer") return BadgeType_Developer;
+        if (badge == "verificated") return BadgeType_Verificated;
+        if (badge == "validator") return BadgeType_Validator;
+        if (badge == "verificated_zn") return BadgeType_Verificated_ZN;
+
+        return BadgeType_None;
+    }
+
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo
     {
@@ -174,6 +202,7 @@ namespace PocketTx
         int64_t Time;
         TxType Type;
         vector<pair<string, int>> Inputs;
+        vector<string> OrReturn;
 
         bool IsAccount() const
         {

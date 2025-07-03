@@ -139,6 +139,22 @@ namespace PocketHelpers
         return "";
     }
 
+    vector<string> TransactionHelper::GetOrReturn(const CTransactionRef& tx)
+    {
+        if (tx->vout.empty())
+            return vector<string>();
+
+        const CTxOut& txout = tx->vout[0];
+        if (txout.scriptPubKey[0] == OP_RETURN)
+        {
+            vector<string> vasm;
+            boost::split(vasm, ScriptToAsmStr(txout.scriptPubKey), boost::is_any_of("\t "));
+            return vasm;
+        }
+
+        return vector<string>();
+    }
+
     TxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->IsCoinBase())
