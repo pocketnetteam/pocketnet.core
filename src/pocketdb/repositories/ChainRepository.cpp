@@ -1347,7 +1347,7 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::AddBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers)
+    void ChainRepository::AddOrCancelBadge(bool cancel, int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers)
     {
         SqlTransaction(__func__, [&]()
         {
@@ -1364,7 +1364,7 @@ namespace PocketDb
                 select
                     cu.Uid as AccountId,
                     destBadge.value,
-                    0,
+                    ?,
                     height.value
                 from
                     sourceBadge,
@@ -1447,7 +1447,7 @@ namespace PocketDb
                             order by
                                 b.Height desc
                             limit 1
-                        ), 1) = 1
+                        ), 1) = ?
                     )
             )sql")
             .Bind(
@@ -1456,20 +1456,10 @@ namespace PocketDb
                 height,
                 address,
                 txHash,
-                developers
+                cancel ? 1 : 0,
+                developers,
+                cancel ? 0 : 1
             )
-            .Run();
-        });
-    }
-
-    void ChainRepository::RemoveBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers)
-    {
-        SqlTransaction(__func__, [&]()
-        {
-            Sql(R"sql(
-                
-            )sql")
-            .Bind()
             .Run();
         });
     }

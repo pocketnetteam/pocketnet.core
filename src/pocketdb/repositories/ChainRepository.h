@@ -46,8 +46,7 @@ namespace PocketDb
         
         /* BADGES */
         void IndexBadges(int height, const BadgeConditions& conditions);
-        void AddBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
-        void RemoveBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
+        void AddOrCancelBadge(bool cancel, int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
 
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);

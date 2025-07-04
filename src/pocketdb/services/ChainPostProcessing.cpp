@@ -353,11 +353,11 @@ namespace PocketServices
                     continue;
 
                 if (badgeType == PocketTx::BadgeType_Verificated)
-                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(false, height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Validator)
-                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(false, height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Verificated_ZN)
-                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(false, height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
                 else
                     continue;
             }
@@ -369,11 +369,11 @@ namespace PocketServices
                     continue;
 
                 if (badgeType == PocketTx::BadgeType_Verificated)
-                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(true, height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Validator)
-                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(true, height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Verificated_ZN)
-                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddOrCancelBadge(true, height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
                 else
                     continue;
             }
