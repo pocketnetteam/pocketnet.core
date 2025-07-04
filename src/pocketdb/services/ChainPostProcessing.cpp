@@ -5,6 +5,7 @@
 #include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/helpers/PocketnetHelper.h"
 #include "pocketdb/models/base/PocketTypes.h"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketServices
 {
@@ -352,21 +353,29 @@ namespace PocketServices
                     continue;
 
                 if (badgeType == PocketTx::BadgeType_Verificated)
-                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Validator)
-                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
                 else if (badgeType == PocketTx::BadgeType_Verificated_ZN)
-                    ConsensusRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
+                    ChainRepoInst.AddBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
                 else
                     continue;
-
-                // TODO ?????????????
             }
             // Remove badge
-            else if (tx.OrReturn[1].substr(4, 4) == "753a") // 753a = "u:"
+            else if (opreturn.substr(2, 2) == "u:")
             {
-                
+                BadgeType badgeType = ParseBadgeType(opreturn.substr(4));
+                if (badgeType == BadgeType_None)
+                    continue;
 
+                if (badgeType == PocketTx::BadgeType_Verificated)
+                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Verificated, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                else if (badgeType == PocketTx::BadgeType_Validator)
+                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Validator, BadgeType_None, PocketnetDevelopers[Params().NetworkID()]);
+                else if (badgeType == PocketTx::BadgeType_Verificated_ZN)
+                    ChainRepoInst.RemoveBadge(height, address, tx.Hash, BadgeType_Verificated_ZN, BadgeType_Validator, PocketnetDevelopers[Params().NetworkID()]);
+                else
+                    continue;
             }
         }
     }

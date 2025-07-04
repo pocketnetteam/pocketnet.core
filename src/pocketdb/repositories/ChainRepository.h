@@ -43,8 +43,12 @@ namespace PocketDb
 
         void IndexModerationJury(const string& flagTxHash, int flagsDepth, int flagsMinCount, int juryModeratorsCount);
         void IndexModerationBan(const string& voteTxHash, int votesCount, int ban1Time, int ban2Time, int ban3Time);
-        void IndexBadges(int height, const BadgeConditions& conditions);
         
+        /* BADGES */
+        void IndexBadges(int height, const BadgeConditions& conditions);
+        void AddBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
+        void RemoveBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
+
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 

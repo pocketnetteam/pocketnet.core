@@ -259,10 +259,6 @@ namespace PocketDb
         int LikersByFlag(const string& txHash);
         int LikersByVote(const string& txHash);
 
-        /* BADGES */
-        void AddBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
-        void RemoveBadge(int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers);
-
     protected:
     
     };
