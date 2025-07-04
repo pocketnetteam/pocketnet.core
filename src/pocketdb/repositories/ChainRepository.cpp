@@ -1469,7 +1469,7 @@ namespace PocketDb
             Sql(R"sql(
                 
             )sql")
-            .Bind(address, txHash, badgeType, developers)
+            .Bind()
             .Run();
         });
     }
