@@ -833,9 +833,16 @@ namespace PocketDb
                     from Badges b
                     where
                         b.AccountId = cu.Uid and
-                        b.Cancel = 0
-                    order by
-                        b.Height desc
+                        b.Cancel = 0 and
+                        not exists (
+                            select 1
+                            from Badges bb
+                            where
+                                bb.AccountId = b.AccountId and
+                                bb.Badge = b.Badge and
+                                bb.Height > b.Height and
+                                bb.Cancel = 1
+                        )
                 ) as badges,
                 (
                     select
