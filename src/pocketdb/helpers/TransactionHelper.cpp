@@ -123,22 +123,6 @@ namespace PocketHelpers
         return "";
     }
 
-    string TransactionHelper::ParseOpReturn(const string& value)
-    {
-        std::vector<unsigned char> data = ParseHex(value);
-        auto script = CScript(data.begin(), data.end());
-        if (script[0] == OP_RETURN)
-        {
-            auto asmStr = ScriptToAsmStr(script);
-            vector<string> vasm;
-            boost::split(vasm, asmStr, boost::is_any_of("\t "));
-            if (vasm.size() >= 2)
-                return vasm[1];
-        }
-        
-        return "";
-    }
-
     vector<string> TransactionHelper::GetOrReturn(const CTransactionRef& tx)
     {
         if (tx->vout.empty())
@@ -148,7 +132,8 @@ namespace PocketHelpers
         if (txout.scriptPubKey[0] == OP_RETURN)
         {
             vector<string> vasm;
-            boost::split(vasm, ScriptToAsmStr(txout.scriptPubKey), boost::is_any_of("\t "));
+            auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
+            boost::split(vasm, asmStr, boost::is_any_of("\t "));
             return vasm;
         }
 

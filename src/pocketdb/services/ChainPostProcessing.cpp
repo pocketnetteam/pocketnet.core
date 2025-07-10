@@ -336,19 +336,23 @@ namespace PocketServices
 
             // Get badge part from OP_RETURN data
             auto opreturnV = ParseHex(tx.OrReturn[1]);
-            string opreturn(opreturnV.begin(), opreturnV.end());
+            string opreturnS(opreturnV.begin(), opreturnV.end());
+            vector<string> opreturn;
+            boost::split(opreturn, opreturnS, boost::is_any_of("\t "));
 
-            if (opreturn.substr(0, 2) != "a:")
+            if (opreturn.size() < 2)
+                continue;
+
+            if (opreturn[0].substr(0, 2) != "a:")
                 continue;
 
             // Get address from OP_RETURN data
-            auto addressV = ParseHex(tx.OrReturn[2]);
-            string address(addressV.begin(), addressV.end());
+            auto address = opreturn[1];
 
             // Add badge
-            if (opreturn.substr(2, 2) == "b:")
+            if (opreturn[0].substr(2, 2) == "b:")
             {
-                BadgeType badgeType = ParseBadgeType(opreturn.substr(4));
+                BadgeType badgeType = ParseBadgeType(opreturn[0].substr(4));
                 if (badgeType == BadgeType_None)
                     continue;
 
@@ -362,9 +366,9 @@ namespace PocketServices
                     continue;
             }
             // Remove badge
-            else if (opreturn.substr(2, 2) == "u:")
+            else if (opreturn[0].substr(2, 2) == "u:")
             {
-                BadgeType badgeType = ParseBadgeType(opreturn.substr(4));
+                BadgeType badgeType = ParseBadgeType(opreturn[0].substr(4));
                 if (badgeType == BadgeType_None)
                     continue;
 

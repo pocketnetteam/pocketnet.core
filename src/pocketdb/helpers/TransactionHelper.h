@@ -76,7 +76,6 @@ namespace PocketHelpers
         static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx);
-        static string ParseOpReturn(const string& value);
         static vector<string> GetOrReturn(const CTransactionRef& tx);
         static string ConvertToReindexerTable(const Transaction& transaction);
         static string ExtractOpReturnHash(const CTransactionRef& tx);

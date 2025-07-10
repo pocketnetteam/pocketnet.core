@@ -487,7 +487,35 @@ namespace PocketDb
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
-                    -- TODO
+                    with
+                        addr as (select r.RowId as id
+                                from Registry r
+                                where r.String in (?)),
+                        badge as (select ? as value)
+                    select
+                        b.Badge,
+                        b.Cancel,
+                        b.Height
+                    from
+                        addr,
+                        badge,
+                        Transactions u
+                    cross join
+                        Last l on
+                            l.TxId = u.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = u.RowId
+                    cross join
+                        Badges b indexed by Badges_Badge_Cancel_AccountId_Height on
+                            b.Badge = badge.value and
+                            b.Cancel in (0, 1) and
+                            b.AccountId = c.Uid
+                    where
+                        u.Type = 100 and
+                        u.RegId1 = addr.id
+                    order by
+                        b.Height desc
                 )sql")
                 .Bind(address, (int)badge);
             },

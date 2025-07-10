@@ -395,14 +395,14 @@ namespace PocketWeb::PocketWebRpc
             RPCResult{
                 RPCResult::Type::ARR, "", "",
                 {
-                    // {RPCResult::Type::STR_HEX, "juryId", "Jury Id."},
-                    // {RPCResult::Type::NUM, "reason", "Reason jury."},
-                    // {RPCResult::Type::NUM, "ending", "Height of end ban."},
+                    {RPCResult::Type::STR, "badge", "Badge."},
+                    {RPCResult::Type::NUM, "cancel", "Cancel."},
+                    {RPCResult::Type::NUM, "height", "Height."},
                 }
             },
             RPCExamples{
-                HelpExampleCli("getbadgehistory", "address", "badge") +
-                HelpExampleRpc("getbadgehistory", "address", "badge")
+                HelpExampleCli("getbadgehistory", "address shark") +
+                HelpExampleRpc("getbadgehistory", "address shark")
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {

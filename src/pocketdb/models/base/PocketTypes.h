@@ -196,13 +196,13 @@ namespace PocketTx
 
     static string BadgeTypeToString(int badge)
     {
-        if (Shark) return "shark";
-        if (Whale) return "whale";
-        if (Moderator) return "moderator";
-        if (Developer) return "developer";
-        if (Verificated) return "verificated";
-        if (Validator) return "validator";
-        if (Verificated_zn) return "verificated_zn";
+        if (badge == BadgeType_Shark) return "shark";
+        if (badge == BadgeType_Whale) return "whale";
+        if (badge == BadgeType_Moderator) return "moderator";
+        if (badge == BadgeType_Developer) return "developer";
+        if (badge == BadgeType_Verificated) return "verificated";
+        if (badge == BadgeType_Validator) return "validator";
+        if (badge == BadgeType_Verificated_ZN) return "verificated_zn";
 
         return "";
     }
