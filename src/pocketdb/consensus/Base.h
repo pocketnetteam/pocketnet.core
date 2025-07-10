@@ -350,6 +350,7 @@ namespace PocketConsensus
         } },
 
         // Thresholds for obtaining badges - SHARK
+        // TODO (0.22.16): set height of fork
         { threshold_shark_reg_depth, {
             { NetworkMain,    { {0, 129600}, {9999999, 518400} } },
             { NetworkTest,    { {0, 1} } },
@@ -377,6 +378,7 @@ namespace PocketConsensus
         } },
         
         // Thresholds for obtaining badges - WHALE
+        // TODO (0.22.16): set height of fork
         { threshold_whale_reg_depth, {
             { NetworkMain,    { {0, 207360}, {9999999, 518400} } },
             { NetworkTest,    { {0, 1} } },

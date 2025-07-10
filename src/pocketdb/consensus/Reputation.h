@@ -332,14 +332,32 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus_pip_115() : ReputationConsensus_checkpoint_badges() {}
         
-        // TODO : get badges from DB
+        // TODO (0.22.16): get badges from DB
         BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
         {
+            BadgeSet badgeSet;
 
+            badgeSet.Developer = IsDeveloper(data.AddressHash);
+
+            badgeSet.Shark = data.LikersAll() >= GetConsensusLimit(threshold_shark_likers_all)
+                          && data.LikersContent >= GetConsensusLimit(threshold_shark_likers_content)
+                          && data.LikersComment >= GetConsensusLimit(threshold_shark_likers_comment)
+                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_shark_likers_comment_answer)
+                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth);
+
+            badgeSet.Whale = data.LikersAll() >= GetConsensusLimit(threshold_whale_likers_all)
+                          && data.LikersContent >= GetConsensusLimit(threshold_whale_likers_content)
+                          && data.LikersComment >= GetConsensusLimit(threshold_whale_likers_comment)
+                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
+                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
+
+            badgeSet.Moderator = data.ModeratorBadge;
+            
+            return badgeSet;
         }
     };
 
-
+    // TODO (0.22.16): set height of fork
     //  Factory for select actual rules version
     class ReputationConsensusFactory : public BaseConsensusFactory<ReputationConsensus>
     {
