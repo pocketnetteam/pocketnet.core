@@ -415,3 +415,9 @@ class AppPayload(Transaction):
     TxType = "6d696e69617070"
 
 # -----------------------------------------------------------------------------------------------------------------
+
+@dataclass
+class MoneyTransaction:
+    TxType: str = ""
+    def Serialize(self):
+        return {}

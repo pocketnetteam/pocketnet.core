@@ -194,6 +194,19 @@ namespace PocketTx
         return BadgeType_None;
     }
 
+    static string BadgeTypeToString(int badge)
+    {
+        if (Shark) return "shark";
+        if (Whale) return "whale";
+        if (Moderator) return "moderator";
+        if (Developer) return "developer";
+        if (Verificated) return "verificated";
+        if (Validator) return "validator";
+        if (Verificated_zn) return "verificated_zn";
+
+        return "";
+    }
+
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo
     {

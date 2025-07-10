@@ -310,13 +310,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Badges
             (
-                -- Transactions.Id
-                AccountId   int   not null,
-                -- Developer = 0
-                -- Shark = 1
-                -- Whale = 2
-                -- Moderator = 3
-                Badge       int   not null,
+                AccountId   int   not null, -- Chain::Uid
+                Badge       int   not null, -- enum PocketTx::BadgeType
                 Cancel      int   not null,
                 Height      int   not null,
                 primary key (AccountId, Badge, Cancel, Height)

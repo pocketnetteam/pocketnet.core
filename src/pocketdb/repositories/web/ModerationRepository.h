@@ -33,6 +33,7 @@ namespace PocketDb
         UniValue GetJuryModerators(const string& jury);
 
         UniValue GetBans(const string& address);
+        UniValue GetBadgeHistory(const string& address, BadgeType badge);
 
     };
 

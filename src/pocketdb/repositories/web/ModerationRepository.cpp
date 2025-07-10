@@ -479,4 +479,38 @@ namespace PocketDb
         return result;
     }
 
+    UniValue ModerationRepository::GetBadgeHistory(const string& address, BadgeType badge)
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    -- TODO
+                )sql")
+                .Bind(address, (int)badge);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                            record.pushKV("badge", BadgeTypeToString(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("cancel", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
+                            record.pushKV("height", value);
+                        
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
 }

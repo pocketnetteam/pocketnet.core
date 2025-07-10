@@ -384,4 +384,35 @@ namespace PocketWeb::PocketWebRpc
         }};
     }
 
+    RPCHelpMan GetBadgeHistory()
+    {
+        return RPCHelpMan{"getbadgehistory",
+            "\nGet list of badge states.\n",
+            {
+                {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address"},
+                {"badge", RPCArg::Type::STR, RPCArg::Optional::NO, "Badge"},
+            },
+            RPCResult{
+                RPCResult::Type::ARR, "", "",
+                {
+                    // {RPCResult::Type::STR_HEX, "juryId", "Jury Id."},
+                    // {RPCResult::Type::NUM, "reason", "Reason jury."},
+                    // {RPCResult::Type::NUM, "ending", "Height of end ban."},
+                }
+            },
+            RPCExamples{
+                HelpExampleCli("getbadgehistory", "address", "badge") +
+                HelpExampleRpc("getbadgehistory", "address", "badge")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR});
+
+            const string address = request.params[0].get_str();
+            BadgeType badge = ParseBadgeType(ToLower(request.params[1].get_str()));
+
+            return request.DbConnection()->ModerationRepoInst->GetBadgeHistory(address, badge);
+        }};
+    }
+
 }
