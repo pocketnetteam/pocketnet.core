@@ -332,19 +332,6 @@ namespace PocketConsensus
         }
     };
 
-    class ReputationConsensus_pip_115 : public ReputationConsensus_checkpoint_badges
-    {
-    public:
-        explicit ReputationConsensus_pip_115() : ReputationConsensus_checkpoint_badges() {}
-        
-        BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
-        {
-            BadgeSet badgeSet(ConsensusRepoInst.GetBadges(data.AddressHash));
-
-            return badgeSet;
-        }
-    };
-
     // TODO (0.22.16): set height of fork
     //  Factory for select actual rules version
     class ReputationConsensusFactory : public BaseConsensusFactory<ReputationConsensus>
@@ -357,8 +344,7 @@ namespace PocketConsensus
             Checkpoint({ 1180000,      0, -1, make_shared<ReputationConsensus_checkpoint_1180000>() });
             Checkpoint({ 1324655,  65000, -1, make_shared<ReputationConsensus_checkpoint_1324655>() });
             Checkpoint({ 1700000, 761000, -1, make_shared<ReputationConsensus_checkpoint_scores_content_author_reducing_impact>() });
-            Checkpoint({ 1757000, 947500, -1, make_shared<ReputationConsensus_checkpoint_badges>() });
-            Checkpoint({ 9999999, 9999999, 0, make_shared<ReputationConsensus_pip_115>() });
+            Checkpoint({ 1757000, 947500,  0, make_shared<ReputationConsensus_checkpoint_badges>() });
         }
     };
     
