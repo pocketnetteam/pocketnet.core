@@ -114,6 +114,10 @@ class TestNode():
 
         if self.version_is_at_least(190000):
             self.args.append("-logthreadnames")
+        if self.version_is_at_least(221800):
+            self.args.append("-logsourcelocations")
+        if self.version_is_at_least(221800):
+            self.args.append("-loglevel=trace")
 
         self.cli = TestNodeCLI(pocketcoin_cli, self.datadir)
         self.use_cli = use_cli

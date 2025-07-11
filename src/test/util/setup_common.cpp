@@ -87,8 +87,10 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
         {
             "dummy",
             "-printtoconsole=0",
+            "-logsourcelocations",
             "-logtimemicros",
             "-logthreadnames",
+            "-loglevel=trace",
             "-debug",
             "-debugexclude=libevent",
             "-debugexclude=leveldb",
