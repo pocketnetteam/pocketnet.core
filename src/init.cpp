@@ -2231,7 +2231,13 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         if (connOptions.onion_binds.size() > 1) {
             InitWarning(strprintf(_("More than one onion bind address is provided. Using %s for the automatically created Tor onion service."), bind_addr.ToStringIPPort()));
         }
-        StartTorControl(bind_addr);
+
+        int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
+        auto ws_bind_addr = bind_addr;
+        ws_bind_addr.SetPort(publicPort);
+        // = CService(bind_addr::GetAddr(), publicPort);
+
+        StartTorControl(bind_addr, ws_bind_addr);
     }
 
     for (const std::string& strBind : args.GetArgs("-whitebind")) {
