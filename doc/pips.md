@@ -165,7 +165,7 @@ Changes:
 
 Fork start at:
 - Main net: 9999999
-- Test net: 9999999
+- Test net: 4035000
 
 Changes:
 - Cancellation of payments from the issue based on the results of ratings for posts and comments [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)

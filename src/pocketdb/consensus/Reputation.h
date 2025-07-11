@@ -332,7 +332,6 @@ namespace PocketConsensus
         }
     };
 
-    // TODO (0.22.16): set height of fork
     //  Factory for select actual rules version
     class ReputationConsensusFactory : public BaseConsensusFactory<ReputationConsensus>
     {

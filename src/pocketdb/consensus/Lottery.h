@@ -338,10 +338,7 @@ namespace PocketConsensus
     class LotteryConsensus_pip_115 : public LotteryConsensus_pip_110
     {
     public:
-        LotteryConsensus_pip_115() : LotteryConsensus_pip_110()
-        {
-            
-        }
+        LotteryConsensus_pip_115() : LotteryConsensus_pip_110() { }
 
         // 90% - nodes;
         // 10% - for moderation votes;
@@ -366,7 +363,7 @@ namespace PocketConsensus
             Checkpoint({ 1180000,       0, -1, make_shared<LotteryConsensus_checkpoint_1180000>() });
             Checkpoint({ 2162400, 1650652, -1, make_shared<LotteryConsensus_pip_100>() });
             Checkpoint({ 9999999, 3500000, -1, make_shared<LotteryConsensus_pip_110>() });
-            Checkpoint({ 9999999, 9999999,  0, make_shared<LotteryConsensus_pip_115>() });
+            Checkpoint({ 9999999, 4035000,  0, make_shared<LotteryConsensus_pip_115>() });
         }
     };
 
