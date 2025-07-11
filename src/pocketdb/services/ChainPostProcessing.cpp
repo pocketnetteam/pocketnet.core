@@ -331,6 +331,11 @@ namespace PocketServices
         // Index badges by OP_RETURN data
         for (const auto& tx : txs)
         {
+            // Skip non-money transactions
+            if (tx.Type != PocketTx::TX_DEFAULT)
+                continue;
+
+            // Skip if OP_RETURN data is empty or has less than 3 elements
             if (tx.OrReturn.empty() || tx.OrReturn.size() < 3)
                 continue;
 
