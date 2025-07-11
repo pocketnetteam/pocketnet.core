@@ -4022,6 +4022,10 @@ namespace PocketDb
     {
         vector<BadgeType> result;
 
+        // Add developer badge if address is in PocketnetDevelopers
+        if (find(PocketnetDevelopers[Params().NetworkID()].begin(), PocketnetDevelopers[Params().NetworkID()].end(), address) != PocketnetDevelopers[Params().NetworkID()].end())
+            result.push_back(BadgeType_Developer);
+
         // Add badges from Badges table
         SqlTransaction(__func__, [&]()
         {
