@@ -526,7 +526,7 @@ namespace PocketDb
                         UniValue record(UniValue::VOBJ);
 
                         if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
-                            record.pushKV("badge", BadgeTypeToString(value));
+                            record.pushKV("badge", BadgeSet::BadgeTypeToString(value));
                         if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
                             record.pushKV("cancel", value);
                         if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)

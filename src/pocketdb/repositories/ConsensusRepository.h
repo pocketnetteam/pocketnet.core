@@ -46,60 +46,6 @@ namespace PocketDb
         }
     };
 
-    struct BadgeSet
-    {
-        bool Shark = false;
-        bool Whale = false;
-        bool Moderator = false;
-        bool Developer = false;
-        bool Verificated = false;
-        bool Validator = false;
-        bool Verificated_zn = false;
-
-        void Set(int v)
-        {
-            switch (v)
-            {
-                case BadgeType_Shark:
-                    Shark = true;
-                    break;
-                case BadgeType_Whale:
-                    Whale = true;
-                    break;
-                case BadgeType_Moderator:
-                    Moderator = true;
-                    break;
-                case BadgeType_Developer:
-                    Developer = true;
-                    break;
-                case BadgeType_Verificated:
-                    Verificated = true;
-                    break;
-                case BadgeType_Validator:
-                    Validator = true;
-                    break;
-                case BadgeType_Verificated_ZN:
-                    Verificated_zn = true;
-                    break;
-            }
-        }
-
-        UniValue ToJson()
-        {
-            UniValue ret(UniValue::VARR);
-            
-            if (Shark) ret.push_back("shark");
-            if (Whale) ret.push_back("whale");
-            if (Moderator) ret.push_back("moderator");
-            if (Developer) ret.push_back("developer");
-            if (Verificated) ret.push_back("verificated");
-            if (Validator) ret.push_back("validator");
-            if (Verificated_zn) ret.push_back("verificated_zn");
-
-            return ret;
-        }
-    };
-
     // ----------------------------------------------------------------------
     // Consensus data
     // ----------------------------------------------------------------------
@@ -258,6 +204,7 @@ namespace PocketDb
         bool AllowJuryModerate(const string& address, const string& flagTxHash);
         int LikersByFlag(const string& txHash);
         int LikersByVote(const string& txHash);
+        vector<BadgeType> GetBadges(const string& address);
 
     protected:
     

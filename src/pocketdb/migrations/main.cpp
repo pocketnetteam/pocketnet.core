@@ -446,6 +446,7 @@ namespace PocketDb
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
             create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
+            create index if not exists Badges_AccountId_Cancel_Height on Badges (AccountId, Cancel, Height);
 
             create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
             create index if not exists SocialRegistry_Height on SocialRegistry (Height);

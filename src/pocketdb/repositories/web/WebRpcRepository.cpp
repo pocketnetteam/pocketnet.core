@@ -650,14 +650,15 @@ namespace PocketDb
                                 UniValue badges(UniValue::VARR);
                                 if (badges.read(value) && badges.isArray()) {
                                     BadgeSet badgeSet;
-                                    badgeSet.Developer = IsDeveloper(address);
+                                    if (IsDeveloper(address))
+                                        badgeSet.Add(BadgeType_Developer);
 
                                     for (unsigned int i = 0; i < badges.size(); i++)
                                     {
                                         if (!badges[i].isNum())
                                             continue;
 
-                                        badgeSet.Set(badges[i].get_int());
+                                        badgeSet.Add((BadgeType)badges[i].get_int());
                                     }
 
                                     record.pushKV("badges", badgeSet.ToJson());

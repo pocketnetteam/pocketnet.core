@@ -8,7 +8,8 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-
+#include <algorithm>
+#include <univalue.h>
 
 namespace PocketTx
 {
@@ -181,31 +182,66 @@ namespace PocketTx
         BadgeType_Verificated_ZN = 7,
     };
 
-    static BadgeType ParseBadgeType(const string& badge)
+    struct BadgeSet
     {
-        if (badge == "shark") return BadgeType_Shark;
-        if (badge == "whale") return BadgeType_Whale;
-        if (badge == "moderator") return BadgeType_Moderator;
-        if (badge == "developer") return BadgeType_Developer;
-        if (badge == "verificated") return BadgeType_Verificated;
-        if (badge == "validator") return BadgeType_Validator;
-        if (badge == "verificated_zn") return BadgeType_Verificated_ZN;
+        vector<BadgeType> Badges;
 
-        return BadgeType_None;
-    }
+        BadgeSet()
+        {
+        }
 
-    static string BadgeTypeToString(int badge)
-    {
-        if (badge == BadgeType_Shark) return "shark";
-        if (badge == BadgeType_Whale) return "whale";
-        if (badge == BadgeType_Moderator) return "moderator";
-        if (badge == BadgeType_Developer) return "developer";
-        if (badge == BadgeType_Verificated) return "verificated";
-        if (badge == BadgeType_Validator) return "validator";
-        if (badge == BadgeType_Verificated_ZN) return "verificated_zn";
+        BadgeSet(vector<BadgeType> badges)
+        {
+            Badges = badges;
+        }
 
-        return "";
-    }
+        UniValue ToJson()
+        {
+            UniValue ret(UniValue::VARR);
+            
+            for (auto badge : Badges)
+                ret.push_back(BadgeTypeToString(badge));
+
+            return ret;
+        }
+
+        bool Has(BadgeType badge)
+        {
+            return find(Badges.begin(), Badges.end(), badge) != Badges.end();
+        }
+
+        void Add(BadgeType badge)
+        {
+            if (!Has(badge))
+                Badges.push_back(badge);
+        }
+
+        static string BadgeTypeToString(int badge)
+        {
+            if (badge == BadgeType_Shark) return "shark";
+            if (badge == BadgeType_Whale) return "whale";
+            if (badge == BadgeType_Moderator) return "moderator";
+            if (badge == BadgeType_Developer) return "developer";
+            if (badge == BadgeType_Verificated) return "verificated";
+            if (badge == BadgeType_Validator) return "validator";
+            if (badge == BadgeType_Verificated_ZN) return "verificated_zn";
+
+            return "";
+        }
+
+        static BadgeType ParseBadgeType(const string& badge)
+        {
+            if (badge == "shark") return BadgeType_Shark;
+            if (badge == "whale") return BadgeType_Whale;
+            if (badge == "moderator") return BadgeType_Moderator;
+            if (badge == "developer") return BadgeType_Developer;
+            if (badge == "verificated") return BadgeType_Verificated;
+            if (badge == "validator") return BadgeType_Validator;
+            if (badge == "verificated_zn") return BadgeType_Verificated_ZN;
+
+            return BadgeType_None;
+        }
+    };
 
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo

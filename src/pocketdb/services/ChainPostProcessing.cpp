@@ -352,7 +352,7 @@ namespace PocketServices
             // Add badge
             if (opreturn[0].substr(2, 2) == "b:")
             {
-                BadgeType badgeType = ParseBadgeType(opreturn[0].substr(4));
+                BadgeType badgeType = BadgeSet::ParseBadgeType(opreturn[0].substr(4));
                 if (badgeType == BadgeType_None)
                     continue;
 
@@ -368,7 +368,7 @@ namespace PocketServices
             // Remove badge
             else if (opreturn[0].substr(2, 2) == "u:")
             {
-                BadgeType badgeType = ParseBadgeType(opreturn[0].substr(4));
+                BadgeType badgeType = BadgeSet::ParseBadgeType(opreturn[0].substr(4));
                 if (badgeType == BadgeType_None)
                     continue;
 
