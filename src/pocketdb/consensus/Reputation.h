@@ -340,6 +340,13 @@ namespace PocketConsensus
         BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
         {
             BadgeSet badgeSet(ConsensusRepoInst.GetBadges(data.AddressHash));
+
+            // Add developer badge if address is in PocketnetDevelopers
+            if (find(PocketnetDevelopers[Params().NetworkID()].begin(), PocketnetDevelopers[Params().NetworkID()].end(), data.AddressHash) != PocketnetDevelopers[Params().NetworkID()].end())
+                badgeSet.Add(BadgeType_Developer);
+
+            LogPrintf("GetBadges: %s\n", badgeSet.ToJson().write());
+
             return badgeSet;
         }
     };
