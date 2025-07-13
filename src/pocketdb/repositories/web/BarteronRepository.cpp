@@ -185,7 +185,12 @@ namespace PocketDb
 
     vector<string> BarteronRepository::_feed_by_search(const BarteronOffersFeedDto& args, const string& search)
     {        
-        string keyword = "\"" + search + "\"" + " OR \"" + search + "\"*";
+        vector<string> result;
+
+        if (search.empty())
+            return result;
+
+        string keyword = FormatSearchKeyword(search);
 
         UniValue _tags(UniValue::VARR);
         for (auto t : args.Tags)
@@ -270,7 +275,6 @@ namespace PocketDb
             limit ? offset ?;
         )sql";
 
-        vector<string> result;
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {

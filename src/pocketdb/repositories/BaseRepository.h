@@ -153,6 +153,8 @@ namespace PocketDb
 
         void BenchLog(const string& func, double time);
 
+        string FormatSearchKeyword(const string& keyword);
+
     public:
 
         explicit BaseRepository(SQLiteDatabase& db, bool timeouted) : m_database(db), m_timeouted(timeouted)
