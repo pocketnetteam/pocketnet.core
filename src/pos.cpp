@@ -345,7 +345,8 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Weighted target
     arith_uint256 bnWeight = std::min(txPrev.OutValue, Params().GetConsensus().nStakeMaximumThreshold);
-    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : bnTarget(nBits)=%#010x Weight(txPrev.OutValue)=%lu\n", nBits, txPrev.OutValue); // bnTarget.GetHex(),bnWeight.GetHex());
+//    LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : bnTarget(nBits)=%#010x Weight(txPrev.OutValue)=%lu\n", nBits, txPrev.OutValue); // bnTarget.GetHex(),bnWeight.GetHex());
+    LogPrintLevel(BCLog::STAKEMODIF, BCLog::Level::Trace, "CheckStakeKernelHash() : bnTarget(nBits)=%#010x Weight(txPrev.OutValue)=%lu\n", nBits, txPrev.OutValue); // bnTarget.GetHex(),bnWeight.GetHex());
     bnTarget *= bnWeight;
     targetProofOfStake = bnTarget;
 
@@ -358,7 +359,8 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
     {
-        LogPrint(BCLog::STAKEMODIF, "CheckStakeKernelHash() : Failed : hashProofOfStake(%s) > bnTarget (%s)\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+//        LogPrint(BCLog::TEST, "CheckStakeKernelHash(): Failed (hashProofOfStake(%s) > bnTarget (%s))\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
+        LogPrintLevel(BCLog::STAKEMODIF, BCLog::Level::Trace, "CheckStakeKernelHash(): Failed (hashProofOfStake(%s) > bnTarget (%s))\n", hashProofOfStake.GetHex(), bnTarget.GetHex());
         return false;
     }
 
@@ -451,7 +453,7 @@ bool ComputeNextStakeModifier(const CBlockIndex *pindexPrev, uint64_t &nStakeMod
     }
 
     // Print selection map for visualization of the selected blocks
-    if (LogAcceptCategory(BCLog::STAKEMODIF))
+    if (LogAcceptCategory(BCLog::STAKEMODIF, BCLog::Level::Debug))
     {
         std::string strSelectionMap = "";
         // '-' indicates proof-of-work blocks not selected
