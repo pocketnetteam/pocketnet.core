@@ -172,3 +172,4 @@ Changes:
 - Increase the registration period for obtaining Shark and Whale Badges to 518,400 blocks (~ 1 year) [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
 - Added the transaction of paid Barteron offers [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
 - Added OP_RETURN transaction processing for creating Badges [Roadmap Explainer: badges](https://github.com/pocketnetteam/roadmap/tree/main/explainers/badges)
+- Increased count of active Barteron Offers to 300 [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
