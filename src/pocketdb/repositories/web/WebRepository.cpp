@@ -252,7 +252,7 @@ namespace PocketDb
             cross join
                 Transactions t on
                     t.RowId = c.TxId and
-                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205, 221, 211)
+                    t.Type in (100, 200, 201, 202, 209, 210, 204, 205, 221, 211, 212)
             cross join
                 Payload p on
                     p.TxId = t.RowId
@@ -297,6 +297,7 @@ namespace PocketDb
                             result.emplace_back(WebContent(id, ContentFieldType_ContentArticleMessage, value));
                         break;
                     case BARTERON_OFFER:
+                    case BARTERON_OFFER_PAID:
                         if (auto[ok, val] = cursor.TryGetColumnString(3); ok)
                             result.emplace_back(WebContent(id, ContentFieldType_BarteronCaption, val));
                         if (auto[ok, val] = cursor.TryGetColumnString(4); ok)
@@ -483,7 +484,7 @@ namespace PocketDb
                                 on bo.OfferId = c.Uid
                         cross join
                             Transactions t indexed by Transactions_RowId_desc_Type_RegId1
-                                on t.RowId = c.TxId and t.Type = 211
+                                on t.RowId = c.TxId and t.Type in (211, 212)
                         where
                             c.Height = ?
 
@@ -503,7 +504,7 @@ namespace PocketDb
                     Chain ct
                 cross join
                     Transactions t indexed by Transactions_RowId_desc_Type_RegId1
-                        on t.RowId = ct.TxId and t.Type = 211
+                        on t.RowId = ct.TxId and t.Type in (211, 212)
                 cross join
                     Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3
                         on u.Type = 104 and u.RegId1 = t.RegId1
@@ -537,7 +538,7 @@ namespace PocketDb
                                 on bot.OfferId = c.Uid
                         cross join
                             Transactions t
-                                on t.RowId = c.TxId and t.Type = 211
+                                on t.RowId = c.TxId and t.Type in (211, 212)
                         where
                             c.Height = ?
 
@@ -556,7 +557,7 @@ namespace PocketDb
                     Chain ct
                 cross join
                     Transactions t indexed by Transactions_RowId_desc_Type_RegId1
-                        on t.RowId = ct.TxId and t.Type = 211
+                        on t.RowId = ct.TxId and t.Type in (211, 212)
                 cross join
                     Payload p -- primary key
                         on p.TxId = t.RowId
@@ -982,7 +983,7 @@ namespace PocketDb
                                 from Transactions pt indexed by Transactions_Type_RegId1_RegId2_RegId3
                                 join Chain cpt on cpt.TxId = pt.RowId
                                 join Last lpt on lpt.TxId = pt.RowId
-                                where pt.Type in ( 200,201,202,209,210,211 )
+                                where pt.Type in ( 200,201,202,209,210,211,212 )
                                     and pt.RegId1 = t.RegId1
                                     and cpt.Height < ctml.Height
                                     and cpt.Height > (ctml.Height - 43200)
@@ -999,9 +1000,9 @@ namespace PocketDb
                             l.TxId = t.RowId
                     cross join
                         Transactions tm on
-                            tm.Type in ( 200,201,202,209,210,211 ) and
+                            tm.Type in ( 200,201,202,209,210,211,212 ) and
                             tm.RegId1 = t.RegId1 and
-                            tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211 ) and tml.RegId1 = t.RegId1)
+                            tm.RowId = (select max(tml.RowId) from Transactions tml where tml.Type in ( 200,201,202,209,210,211,212 ) and tml.RegId1 = t.RegId1)
                     cross join
                         Chain ctml on
                             ctml.TxId = tm.RowId

@@ -324,7 +324,9 @@ namespace PocketConsensus
             Limits.Set("max_winners_counts", 5, 5, 5);
         }
 
-        // 5 - 100%; 4.375 (87.5%) - nodes; 0.125 (2.5%) - for posts; 0.5 (10%) - for moderation votes;
+        // 87.5% - nodes;
+        // 2.5% - for posts;
+        // 10% - for moderation votes;
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             if (code == OP_WINNER_POST) return nCredit * 0.025;
@@ -333,6 +335,19 @@ namespace PocketConsensus
         }
     };
 
+    class LotteryConsensus_pip_115 : public LotteryConsensus_pip_110
+    {
+    public:
+        LotteryConsensus_pip_115() : LotteryConsensus_pip_110() { }
+
+        // 90% - nodes;
+        // 10% - for moderation votes;
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
+        {
+            if (code == OP_WINNER_MODERATION_VOTE) return nCredit * 0.1;
+            return 0;
+        }
+    };
 
     //  Factory for select actual rules version
     class LotteryConsensusFactory : public BaseConsensusFactory<LotteryConsensus>
@@ -346,7 +361,8 @@ namespace PocketConsensus
             Checkpoint({ 1124000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
             Checkpoint({ 1180000,       0, -1, make_shared<LotteryConsensus_checkpoint_1180000>() });
             Checkpoint({ 2162400, 1650652, -1, make_shared<LotteryConsensus_pip_100>() });
-            Checkpoint({ 9999999, 3500000,  0, make_shared<LotteryConsensus_pip_110>() });
+            Checkpoint({ 3479999, 3500000, -1, make_shared<LotteryConsensus_pip_110>() });
+            Checkpoint({ 3480000, 4035000,  0, make_shared<LotteryConsensus_pip_115>() });
         }
     };
 

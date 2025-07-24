@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketRpc.h"
+#include "pocketdb/web/ModerationRpc.h"
 #include "rpc/util.h"
 
 RPCHelpMan gettemplate()
@@ -141,6 +142,7 @@ static const CRPCCommand commands[] =
     {"moderation",     "getjuryassigned",                  &GetJuryAssigned,                {"address", "verdict", "topHeight", "pageStart", "pageSize", "orderBy", "desc"}},
     {"moderation",     "getjurymoderators",                &GetJuryModerators,              {"juryid"}},
     {"moderation",     "getbans",                          &GetBans,                        {"address"}},
+    {"moderation",     "getbadgehistory",                  &GetBadgeHistory,                {"address", "badge"}},
 
     // Barteron
     {"barteron",       "getbarteronaccounts",              &GetBarteronAccounts,            {"addresses"}},

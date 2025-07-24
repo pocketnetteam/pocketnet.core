@@ -212,7 +212,7 @@ class ContentTest(PocketcoinTestFramework):
         self.log.info("Check - Getting events for not empty account")
         events = public_api.getevents(builder.moderators[0].Address)
         assert isinstance(events, list)
-        assert len(events) == 8
+        assert len(events) == 7
 
     def test_getactivities(self, builder):
         self.log.info("Test 7 - Getting activities")

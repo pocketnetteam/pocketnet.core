@@ -8,6 +8,7 @@
 #define POCKETDB_CONSENSUSREPOSITORY_H
 
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/repositories/BaseRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
 
@@ -42,45 +43,6 @@ namespace PocketDb
         int64_t LikersAll() const
         {
             return LikersContent + LikersComment + LikersCommentAnswer;
-        }
-    };
-
-    struct BadgeSet
-    {
-        bool Shark = false; // 1
-        bool Whale = false; // 2
-        bool Moderator = false; // 3
-        bool Developer = false; // 4
-
-        void Set(int v)
-        {
-            switch (v)
-            {
-                case 1:
-                    Shark = true;
-                    break;
-                case 2:
-                    Whale = true;
-                    break;
-                case 3:
-                    Moderator = true;
-                    break;
-                case 4:
-                    Developer = true;
-                    break;
-            }
-        }
-
-        UniValue ToJson()
-        {
-            UniValue ret(UniValue::VARR);
-            
-            if (Shark) ret.push_back("shark");
-            if (Whale) ret.push_back("whale");
-            if (Moderator) ret.push_back("moderator");
-            if (Developer) ret.push_back("developer");
-
-            return ret;
         }
     };
 
@@ -242,6 +204,7 @@ namespace PocketDb
         bool AllowJuryModerate(const string& address, const string& flagTxHash);
         int LikersByFlag(const string& txHash);
         int LikersByVote(const string& txHash);
+        vector<BadgeType> GetBadges(const string& address);
 
     protected:
     

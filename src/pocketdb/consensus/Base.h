@@ -202,6 +202,14 @@ namespace PocketConsensus
         threshold_author_likers_comment,
         threshold_author_likers_comment_answer,
 
+        // Thresholds for obtaining badges - MODERATOR
+        threshold_moderator_reg_depth,
+        threshold_moderator_likers_all,
+        threshold_moderator_likers_content,
+        threshold_moderator_likers_comment,
+        threshold_moderator_likers_comment_answer,
+
+        // General rules
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
         ConsensusLimit_trial_article,
@@ -255,6 +263,7 @@ namespace PocketConsensus
         ConsensusLimit_scores_depth_modify_reputation,
         ConsensusLimit_lottery_referral_depth,
 
+        // Moderation rules
         ConsensusLimit_bad_reputation,
 
         moderation_flag_count,
@@ -342,7 +351,7 @@ namespace PocketConsensus
 
         // Thresholds for obtaining badges - SHARK
         { threshold_shark_reg_depth, {
-            { NetworkMain,    { {0, 129600} } },
+            { NetworkMain,    { {0, 129600}, {3480000, 518400} } },
             { NetworkTest,    { {0, 1} } },
             { NetworkRegTest, { {0, 1} } }
         } },
@@ -369,7 +378,7 @@ namespace PocketConsensus
         
         // Thresholds for obtaining badges - WHALE
         { threshold_whale_reg_depth, {
-            { NetworkMain,    { {0, 207360} } },
+            { NetworkMain,    { {0, 207360}, {3480000, 518400} } },
             { NetworkTest,    { {0, 1} } },
             { NetworkRegTest, { {0, 1} } }
         } },
@@ -392,6 +401,33 @@ namespace PocketConsensus
             { NetworkMain,    { {0, 100} } },
             { NetworkTest,    { {0, 10} } },
             { NetworkRegTest, { {0, 10} } }
+        } },
+
+        // Thresholds for obtaining badges - MODERATOR
+        { threshold_moderator_reg_depth, {
+            { NetworkMain,    { {0, 129600} } },
+            { NetworkTest,    { {0, 1} } },
+            { NetworkRegTest, { {0, 1} } }
+        } },
+        { threshold_moderator_likers_all, {
+            { NetworkMain,    { {0, 100} } },
+            { NetworkTest,    { {0, 1} } },
+            { NetworkRegTest, { {0, 0}, {1100, 1}, {1150, 2} } }
+        } },
+        { threshold_moderator_likers_content, {
+            { NetworkMain,    { {0, 0} } },
+            { NetworkTest,    { {0, 0} } },
+            { NetworkRegTest, { {0, 0} } }
+        } },
+        { threshold_moderator_likers_comment, {
+            { NetworkMain,    { {0, 15}, {1873500, 25} } },
+            { NetworkTest,    { {0, 1} } },
+            { NetworkRegTest, { {0, 0}, {1100, 1} } }
+        } },
+        { threshold_moderator_likers_comment_answer, {
+            { NetworkMain,    { {0, 0} } },
+            { NetworkTest,    { {0, 0} } },
+            { NetworkRegTest, { {0, 0} } }
         } },
 
         // Other

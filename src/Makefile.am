@@ -202,6 +202,7 @@ POCKETDB_H = \
     pocketdb/consensus/moderation/Vote.hpp \
     \
     pocketdb/consensus/barteron/Offer.hpp \
+    pocketdb/consensus/barteron/OfferPaid.hpp \
     pocketdb/consensus/barteron/Account.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
@@ -247,6 +248,7 @@ POCKETDB_H = \
     pocketdb/models/dto/moderation/Vote.h \
     pocketdb/models/dto/barteron/Account.h \
     pocketdb/models/dto/barteron/Offer.h \
+    pocketdb/models/dto/barteron/OfferPaid.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -359,6 +361,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/moderation/Vote.cpp \
     pocketdb/models/dto/barteron/Account.cpp \
     pocketdb/models/dto/barteron/Offer.cpp \
+    pocketdb/models/dto/barteron/OfferPaid.cpp \
     \
     pocketdb/models/shortform/ShortForm.cpp \
     pocketdb/models/shortform/ShortAccount.cpp \

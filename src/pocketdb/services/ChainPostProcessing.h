@@ -48,7 +48,7 @@ namespace PocketServices
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
         static void IndexRatings(int height, vector<TransactionIndexingInfo>& txs);
         static void IndexModeration(int height, vector<TransactionIndexingInfo>& txs);
-        static void IndexBadges(int height);
+        static void IndexBadges(int height, vector<TransactionIndexingInfo>& txs);
 
         static void IndexModerationFlag(const TransactionIndexingInfo& txInfo, int height);
         static void IndexModerationVote(const TransactionIndexingInfo& txInfo, int height);

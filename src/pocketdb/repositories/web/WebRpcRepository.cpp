@@ -650,14 +650,15 @@ namespace PocketDb
                                 UniValue badges(UniValue::VARR);
                                 if (badges.read(value) && badges.isArray()) {
                                     BadgeSet badgeSet;
-                                    badgeSet.Developer = IsDeveloper(address);
+                                    if (IsDeveloper(address))
+                                        badgeSet.Add(BadgeType_Developer);
 
                                     for (unsigned int i = 0; i < badges.size(); i++)
                                     {
                                         if (!badges[i].isNum())
                                             continue;
 
-                                        badgeSet.Set(badges[i].get_int());
+                                        badgeSet.Add((BadgeType)badges[i].get_int());
                                     }
 
                                     record.pushKV("badges", badgeSet.ToJson());
@@ -833,9 +834,16 @@ namespace PocketDb
                     from Badges b
                     where
                         b.AccountId = cu.Uid and
-                        b.Cancel = 0
-                    order by
-                        b.Height desc
+                        b.Cancel = 0 and
+                        not exists (
+                            select 1
+                            from Badges bb
+                            where
+                                bb.AccountId = b.AccountId and
+                                bb.Badge = b.Badge and
+                                bb.Height > b.Height and
+                                bb.Cancel = 1
+                        )
                 ) as badges,
                 (
                     select
@@ -4443,7 +4451,7 @@ namespace PocketDb
                         addr
                     cross join
                         Transactions t indexed by Transactions_Type_RegId2_RegId1 on
-                            t.Type in (200,201,202,209,210,221,211,220,207) and
+                            t.Type in (200,201,202,209,210,221,211,212,220,207) and
                             t.RegId2 = txs.id
                     cross join
                         Chain c on
@@ -4538,7 +4546,8 @@ namespace PocketDb
                             record.pushKV("flags", flags);
                         });
 
-                        tmpResult[id] = record;                
+                        //tmpResult.emplace(id, record);
+                        tmpResult[id] = record;
                     }
                 });
             }

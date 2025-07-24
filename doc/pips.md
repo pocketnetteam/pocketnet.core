@@ -118,7 +118,7 @@ Changes:
 ## `PIP 110`: Lottery reward for moderation votes
 
 Fork start at:
-- Main net: 9999999
+- Main net: 3479999
 - Test net: 3500000
 
 Changes:
@@ -160,3 +160,16 @@ Fork start at:
 
 Changes:
 - There is a problem that incorrectly processes the data request for "new" offers [PR #841](https://github.com/pocketnetteam/pocketnet.core/pull/841)
+
+## `PIP 115`: Lottery payout rules and new types of transactions
+
+Fork start at:
+- Main net: 3480000
+- Test net: 4035000
+
+Changes:
+- Cancellation of payments from the issue based on the results of ratings for posts and comments [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
+- Increase the registration period for obtaining Shark and Whale Badges to 518,400 blocks (~ 1 year) [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
+- Added the transaction of paid Barteron offers [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)
+- Added OP_RETURN transaction processing for creating Badges [Roadmap Explainer: badges](https://github.com/pocketnetteam/roadmap/tree/main/explainers/badges)
+- Increased count of active Barteron Offers to 300 [PR #880](https://github.com/pocketnetteam/pocketnet.core/pull/880)

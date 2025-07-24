@@ -51,5 +51,39 @@ namespace PocketDb
         return sqlite3_last_insert_rowid(m_database.m_db);
     }
 
+    string BaseRepository::FormatSearchKeyword(const string& keyword)
+        {
+            // Разделение ключевого слова на подстроки по пробелам и символам подчеркивания
+            vector<string> keywords;
+            string current;
+            for (char c : keyword) {
+                if (c == ' ' || c == '_') {
+                    if (!current.empty()) {
+                        keywords.push_back(current);
+                        current.clear();
+                    }
+                } else {
+                    current += c;
+                }
+            }
+            if (!current.empty()) {
+                keywords.push_back(current);
+            }
+
+            // Формирование строки запроса в формате: "first" "word" "second" "word" ... OR "first"* "word"* "second"* "word"* ...
+            string formattedKeyword;
+            for (const auto& word : keywords) {
+                if (!formattedKeyword.empty()) formattedKeyword += " ";
+                formattedKeyword += "\"" + word + "\"";
+            }
+            formattedKeyword += " OR ";
+            for (size_t i = 0; i < keywords.size(); ++i) {
+                if (i > 0) formattedKeyword += " ";
+                formattedKeyword += "\"" + keywords[i] + "\"*";
+            }
+
+            return formattedKeyword;
+        }
+
 
 } // namespace PocketDb

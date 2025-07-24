@@ -4,6 +4,7 @@
 
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "core_io.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketHelpers
 {
@@ -99,6 +100,8 @@ namespace PocketHelpers
             return TxType::BARTERON_ACCOUNT;
         else if (op == OR_BARTERON_OFFER)
             return TxType::BARTERON_OFFER;
+        else if (op == OR_BARTERON_OFFER_PAID)
+            return TxType::BARTERON_OFFER_PAID;
 
         return TxType::TX_DEFAULT;
     }
@@ -120,20 +123,21 @@ namespace PocketHelpers
         return "";
     }
 
-    string TransactionHelper::ParseOpReturn(const string& value)
+    vector<string> TransactionHelper::GetOrReturn(const CTransactionRef& tx)
     {
-        std::vector<unsigned char> data = ParseHex(value);
-        auto script = CScript(data.begin(), data.end());
-        if (script[0] == OP_RETURN)
+        if (tx->vout.empty())
+            return vector<string>();
+
+        const CTxOut& txout = tx->vout[0];
+        if (txout.scriptPubKey[0] == OP_RETURN)
         {
-            auto asmStr = ScriptToAsmStr(script);
             vector<string> vasm;
+            auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
             boost::split(vasm, asmStr, boost::is_any_of("\t "));
-            if (vasm.size() >= 2)
-                return vasm[1];
+            return vasm;
         }
-        
-        return "";
+
+        return vector<string>();
     }
 
     TxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
@@ -210,6 +214,8 @@ namespace PocketHelpers
                 return "BrtAccount";
             case TxType::BARTERON_OFFER:
                 return "BrtOffer";
+            case TxType::BARTERON_OFFER_PAID:
+                return "BrtOfferPaid";
             default:
                 return "";
         }
@@ -281,9 +287,21 @@ namespace PocketHelpers
         return IsPocketTransaction(txRef);
     }
 
-    // TODO (o1q): Implement it for setting minimum fee for several PocketNet transactions
-    bool TransactionHelper::IsPocketNeededPaymentTransaction(const CTransactionRef& tx)
+    bool TransactionHelper::IsPocketNeededPaymentTransaction(TxType& txType)
     {
+        if (IsPocketTransaction(txType))
+        {
+            switch (txType)
+            {
+                case TxType::BARTERON_OFFER_PAID:
+                // TODO (aok) (v0.23.0): need add new transaction type
+                // case TxType::UNIVERSAL_TRANSACTION_NEED_NAME:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         return false;
     }
 
@@ -436,6 +454,9 @@ namespace PocketHelpers
             case BARTERON_OFFER:
                 ptx = make_shared<BarteronOffer>(tx);
                 break;
+            case BARTERON_OFFER_PAID:
+                ptx = make_shared<BarteronOfferPaid>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -538,6 +559,9 @@ namespace PocketHelpers
             case BARTERON_OFFER:
                 ptx = make_shared<BarteronOffer>();
                 break;
+            case BARTERON_OFFER_PAID:
+                ptx = make_shared<BarteronOfferPaid>();
+                break;
             default:
                 return nullptr;
         }
@@ -606,6 +630,8 @@ namespace PocketHelpers
                 return "brtaccount";
             case BARTERON_OFFER:
                 return "brtoffer";
+            case BARTERON_OFFER_PAID:
+                return "brtofferpaid";
             default:
                 return "";
         }
@@ -637,6 +663,7 @@ namespace PocketHelpers
         else if (type == "modVote") return TxType::MODERATION_VOTE;
         else if (type == "brtaccount") return TxType::BARTERON_ACCOUNT;
         else if (type == "brtoffer") return TxType::BARTERON_OFFER;
+        else if (type == "brtofferpaid") return TxType::BARTERON_OFFER_PAID;
         else return TxType::NOT_SUPPORTED;
     }
 }

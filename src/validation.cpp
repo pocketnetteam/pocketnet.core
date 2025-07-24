@@ -557,13 +557,15 @@ private:
         if (mempoolRejectFee > 0 && package_fee < mempoolRejectFee) {
             return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool min fee not met", strprintf("%d < %d", package_fee, mempoolRejectFee));
         }
-        // TODO (o1q): Set minimal fee for several PocketNet transactions to limit bots actions
+
         // For PocketNET transaction allow minimal fee
         if (is_pocket_tx) {
             if (package_fee < DEFAULT_MIN_POCKETNET_TX_FEE) {
                 return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min PocketNet TX fee not met", strprintf("%d < %d", package_fee, DEFAULT_MIN_POCKETNET_TX_FEE));
             }
-        } else {
+        }
+        else
+        {
             if (package_fee < ::minRelayTxFee.GetFee(package_size)) {
                 return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min relay fee not met", strprintf("%d < %d", package_fee, ::minRelayTxFee.GetFee(package_size)));
             }
@@ -772,9 +774,22 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "bad-txns-too-many-sigops",
                 strprintf("%d", nSigOpsCost));
 
-    // No transactions are allowed below minRelayTxFee except from disconnected
-    // blocks
-    if (!bypass_limits && !CheckFeeRate(PocketHelpers::TransactionHelper::IsPocketTransaction(ptx), nSize, nModifiedFees, state)) return false;
+    // Detect simple pocket transactions or pocket transactions with paid payload
+    bool isPocketTx = false;
+    TxType txType = NOT_SUPPORTED;
+    if (PocketHelpers::TransactionHelper::IsPocketTransaction(ptx, txType))
+    {
+        isPocketTx = true;
+
+        if (PocketHelpers::TransactionHelper::IsPocketNeededPaymentTransaction(txType) && ws.m_pocketTx) {
+            nSize += ws.m_pocketTx->PayloadSize();
+            isPocketTx = false;
+        }
+    }
+
+    // No transactions are allowed below minRelayTxFee except from disconnected blocks
+    if (!bypass_limits && !CheckFeeRate(isPocketTx, nSize, nModifiedFees, state))
+        return false;
 
     const CTxMemPool::setEntries setIterConflicting = m_pool.GetIterSet(setConflicts);
     // Calculate in-mempool ancestors, up to a limit.

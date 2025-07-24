@@ -189,7 +189,7 @@ class ExplorerTest(PocketcoinTestFramework):
         self.log.info("Check - get address transactions")
         result = public_api.getaddresstransactions(account.Address)
         assert isinstance(result, list)
-        assert len(result) == 7
+        assert len(result) == 6
 
         for transaction in result:
             self.check_transaction(transaction)

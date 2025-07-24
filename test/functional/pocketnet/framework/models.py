@@ -78,6 +78,7 @@ class ConsensusResult(Enum):
     LowReputation = 66
     AccountDeleted = 67
     AccountBanned = 68
+    BadTransaction = -26
 
 # -----------------------------------------------------------------------------------------------------------------
 
@@ -403,6 +404,10 @@ class BartAccountPayload(Transaction):
 class BartOfferPayload(Transaction):
     TxType = "6272746f66666572"
 
+@dataclass
+class BartOfferPaidPayload(Transaction):
+    TxType = "6272746f6666657270616964"
+
 # -----------------------------------------------------------------------------------------------------------------
 
 @dataclass
@@ -410,3 +415,9 @@ class AppPayload(Transaction):
     TxType = "6d696e69617070"
 
 # -----------------------------------------------------------------------------------------------------------------
+
+@dataclass
+class MoneyTransaction:
+    TxType: str = ""
+    def Serialize(self):
+        return {}
