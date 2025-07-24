@@ -349,7 +349,6 @@ namespace PocketConsensus
         }
     };
 
-    // TODO (0.22.16): set height of fork
     //  Factory for select actual rules version
     class LotteryConsensusFactory : public BaseConsensusFactory<LotteryConsensus>
     {
@@ -362,8 +361,8 @@ namespace PocketConsensus
             Checkpoint({ 1124000,      -1, -1, make_shared<LotteryConsensus_checkpoint_1124000>() });
             Checkpoint({ 1180000,       0, -1, make_shared<LotteryConsensus_checkpoint_1180000>() });
             Checkpoint({ 2162400, 1650652, -1, make_shared<LotteryConsensus_pip_100>() });
-            Checkpoint({ 9999999, 3500000, -1, make_shared<LotteryConsensus_pip_110>() });
-            Checkpoint({ 9999999, 4035000,  0, make_shared<LotteryConsensus_pip_115>() });
+            Checkpoint({ 3479999, 3500000, -1, make_shared<LotteryConsensus_pip_110>() });
+            Checkpoint({ 3480000, 4035000,  0, make_shared<LotteryConsensus_pip_115>() });
         }
     };
 

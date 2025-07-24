@@ -118,7 +118,7 @@ Changes:
 ## `PIP 110`: Lottery reward for moderation votes
 
 Fork start at:
-- Main net: 9999999
+- Main net: 3479999
 - Test net: 3500000
 
 Changes:
@@ -164,7 +164,7 @@ Changes:
 ## `PIP 115`: Lottery payout rules and new types of transactions
 
 Fork start at:
-- Main net: 9999999
+- Main net: 3480000
 - Test net: 4035000
 
 Changes:
