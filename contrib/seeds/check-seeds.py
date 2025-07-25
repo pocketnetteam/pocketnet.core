@@ -116,16 +116,13 @@ def check_nodes_parallel(nodes: List[Tuple[str, int]], timeout: int = 5, max_wor
             if is_available:
                 results['available'].append((host, port, message))
                 results['available_count'] += 1
-                status = "✓ AVAILABLE"
-                color = "\033[92m"  # Green
+                status = "[V] AVAILABLE"
             else:
                 results['unavailable'].append((host, port, message))
                 results['unavailable_count'] += 1
-                status = "✗ UNAVAILABLE"
-                color = "\033[91m"  # Red
+                status = "[X] UNAVAILABLE"
             
-            reset_color = "\033[0m"
-            print(f"{color}{status:12}{reset_color} {host:15}:{port:5} - {message}")
+            print(f"{status:12} {host:15}:{port:5} - {message}")
     
     return results
 
