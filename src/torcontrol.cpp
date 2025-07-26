@@ -422,11 +422,6 @@ void TorController::add_onion_cb(TorControlConnection& _conn, const TorControlRe
             LogPrintf("tor: Error writing service private key to %s\n", GetPrivateKeyFile().string());
         }
         AddLocal(service, LOCAL_MANUAL);
-
-        // Websocket service handling
-        ws_service = LookupNumeric(std::string(service_id+".onion"), BaseParams().PublicRPCPort());
-        AddLocal(ws_service, LOCAL_MANUAL);
-
         // ... onion requested - keep connection open
     } else if (reply.code == 510) { // 510 Unrecognized command
         LogPrintf("tor: Add onion failed with unrecognized command (You probably need to upgrade Tor)\n");
@@ -452,8 +447,10 @@ void TorController::auth_cb(TorControlConnection& _conn, const TorControlReply& 
         }
         // Request onion service, redirect port.
         // Note that the 'virtual' port is always the default port to avoid decloaking nodes using other ports.
-        _conn.Command(strprintf("ADD_ONION %s Port=%i,%s  Port=%i,%s", private_key, Params().GetDefaultPort(), m_target.ToStringIPPort(),
-                                BaseParams().PublicRPCPort(), m_ws_target.ToStringIPPort()),                                                // Websocket
+        _conn.Command(strprintf("ADD_ONION %s Port=%i,%s Port=%i,%s:%s Port=%i,%s:%s", private_key, Params().GetDefaultPort(), m_target.ToStringIPPort(),
+//                                BaseParams().PublicRPCPort(), m_ws_target.ToStringIPPort(),                                                 // RPC
+                                BaseParams().PublicRPCPort(), CNetAddr(m_target).ToStringIP(), gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort()),     // RPC
+                                BaseParams().WsPort(), CNetAddr(m_target).ToStringIP(), gArgs.GetArg("-wsport", BaseParams().WsPort())),                         // Websocket
             std::bind(&TorController::add_onion_cb, this, std::placeholders::_1, std::placeholders::_2));
     } else {
         LogPrintf("tor: Authentication failed\n");
