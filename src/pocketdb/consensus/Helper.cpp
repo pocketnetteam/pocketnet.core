@@ -193,6 +193,8 @@ namespace PocketConsensus
             // Barteron
             case BARTERON_OFFER:
                 return ConsensusFactoryInst_BarteronOffer.Instance(height)->Check(tx, static_pointer_cast<BarteronOffer>(ptx));
+            case BARTERON_OFFER_PAID:
+                return ConsensusFactoryInst_BarteronOfferPaid.Instance(height)->Check(tx, static_pointer_cast<BarteronOfferPaid>(ptx));
             case BARTERON_ACCOUNT:
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Check(tx, static_pointer_cast<BarteronAccount>(ptx));
 
@@ -265,6 +267,8 @@ namespace PocketConsensus
             // Barteron
             case BARTERON_OFFER:
                 return ConsensusFactoryInst_BarteronOffer.Instance(height)->Validate(tx, static_pointer_cast<BarteronOffer>(ptx), pBlock);
+            case BARTERON_OFFER_PAID:
+                return ConsensusFactoryInst_BarteronOfferPaid.Instance(height)->Validate(tx, static_pointer_cast<BarteronOfferPaid>(ptx), pBlock);
             case BARTERON_ACCOUNT:
                 return ConsensusFactoryInst_BarteronAccount.Instance(height)->Validate(tx, static_pointer_cast<BarteronAccount>(ptx), pBlock);
 

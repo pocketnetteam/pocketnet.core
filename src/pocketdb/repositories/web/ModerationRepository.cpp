@@ -479,4 +479,66 @@ namespace PocketDb
         return result;
     }
 
+    UniValue ModerationRepository::GetBadgeHistory(const string& address, BadgeType badge)
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (select r.RowId as id
+                                from Registry r
+                                where r.String in (?)),
+                        badge as (select ? as value)
+                    select
+                        b.Badge,
+                        b.Cancel,
+                        b.Height
+                    from
+                        addr,
+                        badge,
+                        Transactions u
+                    cross join
+                        Last l on
+                            l.TxId = u.RowId
+                    cross join
+                        Chain c on
+                            c.TxId = u.RowId
+                    cross join
+                        Badges b indexed by Badges_Badge_Cancel_AccountId_Height on
+                            b.Badge = badge.value and
+                            b.Cancel in (0, 1) and
+                            b.AccountId = c.Uid
+                    where
+                        u.Type = 100 and
+                        u.RegId1 = addr.id
+                    order by
+                        b.Height desc
+                )sql")
+                .Bind(address, (int)badge);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                            record.pushKV("badge", BadgeSet::BadgeTypeToString(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt(1); ok)
+                            record.pushKV("cancel", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt(2); ok)
+                            record.pushKV("height", value);
+                        
+                        result.push_back(record);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
 }

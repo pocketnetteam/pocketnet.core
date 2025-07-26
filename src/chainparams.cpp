@@ -136,9 +136,9 @@ public:
 
         // TODO (release): set stable block checkpoint
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000a83622f8366b4e0d7e"); // 3231715
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000b70cbfe51897173ff1"); // 3391329
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x74ef9933aea8cf7cf89f54bbaf7670368b282e7d56e49da74733060e53f48613"); // 3231715
+        consensus.defaultAssumeValid = uint256S("0x9f03bac0b0c170930558fee5079ce39de95f0331d89ea6f27328208347b53a11"); // 3391329
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.

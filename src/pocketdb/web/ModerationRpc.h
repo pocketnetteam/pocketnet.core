@@ -18,8 +18,8 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetAllJury();
     RPCHelpMan GetJuryAssigned();
     RPCHelpMan GetJuryModerators();
-
     RPCHelpMan GetBans();
+    RPCHelpMan GetBadgeHistory();
 
 }
 

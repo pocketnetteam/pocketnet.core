@@ -6,6 +6,7 @@
 #define POCKETCONSENSUS_REPUTATION_H
 
 #include "pocketdb/consensus/Base.h"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketConsensus
 {
@@ -74,10 +75,10 @@ namespace PocketConsensus
         {
             BadgeSet badgeSet;
 
-            badgeSet.Developer = IsDeveloper(data.AddressHash);
-            badgeSet.Shark = data.Reputation >= GetConsensusLimit(limit) && data.LikersAll() >= GetMinLikers(data.RegistrationHeight);
-            badgeSet.Whale = false;
-            badgeSet.Moderator = false;
+            if (IsDeveloper(data.AddressHash))
+                badgeSet.Add(BadgeType_Developer);
+            if (data.Reputation >= GetConsensusLimit(limit) && data.LikersAll() >= GetMinLikers(data.RegistrationHeight))
+                badgeSet.Add(BadgeType_Shark);
             
             return badgeSet;
         }
@@ -107,7 +108,7 @@ namespace PocketConsensus
         virtual bool AllowModifyReputation(ScoreDataDtoRef& scoreData, const AccountData& accountData, bool lottery)
         {
             // Check user reputation
-            if (!GetBadges(accountData, ConsensusLimit_threshold_reputation_score).Shark)
+            if (!GetBadges(accountData, ConsensusLimit_threshold_reputation_score).Has(BadgeType_Shark))
                 return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
@@ -293,39 +294,43 @@ namespace PocketConsensus
         }
     };
 
-    // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
     class ReputationConsensus_checkpoint_badges : public ReputationConsensus_checkpoint_scores_content_author_reducing_impact
     {
     public:
         explicit ReputationConsensus_checkpoint_badges() : ReputationConsensus_checkpoint_scores_content_author_reducing_impact() {}
+
         BadgeSet GetBadges(const AccountData& data, ConsensusLimit limit = ConsensusLimit_threshold_reputation) override
         {
             BadgeSet badgeSet;
 
-            badgeSet.Developer = IsDeveloper(data.AddressHash);
+            if (IsDeveloper(data.AddressHash))
+                badgeSet.Add(BadgeType_Developer);
 
-            badgeSet.Shark = data.LikersAll() >= GetConsensusLimit(threshold_shark_likers_all)
-                          && data.LikersContent >= GetConsensusLimit(threshold_shark_likers_content)
-                          && data.LikersComment >= GetConsensusLimit(threshold_shark_likers_comment)
-                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_shark_likers_comment_answer)
-                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth);
+            if (data.LikersAll() >= GetConsensusLimit(threshold_shark_likers_all)
+                && data.LikersContent >= GetConsensusLimit(threshold_shark_likers_content)
+                && data.LikersComment >= GetConsensusLimit(threshold_shark_likers_comment)
+                && data.LikersCommentAnswer >= GetConsensusLimit(threshold_shark_likers_comment_answer)
+                && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_shark_reg_depth))
+                badgeSet.Add(BadgeType_Shark);
 
-            badgeSet.Whale = data.LikersAll() >= GetConsensusLimit(threshold_whale_likers_all)
-                          && data.LikersContent >= GetConsensusLimit(threshold_whale_likers_content)
-                          && data.LikersComment >= GetConsensusLimit(threshold_whale_likers_comment)
-                          && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
-                          && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth);
+            if (data.LikersAll() >= GetConsensusLimit(threshold_whale_likers_all)
+                && data.LikersContent >= GetConsensusLimit(threshold_whale_likers_content)
+                && data.LikersComment >= GetConsensusLimit(threshold_whale_likers_comment)
+                && data.LikersCommentAnswer >= GetConsensusLimit(threshold_whale_likers_comment_answer)
+                && Height - data.RegistrationHeight >= GetConsensusLimit(threshold_whale_reg_depth))
+                badgeSet.Add(BadgeType_Whale);
 
-            badgeSet.Moderator = data.ModeratorBadge;
+            if (data.ModeratorBadge)
+                badgeSet.Add(BadgeType_Moderator);
             
             return badgeSet;
         }
+
         bool UseBadges() override
         {
             return true;
         }
     };
-
 
     //  Factory for select actual rules version
     class ReputationConsensusFactory : public BaseConsensusFactory<ReputationConsensus>

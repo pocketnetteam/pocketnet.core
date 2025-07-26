@@ -112,7 +112,7 @@ namespace PocketConsensus
     protected:
         vector<PocketTx::TxType> AllowedContentTypes() override
         {
-            return { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE, BARTERON_OFFER };
+            return { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO, APP, CONTENT_DELETE, BARTERON_OFFER, BARTERON_OFFER_PAID };
         }
     };
 

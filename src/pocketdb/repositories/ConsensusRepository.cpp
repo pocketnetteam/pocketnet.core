@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/ConsensusRepository.h"
+#include "pocketdb/helpers/PocketnetHelper.h"
 
 namespace PocketDb
 {
@@ -4017,4 +4018,57 @@ namespace PocketDb
         return result;
     }
 
+    vector<BadgeType> ConsensusRepository::GetBadges(const string& address)
+    {
+        vector<BadgeType> result;
+
+        // Add developer badge if address is in PocketnetDevelopers
+        if (find(PocketnetDevelopers[Params().NetworkID()].begin(), PocketnetDevelopers[Params().NetworkID()].end(), address) != PocketnetDevelopers[Params().NetworkID()].end())
+            result.push_back(BadgeType_Developer);
+
+        // Add badges from Badges table
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                    addr as (select r.RowId from Registry r where r.String = ?)
+                select
+                    b.Badge
+                from
+                    addr
+                cross join
+                    Transactions u on
+                        u.Type = 100 and u.RegId1 = addr.RowId
+                cross join
+                    First f on
+                        f.TxId = u.RowId
+                cross join
+                    Chain c on
+                        c.TxId = u.RowId
+                cross join
+                    Badges b indexed by Badges_AccountId_Cancel_Height on
+                        b.AccountId = c.Uid and
+                        b.Cancel = 0 and
+                        not exists (
+                            select 1
+                            from Badges bb
+                            where
+                                bb.AccountId = b.AccountId and
+                                bb.Badge = b.Badge and
+                                bb.Height > b.Height and
+                                bb.Cancel = 1
+                        )
+            )sql")
+            .Bind(address)
+            .Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                {
+                    if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                        result.push_back((BadgeType)value);
+                }
+            });
+        });
+
+        return result;
+    }
 }

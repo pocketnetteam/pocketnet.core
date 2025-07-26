@@ -232,10 +232,8 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
     }
 }
 
-bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& pblockTemplate, PocketBlockRef& pblock)
+bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PTransactionRef& ptx, PocketBlockRef& pblockTemplate, PocketBlockRef& pblock)
 {
-    auto ptx = PocketDb::TransRepoInst.Get(tx->GetHash().GetHex(), true);
-
     // Payload should be in operative table Transactions
     if (!ptx)
     {
@@ -478,6 +476,11 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         // contain anything that is inBlock.
         assert(!inBlock.count(iter));
 
+        // Get transaction from pocketdb
+        PTransactionRef ptx = PocketDb::TransRepoInst.Get(iter->GetTx().GetHash().GetHex(), true);
+        TxType txType = NOT_SUPPORTED;
+        PocketHelpers::TransactionHelper::IsPocketTransaction(iter->GetSharedTx(), txType);
+
         uint64_t packageSize = iter->GetSizeWithAncestors();
         CAmount packageFees = iter->GetModFeesWithAncestors();
         int64_t packageSigOpsCost = iter->GetSigOpCostWithAncestors();
@@ -488,9 +491,24 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
 
-        CAmount minFee = PocketHelpers::TransactionHelper::IsPocketTransaction(iter->GetSharedTx()) ?
-                         DEFAULT_MIN_POCKETNET_TX_FEE :
-                         blockMinFeeRate.GetFee(packageSize);
+        // Set minimum fee for transaction
+        CAmount minFee = blockMinFeeRate.GetFee(packageSize);
+
+        // Set minimum fee for pocketnet transactions
+        if (PocketHelpers::TransactionHelper::IsPocketTransaction(txType))
+        {
+            // If transaction is needed payment, set minimum fee for payment based on tx size and payload size
+            if (PocketHelpers::TransactionHelper::IsPocketNeededPaymentTransaction(txType) && ptx)
+            {
+                packageSize += ptx->PayloadSize();
+                minFee = blockMinFeeRate.GetFee(packageSize);
+            }
+            else
+            {
+                // If transaction is not needed payment, set pocketnet minimum fee
+                minFee = DEFAULT_MIN_POCKETNET_TX_FEE;
+            }
+        }
 
         if (packageFees < minFee)
         {
@@ -562,7 +580,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
 
         for (CTxMemPool::txiter it : sortedEntries)
         {
-            if (!TestTransaction(it->GetSharedTx(), pblockTemplate, pblock))
+            if (!TestTransaction(it->GetSharedTx(), ptx, pblockTemplate, pblock))
             {
                 if (fUsingModified)
                 {

@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <algorithm>
+#include <univalue.h>
 
 namespace PocketTx
 {
@@ -42,6 +44,7 @@ namespace PocketTx
     
     #define OR_BARTERON_ACCOUNT "6272746163636f756e74"
     #define OR_BARTERON_OFFER "6272746f66666572"
+    #define OR_BARTERON_OFFER_PAID "6272746f6666657270616964"
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
@@ -120,6 +123,7 @@ namespace PocketTx
         // Barteron transactions
         BARTERON_ACCOUNT = 104,
         BARTERON_OFFER = 211,
+        BARTERON_OFFER_PAID = 212,
     };
 
     // Rating types
@@ -164,6 +168,81 @@ namespace PocketTx
         ContentFieldType_ContentArticleMessage = 16, // Payload.String4
     };
 
+    // Badge types
+    enum BadgeType
+    {
+        BadgeType_None = 0,
+        
+        BadgeType_Shark = 1,
+        BadgeType_Whale = 2,
+        BadgeType_Moderator = 3,
+        BadgeType_Developer = 4,
+        BadgeType_Verificated = 5,
+        BadgeType_Validator = 6,
+        BadgeType_Verificated_ZN = 7,
+    };
+
+    struct BadgeSet
+    {
+        vector<BadgeType> Badges;
+
+        BadgeSet()
+        {
+        }
+
+        BadgeSet(vector<BadgeType> badges)
+        {
+            Badges = badges;
+        }
+
+        UniValue ToJson()
+        {
+            UniValue ret(UniValue::VARR);
+            
+            for (auto badge : Badges)
+                ret.push_back(BadgeTypeToString(badge));
+
+            return ret;
+        }
+
+        bool Has(BadgeType badge)
+        {
+            return find(Badges.begin(), Badges.end(), badge) != Badges.end();
+        }
+
+        void Add(BadgeType badge)
+        {
+            if (!Has(badge))
+                Badges.push_back(badge);
+        }
+
+        static string BadgeTypeToString(int badge)
+        {
+            if (badge == BadgeType_Shark) return "shark";
+            if (badge == BadgeType_Whale) return "whale";
+            if (badge == BadgeType_Moderator) return "moderator";
+            if (badge == BadgeType_Developer) return "developer";
+            if (badge == BadgeType_Verificated) return "verificated";
+            if (badge == BadgeType_Validator) return "validator";
+            if (badge == BadgeType_Verificated_ZN) return "verificated_zn";
+
+            return "";
+        }
+
+        static BadgeType ParseBadgeType(const string& badge)
+        {
+            if (badge == "shark") return BadgeType_Shark;
+            if (badge == "whale") return BadgeType_Whale;
+            if (badge == "moderator") return BadgeType_Moderator;
+            if (badge == "developer") return BadgeType_Developer;
+            if (badge == "verificated") return BadgeType_Verificated;
+            if (badge == "validator") return BadgeType_Validator;
+            if (badge == "verificated_zn") return BadgeType_Verificated_ZN;
+
+            return BadgeType_None;
+        }
+    };
+
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo
     {
@@ -172,6 +251,7 @@ namespace PocketTx
         int64_t Time;
         TxType Type;
         vector<pair<string, int>> Inputs;
+        vector<string> OrReturn;
 
         bool IsAccount() const
         {
@@ -197,6 +277,7 @@ namespace PocketTx
                    Type == TxType::CONTENT_AUDIO ||
                    Type == TxType::CONTENT_COLLECTION ||
                    Type == TxType::BARTERON_OFFER ||
+                   Type == TxType::BARTERON_OFFER_PAID ||
                    Type == TxType::APP ||
                    Type == TxType::CONTENT_DELETE;
         }

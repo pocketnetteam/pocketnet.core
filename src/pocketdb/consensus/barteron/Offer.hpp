@@ -127,6 +127,14 @@ namespace PocketConsensus
         }
     };
 
+    class BarteronOfferConsensus_pip115 : public BarteronOfferConsensus_pip114
+    {
+    public:
+        BarteronOfferConsensus_pip115() : BarteronOfferConsensus_pip114() {
+            Limits.Set("max_active_count", 300, 50, 5);
+        }
+    };
+
     // Factory for select actual rules version
     class BarteronOfferConsensusFactory : public BaseConsensusFactory<BarteronOfferConsensus>
     {
@@ -134,7 +142,8 @@ namespace PocketConsensus
         BarteronOfferConsensusFactory()
         {
             Checkpoint({ 2930000,       0, -1, make_shared<BarteronOfferConsensus>() });
-            Checkpoint({ 3370000, 3790000,  0, make_shared<BarteronOfferConsensus_pip114>() });
+            Checkpoint({ 3370000, 3790000, -1, make_shared<BarteronOfferConsensus_pip114>() });
+            Checkpoint({ 3480000, 4035000,  0, make_shared<BarteronOfferConsensus_pip115>() });
         }
     };
 

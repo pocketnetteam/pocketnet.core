@@ -4883,11 +4883,27 @@ bool PeerManager::SendMessages(CNode* pto)
                         auto txid = txinfo.tx->GetHash();
                         auto wtxid = txinfo.tx->GetWitnessHash();
 
-                        // PocketNET transactions are minimal fee in 1 satoshi
-                        if (PocketHelpers::TransactionHelper::IsPocketTransaction(txinfo.tx))
+                        // Set minimum fee for pocketnet transactions
+                        TxType txType = NOT_SUPPORTED;
+                        PocketHelpers::TransactionHelper::IsPocketTransaction(txinfo.tx, txType);
+                        if (PocketHelpers::TransactionHelper::IsPocketTransaction(txType))
                         {
-                            if (txinfo.fee < DEFAULT_MIN_POCKETNET_TX_FEE)
-                                continue;
+                            // If transaction is needed payment, set minimum fee for payment based on tx size and payload size
+                            if (PocketHelpers::TransactionHelper::IsPocketNeededPaymentTransaction(txType))
+                            {
+                                auto ptx = PocketDb::TransRepoInst.Get(txid.GetHex(), true);
+                                if (!ptx) continue;
+
+                                auto packageSize = filterrate.GetFee(txinfo.vsize) + ptx->PayloadSize();
+                                if (txinfo.fee < packageSize)
+                                    continue;
+                            }
+                            else
+                            {
+                                // If transaction is not needed payment, set pocketnet minimum fee
+                                if (txinfo.fee < DEFAULT_MIN_POCKETNET_TX_FEE)
+                                    continue;
+                            }
                         }
                         else
                         {

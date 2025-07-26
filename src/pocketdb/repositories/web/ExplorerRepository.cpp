@@ -60,7 +60,7 @@ namespace PocketDb
                     from
                         Transactions t
                     where
-                        t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303) and
+                        t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,212,220,300,301,302,303) and
                         t.Time >= ? and
                         t.time < ?
                     group by
@@ -104,7 +104,7 @@ namespace PocketDb
                         Chain c indexed by Chain_HeightByHour
                         cross join Transactions t on
                             t.RowId = c.TxId and
-                            t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
+                            t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,212,220,300,301,302,303)
                     where
                     (c.Height / 60) < (? / 60) and
                     (c.Height / 60) >= (? / 60)
@@ -149,7 +149,7 @@ namespace PocketDb
                         Chain c indexed by Chain_HeightByDay
                         join Transactions t on
                             t.RowId = c.TxId and
-                            t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
+                            t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,212,220,300,301,302,303)
                     where
                     (c.Height / 1440) < (? / 1440) and
                     (c.Height / 1440) >= (? / 1440)
@@ -358,7 +358,7 @@ namespace PocketDb
                     cross join Last l on
                         l.TxId = t.RowId
                     where
-                        t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,220,300,301,302,303)
+                        t.Type in (1,100,103,104,200,201,202,204,205,208,209,210,211,212,220,300,301,302,303)
                     group by
                         t.Type
                 )sql");

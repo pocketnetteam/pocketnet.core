@@ -35,7 +35,7 @@ namespace PocketConsensus
             auto badges = reputationConsensus->GetBadges(accountData[*ptx->GetAddress()]);
 
             // Only moderator can set votes
-            if (!badges.Moderator)
+            if (!badges.Has(BadgeType_Moderator))
                 return {false, ConsensusResult_NotAllowed};
 
             // Double vote to one jury not allowed
@@ -117,7 +117,7 @@ namespace PocketConsensus
             auto badges = reputationConsensus->GetBadges(accountData[*ptx->GetAddress()]);
 
             // Only moderator can set votes
-            if (!badges.Moderator)
+            if (!badges.Has(BadgeType_Moderator))
                 return {false, ConsensusResult_NotAllowed};
 
             // The jury must be exists

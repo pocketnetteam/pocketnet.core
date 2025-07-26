@@ -310,13 +310,8 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Badges
             (
-                -- Transactions.Id
-                AccountId   int   not null,
-                -- Developer = 0
-                -- Shark = 1
-                -- Whale = 2
-                -- Moderator = 3
-                Badge       int   not null,
+                AccountId   int   not null, -- Chain::Uid
+                Badge       int   not null, -- enum PocketTx::BadgeType
                 Cancel      int   not null,
                 Height      int   not null,
                 primary key (AccountId, Badge, Cancel, Height)
@@ -451,6 +446,7 @@ namespace PocketDb
             create index if not exists JuryModerators_AccountId_FlagRowId on JuryModerators (AccountId, FlagRowId);
 
             create index if not exists Badges_Badge_Cancel_AccountId_Height on Badges (Badge, Cancel, AccountId, Height);
+            create index if not exists Badges_AccountId_Cancel_Height on Badges (AccountId, Cancel, Height);
 
             create index if not exists SocialRegistry_Type_AddressId on SocialRegistry (Type, AddressId);
             create index if not exists SocialRegistry_Height on SocialRegistry (Height);

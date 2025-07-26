@@ -1203,6 +1203,8 @@ namespace PocketDb
         .Run();
     }
 
+    /* BADGES */
+
     void ChainRepository::IndexBadges(int height, const BadgeConditions& conditions)
     {
         SqlTransaction(__func__, [&]()
@@ -1340,6 +1342,123 @@ namespace PocketDb
                 conditions.LikersAll,
                 conditions.RegistrationDepth,
                 height
+            )
+            .Run();
+        });
+    }
+
+    void ChainRepository::AddOrCancelBadge(bool cancel, int height, const string& address, const string& txHash, BadgeType destBadgeType, BadgeType sourceBadgeType, const vector<string>& developers)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            Sql(R"sql(
+                with
+                    sourceBadge as (select ? as value),
+                    destBadge as (select ? as value),
+                    height as (select ? as value),
+                    destAddress as (select ? as value),
+                    tx as (select ? as hash)
+
+                insert into Badges (AccountId, Badge, Cancel, Height)
+
+                select
+                    cu.Uid as AccountId,
+                    destBadge.value,
+                    ?,
+                    height.value
+                from
+                    sourceBadge,
+                    destBadge,
+                    height,
+                    destAddress,
+                    tx
+                cross join
+                    Registry rb on
+                        rb.String = destAddress.value
+                cross join
+                    Transactions u on
+                        u.Type = 100 and u.RegId1 = rb.RowId
+                cross join
+                    Last lu on
+                        lu.TxId = u.RowId
+                cross join
+                    Chain cu on
+                        cu.TxId = lu.TxId
+                where
+                    (
+                        exists (
+                            select
+                                ci.Uid
+                            from
+                                TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            cross join
+                                TxOutputs io indexed by TxOutputs_TxId_Number_AddressId on
+                                    io.TxId = i.TxId and
+                                    io.Number = i.Number
+                            cross join
+                                Registry ri on
+                                    ri.RowId = io.AddressId
+                            cross join
+                                Transactions ui on
+                                    ui.Type = 100 and
+                                    ui.RegId1 = io.AddressId
+                            cross join
+                                Last lui on
+                                    lui.TxId = ui.RowId
+                            cross join
+                                Chain ci on
+                                    ci.TxId = lui.TxId
+                            where
+                                SpentTxId = (select r.RowId from Registry r where r.String=tx.hash) and
+                                (
+                                    -- Developers can set up all badges
+                                    ri.String in ( )sql" + join(vector<string>(developers.size(), "?"), ",") + R"sql( )
+                                    or
+                                    -- Or source must have a badge
+                                    ifnull((
+                                        select
+                                            b.Cancel
+                                        from
+                                            Badges b indexed by Badges_Badge_Cancel_AccountId_Height
+                                        where
+                                            b.Badge = sourceBadge.value and
+                                            b.Cancel in (0, 1) and
+                                            b.AccountId = ci.Uid and
+                                            b.Height < height.value
+                                        order by
+                                            b.Height desc
+                                        limit 1
+                                    ), 1) = 0
+                                )
+                        )
+                    )
+                    and
+                    (
+                        ifnull((
+                            select
+                                b.Cancel
+                            from
+                                Badges b indexed by Badges_Badge_Cancel_AccountId_Height
+                            where
+                                b.Badge = destBadge.value and
+                                b.Cancel in (0, 1) and
+                                b.AccountId = cu.Uid and
+                                b.Height <= height.value
+                            order by
+                                b.Height desc
+                            limit 1
+                        ), 1) = ?
+                    )
+            )sql")
+            .Bind(
+                (int32_t)sourceBadgeType,
+                (int32_t)destBadgeType,
+                height,
+                address,
+                txHash,
+                cancel ? 1 : 0,
+                developers,
+                cancel ? 0 : 1
             )
             .Run();
         });

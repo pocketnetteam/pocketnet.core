@@ -37,6 +37,7 @@
 #include "pocketdb/consensus/moderation/Vote.hpp"
 
 #include "pocketdb/consensus/barteron/Offer.hpp"
+#include "pocketdb/consensus/barteron/OfferPaid.hpp"
 #include "pocketdb/consensus/barteron/Account.hpp"
 
 namespace PocketConsensus

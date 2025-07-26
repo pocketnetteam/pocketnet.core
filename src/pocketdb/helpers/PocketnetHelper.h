@@ -33,6 +33,11 @@ namespace PocketHelpers
             "TG69Jioc81PiwMAJtRanfZqUmRY4TUG7nt",
             "TLnfXcFNxxrpEUUzrzZvbW7b9gWFtAcc8x",
             "TYMo5HRFpc7tqzccaVifx7s2x2ZDqMikCR",
+        }},
+        {NetworkId::NetworkRegTest, {
+            "n38Bb6bBUL7x7GuT3X1uRS8RMcDZEactex", // cSuwmx29SQSwZmZQa3e5osqL9BkSDqhWCZE7dr3g489SGYsYYaZE
+            "mrCAr21PdEh2UAwPn5oBoxLEETseuNwye5", // cMvcApHK5eh6k2L4uAc3P16eqP2w586A9v6eWC4Q9VFYu6nnisUQ
+            "mkXhG6pmoJR33koZZMV86SnLJ6742tJBhM", // cUVud78RddbidVpXkE4vW4sxk5Hfbi6QND5o3yy5DpoypvQyk94G
         }}
     };
 

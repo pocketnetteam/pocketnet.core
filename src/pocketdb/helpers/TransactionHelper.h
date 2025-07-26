@@ -51,6 +51,7 @@
 
 #include "pocketdb/models/dto/barteron/Account.h"
 #include "pocketdb/models/dto/barteron/Offer.h"
+#include "pocketdb/models/dto/barteron/OfferPaid.h"
 
 namespace PocketHelpers
 {
@@ -75,7 +76,7 @@ namespace PocketHelpers
         static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx);
-        static string ParseOpReturn(const string& value);
+        static vector<string> GetOrReturn(const CTransactionRef& tx);
         static string ConvertToReindexerTable(const Transaction& transaction);
         static string ExtractOpReturnHash(const CTransactionRef& tx);
         static tuple<bool, string> ExtractOpReturnPayload(const CTransactionRef& tx);
@@ -86,7 +87,7 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransactionRef& tx, TxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);
-        static bool IsPocketNeededPaymentTransaction(const CTransactionRef& tx);
+        static bool IsPocketNeededPaymentTransaction(TxType& txType);
         static tuple<bool, ScoreDataDtoRef> ParseScore(const CTransactionRef& tx);
         static tuple<bool, ModerationVoteTxDataRef> ParseModerationVote(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(TxType txType);
