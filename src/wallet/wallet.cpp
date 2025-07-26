@@ -5040,7 +5040,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 		return error("CreateCoinStake : exceeded coinstake size limit");
 	}
 
-	LogPrint(BCLog::STAKEMODIF, "Coin stake created!\n");
+        WalletLogPrintf("Coin stake created!\n");
 
 	// Successfully generated coinstake
 	return true;

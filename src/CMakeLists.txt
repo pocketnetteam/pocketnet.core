@@ -1018,6 +1018,8 @@ add_library(${POCKETCOIN_SERVER}
         i2p.cpp
         init.h
         init.cpp
+        init/common.h
+        init/common.cpp
         interfaces/handler.h
         interfaces/handler.cpp
         dbwrapper.h

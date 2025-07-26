@@ -412,6 +412,7 @@ POCKETCOIN_CORE_H = \
     index/txindex.h \
     indirectmap.h \
     init.h \
+    init/common.h \
     interfaces/chain.h \
     interfaces/handler.h \
     interfaces/node.h \
@@ -789,6 +790,7 @@ libpocketcoin_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  init/common.cpp \
   key.cpp \
   key_io.cpp \
   merkleblock.cpp \
