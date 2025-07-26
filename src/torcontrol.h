@@ -27,7 +27,7 @@ class CService;
 extern const std::string DEFAULT_TOR_CONTROL;
 static const bool DEFAULT_LISTEN_ONION = true;
 
-void StartTorControl(CService onion_service_target, CService onion_service_ws_target);
+void StartTorControl(CService onion_service_target);
 void InterruptTorControl();
 void StopTorControl();
 
@@ -112,7 +112,7 @@ private:
 class TorController
 {
 public:
-    TorController(struct event_base* base, const std::string& tor_control_center, const CService& target, const CService& ws_target);
+    TorController(struct event_base* base, const std::string& tor_control_center, const CService& target);
     TorController() : conn{nullptr} {
         // Used for testing only.
     }
@@ -134,7 +134,6 @@ private:
     float reconnect_timeout;
     CService service;
     const CService m_target;
-    const CService m_ws_target;
     /** Cookie for SAFECOOKIE auth */
     std::vector<uint8_t> cookie;
     /** ClientNonce for SAFECOOKIE auth */

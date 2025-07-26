@@ -293,11 +293,11 @@ std::map<std::string,std::string> ParseTorReplyMapping(const std::string &s)
 
 /****** Pocketcoin specific TorController implementation ********/
 
-TorController::TorController(struct event_base* _base, const std::string& tor_control_center, const CService& target, const CService& ws_target):
+TorController::TorController(struct event_base* _base, const std::string& tor_control_center, const CService& target):
     base(_base),
     m_tor_control_center(tor_control_center), conn(base), reconnect(true), reconnect_ev(0),
     reconnect_timeout(RECONNECT_TIMEOUT_START),
-    m_target(target), m_ws_target(ws_target)
+    m_target(target)
 {
     reconnect_ev = event_new(base, -1, 0, reconnect_cb, this);
     if (!reconnect_ev)
@@ -448,7 +448,6 @@ void TorController::auth_cb(TorControlConnection& _conn, const TorControlReply& 
         // Request onion service, redirect port.
         // Note that the 'virtual' port is always the default port to avoid decloaking nodes using other ports.
         _conn.Command(strprintf("ADD_ONION %s Port=%i,%s Port=%i,%s:%s Port=%i,%s:%s", private_key, Params().GetDefaultPort(), m_target.ToStringIPPort(),
-//                                BaseParams().PublicRPCPort(), m_ws_target.ToStringIPPort(),                                                 // RPC
                                 BaseParams().PublicRPCPort(), CNetAddr(m_target).ToStringIP(), gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort()),     // RPC
                                 BaseParams().WsPort(), CNetAddr(m_target).ToStringIP(), gArgs.GetArg("-wsport", BaseParams().WsPort())),                         // Websocket
             std::bind(&TorController::add_onion_cb, this, std::placeholders::_1, std::placeholders::_2));
@@ -645,14 +644,14 @@ void TorController::reconnect_cb(evutil_socket_t fd, short what, void *arg)
 static struct event_base *gBase;
 static std::thread torControlThread;
 
-static void TorControlThread(CService onion_service_target, CService onion_service_ws_target)
+static void TorControlThread(CService onion_service_target)
 {
-    TorController ctrl(gBase, gArgs.GetArg("-torcontrol", DEFAULT_TOR_CONTROL), onion_service_target, onion_service_ws_target);
+    TorController ctrl(gBase, gArgs.GetArg("-torcontrol", DEFAULT_TOR_CONTROL), onion_service_target);
 
     event_base_dispatch(gBase);
 }
 
-void StartTorControl(CService onion_service_target, CService onion_service_ws_target)
+void StartTorControl(CService onion_service_target)
 {
     assert(!gBase);
 #ifdef WIN32
@@ -666,8 +665,8 @@ void StartTorControl(CService onion_service_target, CService onion_service_ws_ta
         return;
     }
 
-    torControlThread = std::thread(&TraceThread<std::function<void()>>, "torcontrol", [onion_service_target, onion_service_ws_target] {
-        TorControlThread(onion_service_target, onion_service_ws_target);
+    torControlThread = std::thread(&TraceThread<std::function<void()>>, "torcontrol", [onion_service_target] {
+        TorControlThread(onion_service_target);
     });
 }
 
