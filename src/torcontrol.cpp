@@ -445,10 +445,8 @@ void TorController::auth_cb(TorControlConnection& _conn, const TorControlReply& 
         }
         // Request onion service, redirect port.
         // Note that the 'virtual' port is always the default port to avoid decloaking nodes using other ports.
-        _conn.Command(strprintf("ADD_ONION %s Port=%i,%s", private_key, Params().GetDefaultPort(), m_target.ToStringIPPort()),
-            std::bind(&TorController::add_onion_cb, this, std::placeholders::_1, std::placeholders::_2));
-        // Websocket
-        _conn.Command(strprintf("ADD_ONION %s Port=%i,%s", private_key, BaseParams().PublicRPCPort(), m_ws_target.ToStringIPPort()),
+        _conn.Command(strprintf("ADD_ONION %s Port=%i,%s  Port=%i,%s", private_key, Params().GetDefaultPort(), m_target.ToStringIPPort(),
+                                BaseParams().PublicRPCPort(), m_ws_target.ToStringIPPort()),                                                // Websocket
             std::bind(&TorController::add_onion_cb, this, std::placeholders::_1, std::placeholders::_2));
     } else {
         LogPrintf("tor: Authentication failed\n");
