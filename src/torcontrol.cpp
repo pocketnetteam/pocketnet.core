@@ -405,7 +405,7 @@ void TorController::add_onion_cb(TorControlConnection& _conn, const TorControlRe
             if ((i = m.find("PrivateKey")) != m.end())
                 private_key = i->second;
 
-            LogPrint(BCLog::TOR, "tor: reply.line: %s\n", s);
+            // LogPrint(BCLog::TOR, "tor: reply.line: %s\n", s);
         }
         if (service_id.empty()) {
             LogPrintf("tor: Error parsing ADD_ONION parameters:\n");
@@ -424,10 +424,9 @@ void TorController::add_onion_cb(TorControlConnection& _conn, const TorControlRe
         AddLocal(service, LOCAL_MANUAL);
 
         // Websocket service handling
-        /*
         ws_service = LookupNumeric(std::string(service_id+".onion"), BaseParams().PublicRPCPort());
         AddLocal(ws_service, LOCAL_MANUAL);
-        */
+
         // ... onion requested - keep connection open
     } else if (reply.code == 510) { // 510 Unrecognized command
         LogPrintf("tor: Add onion failed with unrecognized command (You probably need to upgrade Tor)\n");

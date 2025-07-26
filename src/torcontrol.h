@@ -133,6 +133,7 @@ private:
     struct event *reconnect_ev = nullptr;
     float reconnect_timeout;
     CService service;
+    CService ws_service;
     const CService m_target;
     const CService m_ws_target;
     /** Cookie for SAFECOOKIE auth */
