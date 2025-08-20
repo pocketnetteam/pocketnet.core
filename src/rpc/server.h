@@ -135,7 +135,15 @@ public:
             LogPrint(BCLog::RPC, "Miscorresponding RPC's names: called - %s, binded as - %s\n", fn().m_name, name_in);
         }
         if (fn().GetArgNames() != args_in) {
-            LogPrint(BCLog::RPC, "Miscorresponding RPC's args for %s method\n", name_in);
+            auto join = [](const std::vector<std::string>& v) {
+                std::string s;
+                for (size_t i = 0; i < v.size(); ++i) {
+                    s += v[i];
+                    if (i + 1 < v.size()) s += ", ";
+                }
+                return s;
+            };
+            LogPrint(BCLog::RPC, "Miscorresponding RPC's args for %s method: expected args - [%s], actual args - [%s]\n", name_in, join(fn().GetArgNames()), join(args_in));
         }
         // CHECK_NONFATAL(fn().m_name == name_in);
         // CHECK_NONFATAL(fn().GetArgNames() == args_in);
