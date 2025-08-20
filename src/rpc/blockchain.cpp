@@ -1575,7 +1575,7 @@ static RPCHelpMan preciousblock()
 static RPCHelpMan invalidateblock()
 {
     return RPCHelpMan{
-        "invalidateblock\n",
+        "invalidateblock",
         "Permanently marks a block as invalid, as if it violated a consensus rule.\n",
         {
             { "blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hash of the block to mark as invalid" },
@@ -1618,7 +1618,7 @@ static RPCHelpMan invalidateblock()
 static RPCHelpMan restoreto()
 {
     return RPCHelpMan{
-        "restoreto\n",
+        "restoreto",
         "Permanently restore db to height.\n",
         {
             { "height", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The height to which the rollback will be made" },
