@@ -148,9 +148,9 @@ namespace PocketWeb::PocketWebRpc
                                 {RPCResult::Type::NUM, "node", ""},
                                 {RPCResult::Type::NUM, "api", ""},
                                 {RPCResult::Type::NUM, "rest", ""},
+                                {RPCResult::Type::NUM, "ws", ""},
                                 {RPCResult::Type::NUM, "wss", ""},
-                                {RPCResult::Type::NUM, "http", ""},
-                                {RPCResult::Type::NUM, "https", ""},
+                                {RPCResult::Type::NUM, "staticrpc", ""},
                             }
                         }
                     },
@@ -171,7 +171,6 @@ namespace PocketWeb::PocketWebRpc
         entry.pushKV("version", FormatVersion(CLIENT_VERSION));
         entry.pushKV("time", GetAdjustedTime());
         entry.pushKV("chain", Params().NetworkIDString());
-        entry.pushKV("proxy", true);
 
         uint64_t nNetworkWeight = GetPoSKernelPS();
         entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
@@ -198,6 +197,11 @@ namespace PocketWeb::PocketWebRpc
             };
             WSConnections->Iterate(fillProxy);
         }
+        if (proxies.empty()) {
+            entry.pushKV("proxy", false);
+        } else {
+            entry.pushKV("proxy", true);
+        }
         entry.pushKV("proxies", proxies);
 
         // Ports information
@@ -205,15 +209,16 @@ namespace PocketWeb::PocketWebRpc
         int64_t publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
         int64_t staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
         int64_t restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
-        int64_t wssPort = gArgs.GetArg("-wsport", BaseParams().WsPort());
+        int64_t wsPort = gArgs.GetArg("-wsport", BaseParams().WsPort());
+        int64_t wssPort = gArgs.GetArg("-wssport", BaseParams().WssPort());
 
         UniValue ports(UniValue::VOBJ);
         ports.pushKV("node", nodePort);
         ports.pushKV("api", publicPort);
         ports.pushKV("rest", restPort);
+        ports.pushKV("ws", wsPort);
         ports.pushKV("wss", wssPort);
-        ports.pushKV("http", staticPort);
-        ports.pushKV("https", staticPort);
+        ports.pushKV("staticrpc", staticPort);
         entry.pushKV("ports", ports);
 
         return entry;
