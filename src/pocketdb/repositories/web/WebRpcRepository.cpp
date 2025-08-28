@@ -4219,19 +4219,26 @@ namespace PocketDb
                         JuryBan jb on
                             jb.AccountId = cu.Uid and
                             jb.Ending > ?
+                    -- Join Jury & JuryVerdict for exclude active juries
                     left join
-                        Jury j on
-                            j.AccountId = cu.Uid
-                    left join
-                        JuryVerdict jv on
-                            jv.FlagRowId = j.FlagRowId
+                        (
+                            select
+                                j.AccountId
+                            from
+                                Jury j
+                            left join
+                                JuryVerdict jv on
+                                    jv.FlagRowId = j.FlagRowId
+                            where
+                                jv.FlagRowId is null
+                        ) jjv on jjv.AccountId = cu.Uid
                     where
                         -- Do not show posts from users with low reputation
                         ifnull(ur.Value,0) > ?
                         -- Do not show posts from banned users
                         and jb.AccountId is null
                         -- Do not show posts from users with active jury
-                        and jv.FlagRowId is null
+                        and jjv.AccountId is null
                     order by
                         r.Value desc
                     limit ?
@@ -4772,12 +4779,19 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            -- Join Jury & JuryVerdict for exclude active juries
             left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
+                (
+                    select
+                        j.AccountId
+                    from
+                        Jury j
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        jv.FlagRowId is null
+                ) jjv on jjv.AccountId = cu.Uid
             where
 
                     ct.Height > ?
@@ -4790,7 +4804,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
+                and jjv.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5014,12 +5028,19 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            -- Join Jury & JuryVerdict for exclude active juries
             left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
+                (
+                    select
+                        j.AccountId
+                    from
+                        Jury j
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        jv.FlagRowId is null
+                ) jjv on jjv.AccountId = cu.Uid
             where
 
                     ct.Height > ?
@@ -5032,7 +5053,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
+                and jjv.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5442,12 +5463,19 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            -- Join Jury & JuryVerdict for exclude active juries
             left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
+                (
+                    select
+                        j.AccountId
+                    from
+                        Jury j
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        jv.FlagRowId is null
+                ) jjv on jjv.AccountId = cu.Uid
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
 
@@ -5455,7 +5483,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
+                and jjv.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5680,12 +5708,19 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            -- Join Jury & JuryVerdict for exclude active juries
             left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
+                (
+                    select
+                        j.AccountId
+                    from
+                        Jury j
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        jv.FlagRowId is null
+                ) jjv on jjv.AccountId = cu.Uid
             where
                 t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.RegId3 is null
@@ -5697,7 +5732,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
+                and jjv.AccountId is null
 
                 -- Skip ids for pagination
                 )sql" + skipPaginationSql + R"sql(
@@ -5909,12 +5944,19 @@ namespace PocketDb
                 JuryBan jb on
                     jb.AccountId = cu.Uid and
                     jb.Ending > ?
+            -- Join Jury & JuryVerdict for exclude active juries
             left join
-                Jury j on
-                    j.AccountId = cu.Uid
-            left join
-                JuryVerdict jv on
-                    jv.FlagRowId = j.FlagRowId
+                (
+                    select
+                        j.AccountId
+                    from
+                        Jury j
+                    left join
+                        JuryVerdict jv on
+                            jv.FlagRowId = j.FlagRowId
+                    where
+                        jv.FlagRowId is null
+                ) jjv on jjv.AccountId = cu.Uid
             where
                 ct.Height > ?
                 and ct.Height <= ?
@@ -5926,7 +5968,7 @@ namespace PocketDb
                 and jb.AccountId is null
 
                 -- Do not show posts from users with active jury
-                and jv.FlagRowId is null
+                and jjv.AccountId is null
 
                 -- Exclude posts
                 and t.RegId2 not in (
@@ -6210,23 +6252,32 @@ namespace PocketDb
                         JuryBan jb on
                             jb.AccountId = cu.Uid and
                             jb.Ending > heightMax.value
+                    -- Join Jury & JuryVerdict for exclude active juries
                     left join
-                        Jury j on
-                            j.AccountId = cu.Uid
-                    left join
-                        JuryVerdict jv on
-                            jv.FlagRowId = j.FlagRowId
+                        (
+                            select
+                                j.AccountId
+                            from
+                                Jury j
+                            left join
+                                JuryVerdict jv on
+                                    jv.FlagRowId = j.FlagRowId
+                            where
+                                jv.FlagRowId is null
+                        ) jjv on jjv.AccountId = cu.Uid
                     where
                         tb.Type in ( 208 )
 
                         -- Do not show posts from users with low reputation
                         and ifnull(ur.Value, 0) > minReputation.value
 
+                        -- Skip posts with moderation conditions
+
                         -- Do not show posts from banned users
                         and jb.AccountId is null
 
                         -- Do not show posts from users with active jury
-                        and jv.FlagRowId is null
+                        and jjv.AccountId is null
 
                         -- Other excludes
                         and tc.RegId2 not in (
