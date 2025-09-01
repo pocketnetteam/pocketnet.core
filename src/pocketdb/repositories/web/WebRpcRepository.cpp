@@ -5444,12 +5444,18 @@ namespace PocketDb
                     p.TxId = t.RowId and
                     ( ? or p.String1 = ? )
             cross join
-                Last lt on
-                    lt.TxId = t.RowId
+                First ft on
+                    ft.TxId = t.RowId
             cross join
                 Chain ct indexed by Chain_TxId_Height on
                     ct.TxId = t.RowId and
                     ct.Height <= ?
+            cross join
+                Chain ctt indexed by Chain_Uid_Height on
+                    ctt.Uid = ct.Uid
+            cross join
+                Last ltt on
+                    ltt.TxId = ctt.TxId
             cross join
                 Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     u.Type in (100) and u.RegId1 = t.RegId1
