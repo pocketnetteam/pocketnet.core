@@ -532,16 +532,12 @@ RPCHelpMan importwallet()
         walletName = request.params[1].get_str();
     }
 
-    // Check existing wallets
-    std::vector<std::shared_ptr<CWallet>> wallets = GetWallets();
-    for (const auto& wallet : wallets) {
-        if (wallet->GetName() == walletName) {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet with name " + walletName + " already exists");
-        }
+    // Create new wallet if not exists
+    std::shared_ptr<CWallet> wallet = GetWallet(walletName);
+    if (!wallet) {
+        wallet = _createwallet(request, walletName);
     }
 
-    // Create new wallet
-    std::shared_ptr<CWallet> wallet = _createwallet(request, walletName);
     CWallet* const pwallet = wallet.get();
 
     EnsureLegacyScriptPubKeyMan(*wallet, true);
@@ -669,7 +665,7 @@ RPCHelpMan importwallet()
         pwallet->chain().showProgress("", 100, false); // hide progress dialog in GUI
     }
     pwallet->chain().showProgress("", 100, false); // hide progress dialog in GUI
-    // RescanWallet(*pwallet, reserver, nTimeBegin, false /* update */);
+    RescanWallet(*pwallet, reserver, nTimeBegin, false /* update */);
     pwallet->MarkDirty();
 
     if (!fGood)
