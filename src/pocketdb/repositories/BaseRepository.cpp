@@ -53,7 +53,7 @@ namespace PocketDb
 
     string BaseRepository::FormatSearchKeyword(const string& keyword)
         {
-            // Разделение ключевого слова на подстроки по пробелам и символам подчеркивания
+            // Split the keyword into substrings by spaces and underscores
             vector<string> keywords;
             string current;
             for (char c : keyword) {
@@ -70,7 +70,7 @@ namespace PocketDb
                 keywords.push_back(current);
             }
 
-            // Формирование строки запроса в формате: "first" "word" "second" "word" ... OR "first"* "word"* "second"* "word"* ...
+            // Forming the query string in the format: "first" "word" "second" "word" ... OR "first"* "word"* "second"* "word"* ...
             string formattedKeyword;
             for (const auto& word : keywords) {
                 if (!formattedKeyword.empty()) formattedKeyword += " ";

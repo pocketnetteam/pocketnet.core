@@ -319,7 +319,7 @@ namespace PocketWeb::PocketWebRpc
         string topContentHash;
         int countOut;
         string lang;
-        vector<string> tags;
+        vector<string> tagsIncluded;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
@@ -329,7 +329,7 @@ namespace PocketWeb::PocketWebRpc
         string keyword;
         string orderby;
         string ascdesc;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
 
         if (address_feed.empty())
@@ -350,7 +350,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, countOut, pageNumber, topContentId, topHeight, lang, tags, contentTypes,
+            address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address, orderby, ascdesc);
 
         result.pushKV("height", topHeight);
@@ -362,95 +362,97 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetProfileCollections()
     {
-        return RPCHelpMan{"GetProfileCollections",
-                          "\n\n", // TODO (rpc)
-                          {
-                                  {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
-                                  {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
-                                  {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
-                                  {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
-                                  {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
-                                   {
-                                           {"tag", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
-                                   }
-                                  },
-                                  {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
-                                   {
-                                           {"contentType", RPCArg::Type::NUM, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
-                                   }
-                                  },
-                                  {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
-                                   {
-                                           {"txIdExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
-                                   }
-                                  },
-                                  {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
-                                   {
-                                           {"adrExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
-                                   }
-                                  },
-                                  {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
-                                   {
-                                           {"tagExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/}
-                                   }
-                                  },
-                                  {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "" /* TODO (rpc): arg description*/},
-                                  {"address_feed", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
-                                  {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
-                                  {"orderby", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
-                                  {"ascdesc", RPCArg::Type::STR, RPCArg::Optional::NO, "" /* TODO (rpc): arg description*/},
-                          },
-                          {
-                                  // TODO (rpc): provide return description
-                          },
-                          RPCExamples{
-                                  // TODO (rpc): better examples
-                                  HelpExampleCli("getprofilecollections", "...") +
-                                  HelpExampleRpc("getprofilecollections", "...")
-                          },
-                          [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-                          {
-                              int topHeight;
-                              string topContentHash;
-                              int countOut;
-                              string lang;
-                              vector<string> tags;
-                              vector<int> contentTypes;
-                              vector<string> txIdsExcluded;
-                              vector<string> adrsExcluded;
-                              vector<string> tagsExcluded;
-                              string address;
-                              string address_feed;
-                              string keyword;
-                              string orderby;
-                              string ascdesc;
-                              ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
-                                               adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
+        return RPCHelpMan{"getprofilecollections",
+            "\n\n",
+            {
+                {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "Top height block for pagination"},
+                {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Top content hash for pagination"},
+                {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Count out of contents"},
+                {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Language for content"},
+                {"tagsIncluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                        {"tagIncluded", RPCArg::Type::STR, RPCArg::Optional::NO, "Tag for content"}
+                }
+                },
+                {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                        {"contentType", RPCArg::Type::NUM, RPCArg::Optional::NO, "Content type for content"}
+                }
+                },
+                {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                        {"txIdExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "Tx id excluded for content"}
+                }
+                },
+                {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                        {"adrExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "Address excluded for content"}
+                }
+                },
+                {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                {
+                        {"tagExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, "Tag excluded for content"}
+                }
+                },
+                {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Address for content"},
+                {"address_feed", RPCArg::Type::STR, RPCArg::Optional::NO, "Address feed for content"},
+                {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "Keyword for content"},
+                {"orderby", RPCArg::Type::STR, RPCArg::Optional::NO, "Order by for content"},
+                {"ascdesc", RPCArg::Type::STR, RPCArg::Optional::NO, "Asc or desc for content"},
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                HelpExampleCli("getprofilecollections", "...") +
+                HelpExampleRpc("getprofilecollections", "...")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            int topHeight;
+            string topContentHash;
+            int countOut;
+            string lang;
+            vector<string> tagsIncluded;
+            vector<int> contentTypes;
+            vector<string> txIdsExcluded;
+            vector<string> adrsExcluded;
+            vector<string> tagsExcluded;
+            string address;
+            string address_feed;
+            string keyword;
+            string orderby;
+            string ascdesc;
 
-                              if (address_feed.empty())
-                                  throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
+            ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, contentTypes, txIdsExcluded,
+                            adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
 
-                              int64_t topContentId = 0;
-                              int pageNumber = 0;
-                              if (!topContentHash.empty())
-                              {
-                                  auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
-                                  if (!ids.empty())
-                                      topContentId = ids[0];
-                              } else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
-                              {
-                                  pageNumber = request.params[1].get_int();
-                              }
+            if (address_feed.empty())
+                throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
 
-                              UniValue result(UniValue::VOBJ);
-                              UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileCollections(
-                                      address_feed, countOut, pageNumber, topContentId, topHeight, lang, tags, contentTypes,
-                                      txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
+            contentTypes = { CONTENT_COLLECTION };
 
-                              result.pushKV("height", topHeight);
-                              result.pushKV("contents", content);
-                              return result;
-                          },
+            int64_t topContentId = 0;
+            int pageNumber = 0;
+            if (!topContentHash.empty())
+            {
+                auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+                if (!ids.empty())
+                    topContentId = ids[0];
+            } else if (topContentHash.empty() && request.params.size() > 1 && request.params[1].isNum())
+            {
+                pageNumber = request.params[1].get_int();
+            }
+
+            UniValue result(UniValue::VOBJ);
+            UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileCollections(
+                    address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, contentTypes,
+                    txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
+
+            result.pushKV("height", topHeight);
+            result.pushKV("contents", content);
+            return result;
+        },
         };
     }
 
