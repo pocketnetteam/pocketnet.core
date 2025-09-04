@@ -1420,8 +1420,8 @@ namespace PocketWeb::PocketWebRpc
                 },
                 RPCExamples{
                     // TODO (rpc): better examples
-                    HelpExampleCli("getcontentactions", "") +
-                    HelpExampleRpc("getcontentactions", "")
+                    HelpExampleCli("getnotifications", "") +
+                    HelpExampleRpc("getnotifications", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
