@@ -60,7 +60,7 @@ class SystemTest(PocketcoinTestFramework):
         assert node0_info["ports"] != node1_info["ports"]
         assert node0_info["version"] == node1_info["version"]
 
-        for port in ["api", "http", "https", "node", "rest", "wss"]:
+        for port in ["node", "api", "rest", "ws", "wss", "staticrpc"]:
             assert port in node0_info["ports"]
             assert port in node1_info["ports"]
 
