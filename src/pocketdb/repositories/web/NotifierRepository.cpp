@@ -1931,7 +1931,7 @@ namespace PocketDb
                         sc.RowId = c.RowId
 
                     join Transactions p on
-                        p.Type in (200,201,202,209,210) and
+                        p.Type in (200,201,202,209,210,211) and
                         p.RegId2 = c.RegId3 and
                         p.RegId1 != c.RegId1 and
                         exists (select 1 from Last lp where lp.TxId = p.RowId)
@@ -2218,7 +2218,7 @@ namespace PocketDb
                         and cs.Height = ?
 
                     join Transactions c indexed by Transactions_Type_RegId2_RegId1 on
-                        c.Type in (200,201,202,209,210) and
+                        c.Type in (200,201,202,209,210,211) and
                         c.RegId2 = s.RegId2 and
                         exists (select 1 from Last lc where lc.TxId = c.RowId)
 
@@ -4371,7 +4371,7 @@ namespace PocketDb
                         addr,
                         params
                     cross join Transactions p indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        p.Type in (200, 201, 202, 209, 210) and
+                        p.Type in (200, 201, 202, 209, 210, 211) and
                         p.RegId1 = addr.id
                     cross join Last lp on
                         lp.TxId = p.RowId
@@ -4435,7 +4435,7 @@ namespace PocketDb
                         addr,
                         params
                         cross join Transactions c indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                            c.Type in (200, 201, 202, 209, 210) and
+                            c.Type in (200, 201, 202, 209, 210, 211) and
                             c.RegId1 = addr.id
                         cross join Last lc on
                             lc.TxId = c.RowId
