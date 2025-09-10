@@ -25,6 +25,7 @@ namespace PocketDb
         int64_t PriceMax = -1;
         int64_t PriceMin = -1;
         string Search = "";
+        string State;
     };
 
     struct BarteronOffersDealDto : public BarteronOffersFeedDto
@@ -51,6 +52,7 @@ namespace PocketDb
         vector<string> ExcludeAddresses;
         vector<string> Location;
         string Language = "";
+        string State;
     };
 
     class BarteronRepository : public BaseRepository

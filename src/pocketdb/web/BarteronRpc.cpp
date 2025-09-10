@@ -174,6 +174,19 @@ namespace PocketWeb::PocketWebRpc
                     
                 if (auto arg = args.At("search", true); arg.isStr())
                     feedArgs.Search = arg.get_str();
+                    
+                if (auto arg = args.At("state", true); arg.isArray() && arg.get_array().size() > 0)    
+                {
+                    feedArgs.State = arg.get_array().write();
+                }
+                else
+                {
+                    UniValue state = UniValue(UniValue::VARR);
+                    state.push_back("published");
+                    state.push_back("withdrawed");
+                    state.push_back("removed");
+                    feedArgs.State = state.write();
+                }
             }
 
             auto hashes = request.DbConnection()->BarteronRepoInst->GetFeed(feedArgs);
@@ -237,6 +250,19 @@ namespace PocketWeb::PocketWebRpc
                     
                 if (auto arg = args.At("search", true); arg.isStr())
                     feedArgs.Search = arg.get_str();
+
+                if (auto arg = args.At("state", true); arg.isArray() && arg.get_array().size() > 0)    
+                {
+                    feedArgs.State = arg.get_array().write();
+                }
+                else
+                {
+                    UniValue state = UniValue(UniValue::VARR);
+                    state.push_back("published");
+                    state.push_back("withdrawed");
+                    state.push_back("removed");
+                    feedArgs.State = state.write();
+                }
             }
 
             return request.DbConnection()->BarteronRepoInst->GetGroups(feedArgs);
@@ -298,6 +324,19 @@ namespace PocketWeb::PocketWebRpc
 
                 if (auto arg = _args.At("lang", true); arg.isStr())
                     args.Language = arg.get_str();
+
+                if (auto arg = _args.At("state", true); arg.isArray() && arg.get_array().size() > 0)    
+                {
+                    args.State = arg.get_array().write();
+                }
+                else
+                {
+                    UniValue state = UniValue(UniValue::VARR);
+                    state.push_back("published");
+                    state.push_back("withdrawed");
+                    state.push_back("removed");
+                    args.State = state.write();
+                }
             }
 
             auto hashes = request.DbConnection()->BarteronRepoInst->GetDeals(args);
@@ -447,6 +486,19 @@ namespace PocketWeb::PocketWebRpc
 
                 if (args.MyTag == 0 || args.TheirTags.empty()) {
                     // TODO (losty): error
+                }
+
+                if (auto arg = _args.At("state", true); arg.isArray() && arg.get_array().size() > 0)    
+                {
+                    args.State = arg.get_array().write();
+                }
+                else
+                {
+                    UniValue state = UniValue(UniValue::VARR);
+                    state.push_back("published");
+                    state.push_back("withdrawed");
+                    state.push_back("removed");
+                    args.State = state.write();
                 }
             }
 

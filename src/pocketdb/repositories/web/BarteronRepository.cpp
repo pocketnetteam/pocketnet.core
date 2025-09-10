@@ -218,7 +218,8 @@ namespace PocketDb
                 tags as (select value from json_each(?)),
                 location as (select value from json_each(?)),
                 priceMax as (select ? as value),
-                priceMin as (select ? as value)
+                priceMin as (select ? as value),
+                states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
             select
                 distinct (select r.String from Registry r where r.RowId = t.RowId)
             from
@@ -230,10 +231,13 @@ namespace PocketDb
             cross join
                 Transactions t indexed by Transactions_RowId_desc_Type_RegId1 on
                     t.RowId = fm.ContentId and
-                    t.Type in (211, 212)
+                    t.Type in (211, 212) and
+                    ( t.RegId3 is null or t.RegId3 in (select val from states) )
             cross join
-                Chain ct indexed by Chain_TxId_Height
-                    on ct.TxId = t.RowId and ct.Height <= ?
+                Chain ct indexed by Chain_TxId_Height on
+                    ct.TxId = t.RowId and
+                    ct.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc) and
+                    ct.Height <= ?
             cross join
                 Last lt
                     on lt.TxId = t.RowId
@@ -284,6 +288,7 @@ namespace PocketDb
                     location,
                     args.PriceMax,
                     args.PriceMin,
+                    args.State,
                     args.Page.TopHeight,
                     keyword,
                     args.Page.PageSize,
@@ -330,7 +335,8 @@ namespace PocketDb
                 tags as (select value from json_each(?)),
                 location as (select value from json_each(?)),
                 priceMax as (select ? as value),
-                priceMin as (select ? as value)
+                priceMin as (select ? as value),
+                states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
             select
                 (select r.String from Registry r where r.RowId = t.RowId)
             from
@@ -339,12 +345,15 @@ namespace PocketDb
                 web.BarteronOffers bo on
                     bo.Tag = tags.value
             cross join
-                Chain ct indexed by Chain_Uid_Height
-                    on bo.OfferId = ct.Uid and ct.Height <= ?
+                Chain ct indexed by Chain_Uid_Height on
+                    bo.OfferId = ct.Uid and
+                    ct.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc) and
+                    ct.Height <= ?
             cross join
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3 on
                     t.Type in (211, 212) and
-                    ct.TxId = t.RowId
+                    ct.TxId = t.RowId and
+                    ( t.RegId3 is null or t.RegId3 in (select val from states) )
             cross join
                 Last lt
                     on lt.TxId = t.RowId
@@ -389,6 +398,7 @@ namespace PocketDb
                     location,
                     args.PriceMax,
                     args.PriceMin,
+                    args.State,
                     args.Page.TopHeight,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
@@ -428,14 +438,17 @@ namespace PocketDb
                 lang as (select ? as value),
                 location as (select value from json_each(?)),
                 priceMax as (select ? as value),
-                priceMin as (select ? as value)
+                priceMin as (select ? as value),
+                states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
             select
                 (select r.String from Registry r where r.RowId = t.RowId)
             from
                 Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
             cross join
-                Chain ct indexed by Chain_TxId_Height
-                    on ct.TxId = t.RowId and ct.Height <= ?
+                Chain ct indexed by Chain_TxId_Height on
+                    ct.TxId = t.RowId and
+                    ct.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc) and
+                    ct.Height <= ?
             cross join
                 Last lt
                     on lt.TxId = t.RowId
@@ -465,7 +478,8 @@ namespace PocketDb
                     on cu.TxId = u.RowId
 
             where
-                t.Type in (211, 212)
+                t.Type in (211, 212) and
+                ( t.RegId3 is null or t.RegId3 in (select val from states) )
 
             order by
                 )sql" + orderBy + R"sql(
@@ -482,6 +496,7 @@ namespace PocketDb
                     location,
                     args.PriceMax,
                     args.PriceMin,
+                    args.State,
                     args.Page.TopHeight,
                     args.Page.PageSize,
                     args.Page.PageStart * args.Page.PageSize
@@ -574,7 +589,8 @@ namespace PocketDb
                         tags as (select value from json_each(?)),
                         location as (select value from json_each(?)),
                         priceMax as (select ? as value),
-                        priceMin as (select ? as value)
+                        priceMin as (select ? as value),
+                        states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
                     select
                         substr(pt.String6, 1, ?),
                         count(1)
@@ -584,8 +600,9 @@ namespace PocketDb
                         Last lt
                             on lt.TxId = t.RowId
                     cross join
-                        Chain ct indexed by Chain_TxId_Height
-                            on ct.TxId = t.RowId
+                        Chain ct indexed by Chain_TxId_Height on
+                            ct.TxId = t.RowId and
+                            ct.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc)
                     cross join
                         Payload pt
                             on pt.TxId = t.RowId
@@ -606,7 +623,8 @@ namespace PocketDb
                     -- Filters
                     )sql" + _filters + R"sql(
                     where
-                        t.Type in (211, 212)
+                        t.Type in (211, 212) and
+                        ( t.RegId3 is null or t.RegId3 in (select val from states) )
                     group by
                         substr(pt.String6, 1, ?)
                 )sql");
@@ -617,6 +635,7 @@ namespace PocketDb
                     _locationStr,
                     args.PriceMax,
                     args.PriceMin,
+                    args.State,
                     args.LocationGroup
                 );
 
@@ -703,7 +722,8 @@ namespace PocketDb
                                 ? as min,
                                 ? as max
                         ),
-                        location as (select value from json_each(?))
+                        location as (select value from json_each(?)),
+                        states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
                     select distinct
                         (select r.String from Registry r where r.RowId = to2.RowId)
                     from
@@ -726,7 +746,7 @@ namespace PocketDb
 
                     -- Filter found deals by another conditions
                     cross join Chain co2 on co2.Uid = o2.OfferId
-                    cross join Transactions to2 on to2.RowId = co2.TxId
+                    cross join Transactions to2 on to2.RowId = co2.TxId and ( to2.RegId3 is null or to2.RegId3 in (select val from states) )
                     cross join Last lo2 on lo2.TxId = co2.TxId
                     cross join Payload po2 on po2.TxId = lo2.TxId
 
@@ -738,7 +758,8 @@ namespace PocketDb
                         ( ? or po2.Int1 <= price.max ) and
                         ( ? or ru2.String in ( )sql" + join(vector<string>(args.Addresses.size(), "?"), ",") + R"sql( ) ) and
                         ( ? or ru2.String not in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ) ) and
-                        co2.Height <= ?
+                        co2.Height <= ? and
+                        co2.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc)
 
                     order by
                         )sql" + _orderBy + R"sql(
@@ -749,6 +770,7 @@ namespace PocketDb
                     args.PriceMin,
                     args.PriceMax,
                     _locationStr,
+                    args.State,
                     args.TheirTags.empty(),
                     args.TheirTags,
                     args.MyTags.empty(),
@@ -814,7 +836,8 @@ namespace PocketDb
                             location as (select value from json_each(?)),
                             mytag as (
                                 select ? as value
-                            )
+                            ),
+                            states as (select r.RowId as val from json_each(?) cross join Registry r on r.String = value)
                         select
                             (select r.String from Registry r where r.RowId = tx1.RowId),
                             (select r.String from Registry r where r.RowId = tx2.RowId)
@@ -833,23 +856,27 @@ namespace PocketDb
                                 t2.Tag = mytag.value
 
                             cross join Chain c1 on
-                                c1.Uid = o1.OfferId
+                                c1.Uid = o1.OfferId and
+                                c1.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc)
                             cross join Last l1 on
                                 l1.TxId = c1.TxId
                             cross join Transactions tx1 on
                                 tx1.RowId = c1.TxId and
-                                (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                                (? or tx1.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ))) and
+                                ( tx1.RegId3 is null or tx1.RegId3 in (select val from states) )
                             cross join Payload p1 on
                                 p1.TxId = c1.TxId
 
                             cross join Chain c2 on
-                                c2.Uid = o2.OfferId
+                                c2.Uid = o2.OfferId and
+                                c2.Height > (select max(cc.Height) - (1440 * 30 * 12) from Chain cc)
                             cross join Last l2 on
                                 l2.TxId = c2.TxId
                             cross join Transactions tx2 on
                                 tx2.RowId = c2.TxId and
                                 tx2.RegId1 != tx1.RegId1 and
-                                (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( )))
+                                (? or tx2.RegId1 not in (select r.RowId from Registry r where r.String in ( )sql" + join(vector<string>(args.ExcludeAddresses.size(), "?"), ",") + R"sql( ))) and
+                                ( tx2.RegId3 is null or tx2.RegId3 in (select val from states) )
                             cross join Payload p2 on
                                 p2.TxId = c2.TxId
 
@@ -861,6 +888,7 @@ namespace PocketDb
                     args.Language,
                     _locationStr,
                     args.MyTag,
+                    args.State,
                     args.TheirTags,
                     args.ExcludeAddresses.empty(),
                     args.ExcludeAddresses,
