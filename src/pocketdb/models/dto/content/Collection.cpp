@@ -21,7 +21,8 @@ namespace PocketTx
     {
         auto result = Content::Serialize();
 
-        result->pushKV("address", GetAddress() ? *GetAddress() : "");
+        if (GetAddress())
+            result->pushKV("address", *GetAddress());
 
         // For olf protocol edited content
         // txid     - original content hash
@@ -33,17 +34,27 @@ namespace PocketTx
             result->pushKV("txidEdit", *GetHash());
         }
 
-        result->pushKV("contentTypes", GetContentTypes() ? *GetContentTypes() : 0);
-
-        UniValue vContentIds(UniValue::VARR);
+        if (GetContentTypes())
+            result->pushKV("contentTypes", *GetContentTypes());
+        
         if (GetContentIds())
+        {
+            UniValue vContentIds(UniValue::VARR);
             vContentIds.read(*GetContentIds());
-        result->pushKV("contentIds", vContentIds);
+            result->pushKV("contentIds", vContentIds);
+        }
 
-        result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
-        result->pushKV("caption", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
-        result->pushKV("image", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
-        result->pushKV("settings", (m_payload && m_payload->GetString4()) ? *m_payload->GetString4() : "");
+        if (m_payload)
+        {
+            if (m_payload->GetString1())
+                result->pushKV("lang", *m_payload->GetString1());
+            if (m_payload->GetString2())
+                result->pushKV("caption", *m_payload->GetString2());
+            if (m_payload->GetString3())
+                result->pushKV("image", *m_payload->GetString3());
+            if (m_payload->GetString4())
+                result->pushKV("settings", *m_payload->GetString4());
+        }
 
         return result;
     }
@@ -73,9 +84,7 @@ namespace PocketTx
 
         GeneratePayload();
 
-        if (auto[ok, val] = TryGetStr(src, "l"); ok && val.length() == 2) m_payload->SetString1(val);
-        else m_payload->SetString1("en");
-
+        if (auto[ok, val] = TryGetStr(src, "l"); ok) m_payload->SetString1(val);
         if (auto[ok, val] = TryGetStr(src, "c"); ok) m_payload->SetString2(val);
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString4(val);
@@ -86,8 +95,6 @@ namespace PocketTx
         Content::DeserializePayload(src);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
-        else m_payload->SetString1("en");
-
         if (auto[ok, val] = TryGetStr(src, "caption"); ok) m_payload->SetString2(val);
         if (auto[ok, val] = TryGetStr(src, "image"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString4(val);
