@@ -1,4 +1,9 @@
-project(secp256k1)
+project(secp256k1
+  VERSION 0.4.0
+  DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
+  HOMEPAGE_URL "https://github.com/bitcoin-core/secp256k1"
+  LANGUAGES C
+)
 
 include(CheckCXXSourceCompiles)
 

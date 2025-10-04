@@ -133,6 +133,8 @@ namespace SimpleWeb {
       //Connection(std::unique_ptr<socket_type> &&socket_) noexcept : socket(std::move(socket_)), timeout_idle(0), strand(this->socket->get_io_service()), closed(false) {}
         Connection(std::unique_ptr<socket_type>&& socket_) noexcept : socket(std::move(socket_)), timeout_idle(0), strand(GET_IO_SERVICE(this->socket)), closed(false) {}
 
+      virtual ~Connection() = default;
+
       std::string method, path, query_string, http_version;
 
       CaseInsensitiveMultimap header;

@@ -27,8 +27,8 @@ if(NOT WIN32)
                                 const int buflen = 10;
                                 char* buf = malloc(buflen);
                                 strerror_r(0, buf, buflen);
-                            }" _HAVE_STRERROR_R)
-    if(_HAVE_STRERROR_R)
+                            }" HAVE_STRERROR_R)
+    if(HAVE_STRERROR_R)
         add_compile_definitions(HAVE_STRERROR_R=1)
 
         # Checking if strerror_r returns char*
@@ -38,8 +38,8 @@ if(NOT WIN32)
                                     const int buflen = 10;
                                     char* buf = malloc(buflen);
                                     char* res = strerror_r(0, buf, buflen);
-                                }" _STRERROR_R_CHAR_P)
-        if(_STRERROR_R_CHAR_P)
+                                }" STRERROR_R_CHAR_P)
+        if(STRERROR_R_CHAR_P)
             add_compile_definitions(STRERROR_R_CHAR_P=1)
         endif()
     endif()
