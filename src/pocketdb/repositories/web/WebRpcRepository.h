@@ -100,8 +100,8 @@ namespace PocketDb
         UniValue GetBlockers(const string& address, bool useAddresses);
 
         vector<string> GetTopAccounts(int topHeight, int countOut, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, int depth,
+        const vector<string>& tags, const vector<string>& requiredTags, const vector<int>& contentTypes,
+        const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, int depth,
         int badReputationLimit);
 
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
@@ -136,35 +136,35 @@ namespace PocketDb
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
 
         UniValue GetTopFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-        const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
 
         UniValue GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-        const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, int depth,
         int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded,
+            const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded,
             const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc);
         
         UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address, const vector<string>& addresses_extended);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
         UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
-            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
         UniValue GetBoostFeed(int topHeight, int countOut, const string& lang,
-            const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
             int badReputationLimit);
 
@@ -175,7 +175,7 @@ namespace PocketDb
         UniValue GetContentActions(const string& postTxHash);
 
         UniValue GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight, const string& lang,
-                                       const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+                                       const vector<string>& tags, const vector<string>& requiredTags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
                                        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
                                        const string& keyword, const string& orderby, const string& ascdesc);
 

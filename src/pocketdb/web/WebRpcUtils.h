@@ -19,7 +19,7 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketHelpers;
 
     void ParseRequestContentTypes(const UniValue& value, vector<int>& types);
-    void ParseRequestTags(const UniValue& value, vector<string>& tags);
+    void ParseRequestTags(const UniValue& value, vector<string>& tags, vector<string>& requiredTags);
     vector<string> ParseArrayAddresses(const UniValue& value);
     vector<string> ParseArrayHashes(const UniValue& value);
     UniValue ConstructTransaction(const PTransactionRef& ptx);
