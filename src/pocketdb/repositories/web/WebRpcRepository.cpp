@@ -4204,7 +4204,7 @@ namespace PocketDb
                     with
                         lang as ( select ? as value)
                     select
-                        ct.Uid
+                        max(ct.Uid)
                     from
                         lang
                     cross join
@@ -4262,8 +4262,10 @@ namespace PocketDb
                         and jb.AccountId is null
                         -- Do not show posts from users with active jury
                         and jjv.AccountId is null
+                    group by
+                        t.RegId1
                     order by
-                        r.Value desc
+                        sum(r.Value) desc
                     limit ?
                 )sql")
                 .Bind(
