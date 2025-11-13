@@ -2652,7 +2652,7 @@ namespace PocketDb
 
     // TODO (aok, api): implement
     vector<string> WebRpcRepository::GetTopAccounts(int topHeight, int countOut, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& tags, const vector<string>& requiredTags, const vector<int>& contentTypes,
         const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, int depth,
         int badReputationLimit)
     {
@@ -2709,6 +2709,21 @@ namespace PocketDb
             )sql";
         }
 
+        if (!requiredTags.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join web.Tags tag on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(requiredTags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                    group by tm.ContentId
+                    having count(distinct tag.Value) = )sql" + to_string(requiredTags.size()) + R"sql(
+                )
+            )sql";
+        }
+
         if (!addrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(addrsExcluded.size(), "?"), ",") + " ) ";
         if (!tagsExcluded.empty())
         {
@@ -2740,6 +2755,14 @@ namespace PocketDb
                 if (!tags.empty())
                 {
                     stmt.Bind(tags);
+
+                    if (!lang.empty())
+                        stmt.Bind(lang);
+                }
+
+                if (!requiredTags.empty())
+                {
+                    stmt.Bind(requiredTags);
 
                     if (!lang.empty())
                         stmt.Bind(lang);
@@ -4181,7 +4204,7 @@ namespace PocketDb
                     with
                         lang as ( select ? as value)
                     select
-                        ct.Uid
+                        max(ct.Uid)
                     from
                         lang
                     cross join
@@ -4239,8 +4262,10 @@ namespace PocketDb
                         and jb.AccountId is null
                         -- Do not show posts from users with active jury
                         and jjv.AccountId is null
+                    group by
+                        t.RegId1
                     order by
-                        r.Value desc
+                        sum(r.Value) desc
                     limit ?
                 )sql")
                 .Bind(
@@ -4681,7 +4706,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetTopFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
@@ -4716,6 +4741,31 @@ namespace PocketDb
                     where
                         tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
                         ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        // ---------------------------------------------------
+
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join
+                        web.Tags tag indexed by Tags_Lang_Value_Id on
+                            tag.Id = tm.TagId
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = )sql" + to_string(requiredTagsIncluded.size()) + R"sql(
                 )
             )sql";
         }
@@ -4845,6 +4895,8 @@ namespace PocketDb
 
                 )sql" + tagsIncludedSql + R"sql(
 
+                )sql" + requiredTagsIncludedSql + R"sql(
+
                 )sql" + tagsExcludedSql + R"sql(
 
             order by
@@ -4892,6 +4944,15 @@ namespace PocketDb
                     );
                 }
 
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
                 if (!tagsExcluded.empty())
                 {
                     stmt.Bind(
@@ -4930,7 +4991,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetMostCommentedFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int depth, int badReputationLimit)
     {
@@ -4965,6 +5026,31 @@ namespace PocketDb
                     where
                         tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
                         ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        // ---------------------------------------------------
+
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join
+                        web.Tags tag indexed by Tags_Lang_Value_Id on
+                            tag.Id = tm.TagId
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = )sql" + to_string(requiredTagsIncluded.size()) + R"sql(
                 )
             )sql";
         }
@@ -5084,6 +5170,8 @@ namespace PocketDb
 
                 )sql" + tagsIncludedSql + R"sql(
 
+                )sql" + requiredTagsIncludedSql + R"sql(
+
                 )sql" + tagsExcludedSql + R"sql(
 
             order by (
@@ -5144,6 +5232,15 @@ namespace PocketDb
                     );
                 }
 
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
                 if (!tagsExcluded.empty())
                 {
                     stmt.Bind(
@@ -5182,7 +5279,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, 
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes, const vector<string>& txidsExcluded, 
         const vector<string>& addrsExcluded, const vector<string>& tagsExcluded, const string& address, const string& orderby, const string& ascdesc)
     {
         UniValue result(UniValue::VARR);
@@ -5227,11 +5324,36 @@ namespace PocketDb
         }
         sorting += " " + ascdesc;
 
+        // ---------------------------------------------------
+        // Required tags included SQL
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join
+                        web.Tags tag indexed by Tags_Lang_Value_Id on
+                            tag.Id = tm.TagId
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = )sql" + to_string(requiredTagsIncluded.size()) + R"sql(
+                )
+            )sql";
+        }
+
         vector<int64_t> ids;
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
-                return Sql(R"sql(
+                auto& stmt = Sql(R"sql(
                     with
                         height as ( select ? as value ),
                         addr as ( select RowId as id, String as hash from Registry where String = ?),
@@ -5262,7 +5384,7 @@ namespace PocketDb
                             ( ? or p.String1 = lang.value )
                     left join
                         web.TagsMap tm on
-                            tm.ContentId = ct.Uid
+                            tm.ContentId = t.RowId
                     left join
                         web.Tags tg on
                             tg.Id = tm.TagId
@@ -5280,12 +5402,13 @@ namespace PocketDb
                                 where
                                     r.String in ( )sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql( )
                             )
-                        )
+                        ))sql" + requiredTagsIncludedSql + R"sql(
                     order by )sql" + sorting + R"sql(
                     limit ?
                     offset ?
-                )sql")
-                .Bind(
+                )sql");
+
+                stmt.Bind(
                     topHeight,
                     addressFeed,
                     lang,
@@ -5299,10 +5422,24 @@ namespace PocketDb
                     tagsExcluded.empty(),
                     tagsExcluded,
                     txidsExcluded.empty(),
-                    txidsExcluded,
+                    txidsExcluded
+                );
+
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
+                stmt.Bind(
                     countOut,
                     pageNumber * countOut
                 );
+
+                return stmt;
             },
             [&] (Stmt& stmt) {
                 stmt.Select([&](Cursor& cursor) {
@@ -5326,7 +5463,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, const vector<string>& addresses_extended)
     {
@@ -5411,6 +5548,31 @@ namespace PocketDb
                     where
                         tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
                         ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        // ---------------------------------------------------
+
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.Tags tag indexed by Tags_Lang_Value_Id
+                    join
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId on
+                            tm.TagId = tag.Id
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = ?
                 )
             )sql";
         }
@@ -5533,6 +5695,8 @@ namespace PocketDb
 
                 )sql" + tagsIncludedSql + R"sql(
 
+                )sql" + requiredTagsIncludedSql + R"sql(
+
                 )sql" + tagsExcludedSql + R"sql(
 
             limit ?
@@ -5577,6 +5741,16 @@ namespace PocketDb
                     );
                 }
 
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
+                        lang.empty(),
+                        lang,
+                        (int)requiredTagsIncluded.size()
+                    );
+                }
+
                 if (!tagsExcluded.empty())
                 {
                     stmt.Bind(
@@ -5615,7 +5789,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
@@ -5647,6 +5821,29 @@ namespace PocketDb
                     where
                         tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
                         ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join
+                        web.Tags tag indexed by Tags_Lang_Value_Id on
+                            tag.Id = tm.TagId
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = )sql" + to_string(requiredTagsIncluded.size()) + R"sql(
                 )
             )sql";
         }
@@ -5779,6 +5976,8 @@ namespace PocketDb
 
                 )sql" + tagsIncludedSql + R"sql(
 
+                )sql" + requiredTagsIncludedSql + R"sql(
+
                 )sql" + tagsExcludedSql + R"sql(
 
             limit ?
@@ -5823,6 +6022,15 @@ namespace PocketDb
                     );
                 }
 
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
                 if (!tagsExcluded.empty())
                 {
                     stmt.Bind(
@@ -5860,7 +6068,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
-        const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTagsIncluded, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         const string& address, int badReputationLimit)
     {
@@ -5881,6 +6089,29 @@ namespace PocketDb
                     where
                         tag.Value in ( )sql" + join(vector<string>(tagsIncluded.size(), "?"), ",") + R"sql( ) and
                         ( ? or tag.Lang = ? )
+                )
+            )sql";
+        }
+
+        string requiredTagsIncludedSql = "";
+        if (!requiredTagsIncluded.empty())
+        {
+            requiredTagsIncludedSql = R"sql(
+                and t.RowId in (
+                    select
+                        tm.ContentId
+                    from
+                        web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    join
+                        web.Tags tag indexed by Tags_Lang_Value_Id on
+                            tag.Id = tm.TagId
+                    where
+                        tag.Value in ( )sql" + join(vector<string>(requiredTagsIncluded.size(), "?"), ",") + R"sql( ) and
+                        ( ? or tag.Lang = ? )
+                    group by
+                        tm.ContentId
+                    having
+                        count(distinct tag.Value) = )sql" + to_string(requiredTagsIncluded.size()) + R"sql(
                 )
             )sql";
         }
@@ -6012,6 +6243,8 @@ namespace PocketDb
 
                 )sql" + tagsIncludedSql + R"sql(
 
+                )sql" + requiredTagsIncludedSql + R"sql(
+
                 )sql" + tagsExcludedSql + R"sql(
         )sql";
 
@@ -6041,6 +6274,15 @@ namespace PocketDb
                 {
                     stmt.Bind(
                         tagsIncluded,
+                        lang.empty(),
+                        lang
+                    );
+                }
+
+                if (!requiredTagsIncluded.empty())
+                {
+                    stmt.Bind(
+                        requiredTagsIncluded,
                         lang.empty(),
                         lang
                     );
@@ -6154,7 +6396,7 @@ namespace PocketDb
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tagsIncluded, contentTypes,
+            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tagsIncluded, requiredTagsIncluded, contentTypes,
                 txidsExcluded, addrsExcluded, tagsExcluded, address, badReputationLimit);
 
             result.push_backV(histContents.getValues());
@@ -6165,7 +6407,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetBoostFeed(int topHeight, int countOut,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const string& lang, const vector<string>& tags, const vector<string>& requiredTags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
         int badReputationLimit)
     {
@@ -6390,7 +6632,7 @@ namespace PocketDb
     }
 
     UniValue WebRpcRepository::GetProfileCollections(const string& addressFeed, int countOut, int pageNumber, const int64_t& topContentId, int topHeight,
-                                   const string& lang, const vector<string>& tagsIncluded, const vector<int>& contentTypes,
+                                   const string& lang, const vector<string>& tagsIncluded, const vector<string>& requiredTags, const vector<int>& contentTypes,
                                    const vector<string>& txidsExcluded, const vector<string>& addrsExcluded, const vector<string>& tagsExcluded,
                                    const string& address, const string& keyword, const string& orderby, const string& ascdesc)
     {

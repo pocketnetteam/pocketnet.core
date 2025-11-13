@@ -28,7 +28,7 @@ namespace PocketWeb::PocketWebRpc
             types = {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_STREAM, CONTENT_AUDIO};
     }
 
-    void ParseRequestTags(const UniValue& value, vector<string>& tags)
+    void ParseRequestTags(const UniValue& value, vector<string>& tags, vector<string>& requiredTags)
     {
         if (value.isStr())
         {
@@ -37,7 +37,17 @@ namespace PocketWeb::PocketWebRpc
             {
                 auto _tag = HtmlUtils::UrlDecode(tag);
                 HtmlUtils::StringToLower(_tag);
-                tags.push_back(_tag);
+                
+                if (_tag.substr(0, 9) == "required:")
+                {
+                    string requiredTag = _tag.substr(9);
+                    if (!requiredTag.empty())
+                        requiredTags.push_back(requiredTag);
+                }
+                else
+                {
+                    tags.push_back(_tag);
+                }
             }
         }
         else if (value.isArray())
@@ -50,10 +60,20 @@ namespace PocketWeb::PocketWebRpc
                 {
                     auto _tag = HtmlUtils::UrlDecode(tag);
                     HtmlUtils::StringToLower(_tag);
-                    tags.push_back(_tag);
+                    
+                    if (_tag.substr(0, 9) == "required:")
+                    {
+                        string requiredTag = _tag.substr(9);
+                        if (!requiredTag.empty())
+                            requiredTags.push_back(requiredTag);
+                    }
+                    else
+                    {
+                        tags.push_back(_tag);
+                    }
                 }
 
-                if (tags.size() >= 10)
+                if ((tags.size() + requiredTags.size()) >= 10)
                     break;
             }
         }

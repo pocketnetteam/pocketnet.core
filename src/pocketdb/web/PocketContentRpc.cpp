@@ -10,7 +10,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
+    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags, vector<string>& requiredTags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
         topHeight = ChainActiveSafeHeight();
@@ -31,9 +31,9 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
-        // tags
+        // tags with required support
         if (request.params.size() > 4)
-            ParseRequestTags(request.params[4], tags);
+            ParseRequestTags(request.params[4], tags, requiredTags);
 
         // content types
         ParseRequestContentTypes(request.params[5], contentTypes);
@@ -84,7 +84,10 @@ namespace PocketWeb::PocketWebRpc
 
         // exclude tags
         if (request.params.size() > 8)
-            ParseRequestTags(request.params[8], tagsExcluded);
+        {
+            vector<string> tempRequiredTags;
+            ParseRequestTags(request.params[8], tagsExcluded, tempRequiredTags);
+        }
 
         // address for person output
         if (request.params.size() > 9)
@@ -101,10 +104,10 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
-    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
+    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags, vector<string>& requiredTags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed)
     {
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         if (request.params.size() > 10)
         {
@@ -123,10 +126,10 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
-    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
+    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags, vector<string>& requiredTags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed, vector<string>& addresses_extended)
     {
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed);
 
         if (request.params.size() > 11) {
             if (request.params[11].isStr()) {
@@ -145,10 +148,10 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
-    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
+    void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags, vector<string>& requiredTags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address, string& address_feed, string& keyword, string& orderby, string& ascdesc)
     {
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, address_feed);
 
         if (request.params.size() > 11 && request.params[11].isStr())
         {
@@ -320,6 +323,7 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tagsIncluded;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
@@ -329,7 +333,7 @@ namespace PocketWeb::PocketWebRpc
         string keyword;
         string orderby;
         string ascdesc;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
 
         if (address_feed.empty())
@@ -350,7 +354,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, contentTypes,
+            address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address, orderby, ascdesc);
 
         result.pushKV("height", topHeight);
@@ -414,6 +418,7 @@ namespace PocketWeb::PocketWebRpc
             int countOut;
             string lang;
             vector<string> tagsIncluded;
+            vector<string> requiredTags;
             vector<int> contentTypes;
             vector<string> txIdsExcluded;
             vector<string> adrsExcluded;
@@ -424,7 +429,7 @@ namespace PocketWeb::PocketWebRpc
             string orderby;
             string ascdesc;
 
-            ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, contentTypes, txIdsExcluded,
+            ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tagsIncluded, requiredTags, contentTypes, txIdsExcluded,
                             adrsExcluded, tagsExcluded, address, address_feed, keyword, orderby, ascdesc);
 
             if (address_feed.empty())
@@ -446,7 +451,7 @@ namespace PocketWeb::PocketWebRpc
 
             UniValue result(UniValue::VOBJ);
             UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileCollections(
-                    address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, contentTypes,
+                    address_feed, countOut, pageNumber, topContentId, topHeight, lang, tagsIncluded, requiredTags, contentTypes,
                     txIdsExcluded, adrsExcluded, tagsExcluded, address, keyword, orderby, ascdesc);
 
             result.pushKV("height", topHeight);
@@ -607,12 +612,13 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
@@ -628,7 +634,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHistoricalFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            countOut, topContentId, topHeight, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             address, badReputationLimit);
 
@@ -705,12 +711,13 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
@@ -726,7 +733,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHierarchicalFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            countOut, topContentId, topHeight, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             address, badReputationLimit);
 
@@ -799,6 +806,7 @@ namespace PocketWeb::PocketWebRpc
         int topHeight;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
@@ -806,7 +814,7 @@ namespace PocketWeb::PocketWebRpc
 
         string skipString = "";
         int countOut = 300;
-        ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, skipString, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, skipString);
 
         // Hack for set countOut value more 20
@@ -820,7 +828,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue boosts = request.DbConnection()->WebRpcRepoInst->GetBoostFeed(
-            topHeight, countOut, lang, tags, contentTypes,
+            topHeight, countOut, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             badReputationLimit);
 
@@ -899,13 +907,14 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
         int depth = 60 * 24 * 30 * 12; // about 1 year
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
         // depth
         if (request.params.size() > 10)
@@ -927,7 +936,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetTopFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            countOut, topContentId, topHeight, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             address, depth, badReputationLimit);
 
@@ -1006,13 +1015,14 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
         int depth = 60 * 24 * 30 * 1; // about 1 month
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address);
         // depth
         if (request.params.size() > 10)
@@ -1034,7 +1044,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetMostCommentedFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            countOut, topContentId, topHeight, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded,
             address, depth, badReputationLimit);
 
@@ -1119,6 +1129,7 @@ namespace PocketWeb::PocketWebRpc
         int countOut;
         string lang;
         vector<string> tags;
+        vector<string> requiredTags;
         vector<int> contentTypes;
         vector<string> txIdsExcluded;
         vector<string> adrsExcluded;
@@ -1126,7 +1137,7 @@ namespace PocketWeb::PocketWebRpc
         string address;
         string address_feed;
         vector<string> addresses_extended;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, requiredTags, contentTypes, txIdsExcluded,
             adrsExcluded, tagsExcluded, address, address_feed, addresses_extended);
 
         if (address_feed.empty() && addresses_extended.empty())
@@ -1142,7 +1153,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(
-            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
+            address_feed, countOut, topContentId, topHeight, lang, tags, requiredTags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address, addresses_extended);
 
         result.pushKV("height", topHeight);

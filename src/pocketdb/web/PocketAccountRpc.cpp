@@ -804,8 +804,9 @@ namespace PocketWeb::PocketWebRpc
                     lang = request.params[2].get_str();
 
                 vector<string> tags;
+                vector<string> requiredTags;
                 if (request.params.size() > 3)
-                    ParseRequestTags(request.params[3], tags);
+                    ParseRequestTags(request.params[3], tags, requiredTags);
 
                 vector<int> contentTypes;
                 if (request.params.size() > 4)
@@ -835,7 +836,10 @@ namespace PocketWeb::PocketWebRpc
 
                 vector<string> tagsExcluded;
                 if (request.params.size() > 6)
-                    ParseRequestTags(request.params[6], tagsExcluded);
+                {
+                    vector<string> tempRequiredTags;
+                    ParseRequestTags(request.params[6], tagsExcluded, tempRequiredTags);
+                }
 
                 int depth = 60 * 24 * 30 * 12; // about 1 year
                 if (request.params.size() > 7)
@@ -848,7 +852,7 @@ namespace PocketWeb::PocketWebRpc
                 auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
 
                 UniValue result(UniValue::VARR);
-                auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, contentTypes,
+                auto ids =  request.DbConnection()->WebRpcRepoInst->GetTopAccounts(topHeight, countOut, lang, tags, requiredTags, contentTypes,
                 adrsExcluded, tagsExcluded, depth, badReputationLimit);
                 if (!ids.empty())
                 {
