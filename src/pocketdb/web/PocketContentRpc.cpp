@@ -364,6 +364,47 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetCommunityFeed()
+    {
+        return RPCHelpMan{"getcommunityfeed",
+            "\nGet feed for specified community.\n",
+            {
+                {"community", RPCArg::Type::STR, RPCArg::Optional::NO, "Community address"},
+                {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Count of contents to return"},
+                {"page", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page number (0-based)"},
+            },
+            {
+                // TODO (rpc): provide return description
+            },
+            RPCExamples{
+                HelpExampleCli("getcommunityfeed", "\"address\" 20 0") +
+                HelpExampleRpc("getcommunityfeed", "[\"address\",20,0]")
+            },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM, UniValue::VNUM}, true);
+
+            if (request.params.empty() || !request.params[0].isStr())
+                throw JSONRPCError(RPC_INVALID_REQUEST, "No community address");
+
+            string community = request.params[0].get_str();
+            int countOut = 20;
+            int page = 0;
+
+            if (request.params.size() > 1 && request.params[1].isNum())
+                countOut = request.params[1].get_int();
+            if (request.params.size() > 2 && request.params[2].isNum())
+                page = request.params[2].get_int();
+
+            UniValue contents = request.DbConnection()->WebRpcRepoInst->GetCommunityFeed(community, countOut, page);
+
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("contents", contents);
+            return result;
+        },
+        };
+    }
+
     RPCHelpMan GetProfileCollections()
     {
         return RPCHelpMan{"getprofilecollections",

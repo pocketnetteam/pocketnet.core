@@ -64,6 +64,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getmostcommentedfeed",             &GetMostCommentedFeed,          {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","depth"}},
     {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
     {"contents",        "getprofilecollections",            &GetProfileCollections,         {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed", "keyword"}},
+    {"contents",        "getcommunityfeed",                 &GetCommunityFeed,              {"community","countOut","page"}},
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address","address_feed"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"hashes", "address", "last"}},
     {"contents",        "getcontent",                       &GetContent,                    {"hashes", "address", "last"}},
@@ -101,6 +102,7 @@ static const CRPCCommand commands[] =
     {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address","useaddresses"}},
     {"accounts",        "getuserblockers",                  &GetAccountBlockers,             {"address","useaddresses"}},
     {"accounts",        "gettopaccounts",                   &GetTopAccounts,                 {"topHeight","countOut","lang","tags","contentTypes","adrsExcluded","tagsExcluded","depth"}},
+    {"accounts",        "getcommunities",                   &GetCommunities,                 {"count","offset"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},

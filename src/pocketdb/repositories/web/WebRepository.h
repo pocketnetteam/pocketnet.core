@@ -41,6 +41,10 @@ namespace PocketDb
         void UpsertBarteronAccounts(int height);
         void UpsertBarteronOffers(int height);
 
+        void ProcessCommunities(int height);
+        void ProcessCommunityMembers(int height);
+        void ProcessCommunityPosts(int height);
+
         void CollectAccountStatistic();
     };
 

@@ -1035,4 +1035,384 @@ namespace PocketDb
         }
     }
 
+    void WebRepository::ProcessCommunities(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete communities that are no longer communities (community: false or removed)
+            Sql(R"sql(
+                delete from web.CommunityMembers
+                where
+                    CommunityRegId = MemberRegId and
+                    CommunityRegId in (
+                        select
+                            t.RegId1
+                        from
+                            Chain c
+                        cross join
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                                on t.RowId = c.TxId and t.Type in (103)
+                        cross join
+                            Payload p
+                                on p.TxId = t.RowId
+                        where
+                            c.Height = ? and
+                            (
+                                json_extract(p.String1, '$.community') = 0 or
+                                json_extract(p.String1, '$.community') is null or
+                                not json_valid(p.String1)
+                            )
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add new communities (community: true)
+            Sql(R"sql(
+                insert or ignore into web.CommunityMembers (CommunityRegId, MemberRegId)
+                select
+                    t.RegId1,
+                    t.RegId1
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1
+                    on t.RowId = c.TxId and t.Type in (103)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                where
+                    c.Height = ? and
+                    json_valid(p.String1) and
+                    json_extract(p.String1, '$.community') = 1
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
+
+    void WebRepository::ProcessCommunityMembers(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete members when unsubscribe (Type 304)
+            Sql(R"sql(
+                delete from web.CommunityMembers
+                where
+                    (CommunityRegId, MemberRegId) in (
+                        select
+                            t.RegId2 as CommunityRegId,
+                            t.RegId1 as MemberRegId
+                        from
+                            Chain c
+                        cross join
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                            on t.RowId = c.TxId and t.Type in (304)
+                        where
+                            c.Height = ? and
+                            -- Check if RegId2 is a community
+                            exists (
+                                select 1
+                                from web.CommunityMembers cm
+                                where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = t.RegId2
+                            )
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Delete members when community unsubscribes from user (Type 304, reversed)
+            Sql(R"sql(
+                delete from web.CommunityMembers
+                where
+                    (CommunityRegId, MemberRegId) in (
+                        select
+                            t.RegId1 as CommunityRegId,
+                            t.RegId2 as MemberRegId
+                        from
+                            Chain c
+                        cross join
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                            on t.RowId = c.TxId and t.Type in (304)
+                        where
+                            c.Height = ? and
+                            -- Check if RegId1 is a community
+                            exists (
+                                select 1
+                                from web.CommunityMembers cm
+                                where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = t.RegId1
+                            )
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add members when subscribe to community (Type 302, 303)
+            // User subscribes to community = request to join
+            Sql(R"sql(
+                insert or ignore into web.CommunityMembers (CommunityRegId, MemberRegId)
+                select
+                    t.RegId2 as CommunityRegId,
+                    t.RegId1 as MemberRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (302, 303)
+                where
+                    c.Height = ? and
+                    -- Check if RegId2 is a community
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = t.RegId2
+                    ) and
+                    -- Don't add if it's the community itself
+                    t.RegId1 != t.RegId2
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add members when community subscribes back (Type 302, 303, reversed)
+            // Community subscribes to user = approval of join request
+            // This is already handled by the previous insert, but we need to ensure it works both ways
+            // Actually, the previous insert handles both cases since we check if RegId2 is community
+            // But we also need to handle when community subscribes to user (RegId1 is community)
+            Sql(R"sql(
+                insert or ignore into web.CommunityMembers (CommunityRegId, MemberRegId)
+                select
+                    t.RegId1 as CommunityRegId,
+                    t.RegId2 as MemberRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (302, 303)
+                where
+                    c.Height = ? and
+                    -- Check if RegId1 is a community
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = t.RegId1
+                    ) and
+                    -- Don't add if it's the community itself
+                    t.RegId1 != t.RegId2
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
+
+    void WebRepository::ProcessCommunityPosts(int height)
+    {
+        SqlTransaction(__func__, [&]()
+        {
+            // Delete all existing posts for transactions at this height
+            // We'll re-add them based on current settings
+            Sql(R"sql(
+                delete from web.CommunityPosts
+                where
+                    PostRegId in (
+                        select
+                            t.RegId2
+                        from
+                            Chain c
+                        cross join
+                            Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                            on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221, 207)
+                        where
+                            c.Height = ?
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (single community as string - address)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    r.RowId as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                cross join
+                    Registry r
+                    on r.String = json_extract(p.String6, '$.community')
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_extract(p.String6, '$.community') is not null and
+                    json_type(p.String6, '$.community') = 'text' and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = r.RowId
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (single community as number - RegId, JSON field `community`)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    json_extract(p.String6, '$.community') as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_extract(p.String6, '$.community') is not null and
+                    json_type(p.String6, '$.community') in ('integer', 'real') and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = json_extract(p.String6, '$.community')
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (single community as number - RegId, JSON field `CommunityId`)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    json_extract(p.String6, '$.CommunityId') as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_extract(p.String6, '$.CommunityId') is not null and
+                    json_type(p.String6, '$.CommunityId') in ('integer', 'real') and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = json_extract(p.String6, '$.CommunityId')
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (array of communities - addresses as strings)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    r.RowId as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                cross join
+                    json_each(p.String6, '$.community') as pj
+                cross join
+                    Registry r
+                    on r.String = pj.value and json_type(pj.value) = 'text'
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_type(p.String6, '$.community') = 'array' and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = r.RowId
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (array of communities - RegIds as numbers, JSON field `community`)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    pj.value as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                cross join
+                    json_each(p.String6, '$.community') as pj
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_type(p.String6, '$.community') = 'array' and
+                    json_type(pj.value) in ('integer', 'real') and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = pj.value
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+
+            // Add posts to communities (array of communities - RegIds as numbers, JSON field `CommunityId`)
+            Sql(R"sql(
+                insert or ignore into web.CommunityPosts (CommunityRegId, PostRegId)
+                select
+                    pj.value as CommunityRegId,
+                    t.RegId2 as PostRegId
+                from
+                    Chain c
+                cross join
+                    Transactions t indexed by Transactions_RowId_desc_Type_RegId1_RegId2_RegId3
+                    on t.RowId = c.TxId and t.Type in (200, 201, 202, 209, 210, 220, 221)
+                cross join
+                    Payload p
+                    on p.TxId = t.RowId
+                cross join
+                    json_each(p.String6, '$.CommunityId') as pj
+                where
+                    c.Height = ? and
+                    json_valid(p.String6) and
+                    json_type(p.String6, '$.CommunityId') = 'array' and
+                    json_type(pj.value) in ('integer', 'real') and
+                    -- Verify that the community exists
+                    exists (
+                        select 1
+                        from web.CommunityMembers cm
+                        where cm.CommunityRegId = cm.MemberRegId and cm.CommunityRegId = pj.value
+                    )
+            )sql")
+            .Bind(height)
+            .Run();
+        });
+    }
+
 }

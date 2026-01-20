@@ -27,6 +27,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetProfileFeed();
     RPCHelpMan GetProfileCollections();
     RPCHelpMan GetSubscribesFeed();
+    RPCHelpMan GetCommunityFeed();
     RPCHelpMan GetContentsStatistic();
     RPCHelpMan GetRandomContents();
     RPCHelpMan GetContentActions();

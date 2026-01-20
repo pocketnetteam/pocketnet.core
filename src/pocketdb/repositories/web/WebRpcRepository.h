@@ -181,6 +181,10 @@ namespace PocketDb
 
         UniValue GetsubsciptionsGroupedByAuthors(const string& address, const string& addressPagination, int nHeight, int countOutOfUsers, int countOutOfcontents, int badReputationLimit);
 
+        // Communities
+        UniValue GetCommunities(int count, int offset);
+        UniValue GetCommunityFeed(const string& communityAddress, int countOut, int pageNumber);
+
     private:
         int cntBlocksForResult = 300;
         int cntPrevPosts = 5;

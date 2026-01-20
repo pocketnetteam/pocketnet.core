@@ -696,6 +696,18 @@ namespace PocketDb
                                     content.read(value);
                                     record.pushKV("content", content);
                                 }
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue communities(UniValue::VARR);
+                                    communities.read(value);
+                                    record.pushKV("communities", communities);
+                                }
+
+                                if (auto [ok, value] = cursor.TryGetColumnString(i++); ok) {
+                                    UniValue communityMembers(UniValue::VARR);
+                                    communityMembers.read(value);
+                                    record.pushKV("community_members", communityMembers);
+                                }
                             }
                         }
 
@@ -774,6 +786,26 @@ namespace PocketDb
                         f.Type
                 )gr
             ) as ContentJson
+            ,(
+                select
+                    json_group_array(r.String)
+                from
+                    web.CommunityMembers cm
+                join Registry r
+                    on r.RowId = cm.CommunityRegId
+                where
+                    cm.MemberRegId = addr.id
+            ) as Communities
+            ,(
+                select
+                    json_group_array(r.String)
+                from
+                    web.CommunityMembers cm
+                join Registry r
+                    on r.RowId = cm.MemberRegId
+                where
+                    cm.CommunityRegId = addr.id
+            ) as CommunityMembers
         )sql";
     }
 
@@ -900,6 +932,163 @@ namespace PocketDb
         auto _result = GetAccountProfiles(addresses, {}, shortForm, firstFlagsDepth);
         for (auto const& [address, id, record] : _result)
             result.insert_or_assign(address, record);
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetCommunities(int count, int offset)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (count <= 0)
+            count = 50;
+        if (offset < 0)
+            offset = 0;
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        r.String as Address,
+                        ifnull(p.String2, '') as Name,
+                        ifnull(p.String3, '') as Avatar,
+                        (
+                            select count()
+                            from web.CommunityMembers cmAll
+                            where cmAll.CommunityRegId = cm.CommunityRegId
+                        ) as MembersCount
+                    from
+                        web.CommunityMembers cm
+                    join Registry r
+                        on r.RowId = cm.CommunityRegId
+                    join Transactions u
+                        on u.RegId1 = cm.CommunityRegId and u.Type = 100
+                    join Last lu
+                        on lu.TxId = u.RowId
+                    left join Payload p
+                        on p.TxId = u.RowId
+                    where
+                        cm.CommunityRegId = cm.MemberRegId
+                    group by
+                        cm.CommunityRegId
+                    order by
+                        MembersCount desc,
+                        Address
+                    limit ? offset ?
+                )sql").Bind(count, offset);
+            },
+            [&](Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        int i = 0;
+                        auto [okAddr, addr] = cursor.TryGetColumnString(i++);
+                        auto [okName, name] = cursor.TryGetColumnString(i++);
+                        auto [okAvatar, avatar] = cursor.TryGetColumnString(i++);
+                        auto [okMembers, members] = cursor.TryGetColumnInt(i++);
+
+                        if (!okAddr)
+                            continue;
+
+                        UniValue item(UniValue::VOBJ);
+                        item.pushKV("address", addr);
+                        if (okName) item.pushKV("name", name);
+                        if (okAvatar) item.pushKV("avatar", avatar);
+                        if (okMembers) item.pushKV("members", members);
+
+                        result.push_back(item);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetCommunityFeed(const string& communityAddress, int countOut, int pageNumber)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (communityAddress.empty())
+            return result;
+
+        if (countOut <= 0)
+            countOut = 20;
+        if (pageNumber < 0)
+            pageNumber = 0;
+
+        // Resolve community address to Registry id
+        int64_t communityId = 0;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select
+                        r.RowId
+                    from
+                        Registry r
+                    where
+                        r.String = ?
+                )sql").Bind(communityAddress);
+            },
+            [&](Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                    {
+                        auto [okId, id] = cursor.TryGetColumnInt64(0);
+                        if (okId)
+                            communityId = id;
+                    }
+                });
+            }
+        );
+
+        if (communityId == 0)
+            return result;
+
+        // Collect root content hashes for this community
+        vector<string> hashes;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select distinct
+                        r.String as RootTxHash
+                    from
+                        web.CommunityPosts cp
+                    join Transactions t
+                        on t.RegId2 = cp.PostRegId
+                    join Chain c
+                        on c.TxId = t.RowId
+                    join Registry r
+                        on r.RowId = t.RegId2
+                    where
+                        cp.CommunityRegId = ?
+                    order by
+                        c.Height desc,
+                        t.Time desc
+                    limit ? offset ?
+                )sql").Bind(communityId, countOut, pageNumber * countOut);
+            },
+            [&](Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        auto [okHash, hash] = cursor.TryGetColumnString(0);
+                        if (okHash)
+                            hashes.push_back(hash);
+                    }
+                });
+            }
+        );
+
+        if (hashes.empty())
+            return result;
+
+        auto contents = GetContentsData(hashes, vector<int64_t>{}, "", true);
+        for (auto& c : contents)
+            result.push_back(c);
 
         return result;
     }

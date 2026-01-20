@@ -98,6 +98,28 @@ namespace PocketDb
         )sql");
 
         //
+        // COMMUNITIES
+        //
+        
+        _tables.emplace_back(R"sql(
+            create table if not exists CommunityMembers
+            (
+                CommunityRegId int not null,
+                MemberRegId int not null,
+                primary key (CommunityRegId, MemberRegId)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists CommunityPosts
+            (
+                CommunityRegId int not null,
+                PostRegId int not null,
+                primary key (CommunityRegId, PostRegId)
+            );
+        )sql");
+
+        //
         // INDEXES
         //
         _indexes = R"sql(
@@ -108,6 +130,12 @@ namespace PocketDb
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
 
             create index if not exists BarteronOffers_OfferId_Tag_AccountId on BarteronOffers(OfferId, Tag, AccountId);
+
+            create index if not exists CommunityMembers_CommunityRegId on CommunityMembers (CommunityRegId);
+            create index if not exists CommunityMembers_MemberRegId on CommunityMembers (MemberRegId);
+
+            create index if not exists CommunityPosts_CommunityRegId on CommunityPosts (CommunityRegId);
+            create index if not exists CommunityPosts_PostRegId on CommunityPosts (PostRegId);
         )sql";
     }
 }

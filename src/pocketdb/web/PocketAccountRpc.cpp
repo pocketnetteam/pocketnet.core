@@ -142,6 +142,38 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan GetCommunities()
+    {
+        return RPCHelpMan{"getcommunities",
+                "\nGet list of communities.\n",
+                {
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum number of communities to return (default 50)"},
+                    {"offset", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Offset for pagination (default 0)"},
+                },
+                {
+                    // TODO (rpc): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getcommunities", "50 0") +
+                    HelpExampleRpc("getcommunities", "[50,0]")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM}, true);
+
+            int count = 50;
+            int offset = 0;
+
+            if (request.params.size() > 0 && request.params[0].isNum())
+                count = request.params[0].get_int();
+            if (request.params.size() > 1 && request.params[1].isNum())
+                offset = request.params[1].get_int();
+
+            return request.DbConnection()->WebRpcRepoInst->GetCommunities(count, offset);
+        },
+        };
+    }
+
     RPCHelpMan GetAccountAddress()
     {
         return RPCHelpMan{"getuseraddress",

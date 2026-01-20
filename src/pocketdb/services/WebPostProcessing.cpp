@@ -87,6 +87,10 @@ namespace PocketServices
             webRepoInst->UpsertBarteronAccounts(currHeight);
             webRepoInst->UpsertBarteronOffers(currHeight);
 
+            webRepoInst->ProcessCommunities(currHeight);
+            webRepoInst->ProcessCommunityMembers(currHeight);
+            webRepoInst->ProcessCommunityPosts(currHeight);
+
             int period = 60;
             if (gArgs.GetChainName() == CBaseChainParams::REGTEST)
                 period = 1;
