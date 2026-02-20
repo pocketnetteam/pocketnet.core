@@ -206,7 +206,6 @@ jobs:
       - name: Install general dependencies
         run: |
           brew install automake make miniupnpc protobuf qrencode librsvg python-setuptools berkeley-db@4
-          pip3 install setuptools
       - name: Cache depends
         id: cache-depends
         uses: actions/cache@v4
