@@ -198,7 +198,7 @@ jobs:
           path: ./out/*
 
   build-macos-amd64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: prepare
     steps:
       - name: Check out Git repository
