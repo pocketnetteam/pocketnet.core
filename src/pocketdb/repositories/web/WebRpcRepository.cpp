@@ -6864,6 +6864,135 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetSubscribesChannels(
+        const string& address,
+        int topHeight,
+        int pageStart,
+        int pageSize,
+        const vector<int>& contentTypes
+    )
+    {
+        UniValue result(UniValue::VARR);
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    with
+                        addr as (
+                            select RowId as id from Registry where String = ?
+                        ),
+                        height as (
+                            select ? as value
+                        ),
+                        subs_with_content as (
+                            select
+                                s.RegId2 as author_id,
+                                (
+                                    select ct.Uid
+                                    from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    cross join Last lt on lt.TxId = t.RowId
+                                    cross join Chain ct on ct.TxId = t.RowId and ct.Height <= height.value
+                                    where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                                        and t.RegId1 = s.RegId2
+                                    order by ct.Uid desc
+                                    limit 1
+                                ) as last_content_uid
+                            from
+                                addr, height
+                            cross join
+                                Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    s.Type in (302, 303) and
+                                    s.RegId1 = addr.id
+                            cross join
+                                Last ls on ls.TxId = s.RowId
+                            cross join
+                                Chain cs on cs.TxId = s.RowId and cs.Height <= height.value
+                        )
+                    select
+                        (select r.String from Registry r where r.RowId = swc.author_id) as address,
+                        p.String2 as name,
+                        p.String3 as avatar,
+                        (select r.String from Registry r where r.RowId = ct.RegId2) as root_txid,
+                        ct.Type as content_type,
+                        cp.String2 as caption,
+                        substr(cp.String3, 1, 200) as message,
+                        ifnull(ctr.Time, ct.Time) as content_time,
+                        cc.Height as content_height,
+                        ifnull((
+                            select sum(scr.Int1)
+                            from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain cscr on cscr.TxId = scr.RowId
+                            where scr.Type = 300 and scr.RegId2 = ct.RegId2
+                        ), 0) as score_sum,
+                        (
+                            select count()
+                            from Transactions scr indexed by Transactions_Type_RegId2_RegId1
+                            cross join Chain cscr on cscr.TxId = scr.RowId
+                            where scr.Type = 300 and scr.RegId2 = ct.RegId2
+                        ) as score_cnt,
+                        (
+                            select count()
+                            from Transactions cmt indexed by Transactions_Type_RegId3_RegId1
+                            cross join Last lcmt on lcmt.TxId = cmt.RowId
+                            cross join Chain ccmt on ccmt.TxId = cmt.RowId
+                            where cmt.Type in (204, 205, 206) and cmt.RegId3 = ct.RegId2
+                        ) as comments_cnt
+                    from subs_with_content swc
+                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                        u.Type in (100, 170) and u.RegId1 = swc.author_id
+                    cross join Last lu on lu.TxId = u.RowId
+                    cross join Payload p on p.TxId = u.RowId
+                    cross join Chain cc on cc.Uid = swc.last_content_uid
+                    cross join Transactions ct on ct.RowId = cc.TxId
+                    left join Transactions ctr on ctr.RowId = ct.RegId2
+                    left join Payload cp on cp.TxId = ct.RowId
+                    where swc.last_content_uid is not null
+                    order by swc.last_content_uid desc
+                    limit ? offset ?
+                )sql")
+                .Bind(
+                    address,
+                    topHeight,
+                    contentTypes,
+                    pageSize,
+                    pageStart
+                );
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue channel(UniValue::VOBJ);
+                        UniValue lastContent(UniValue::VOBJ);
+
+                        int ii = 0;
+                        cursor.Collect<string>(ii++, channel, "address");
+                        cursor.Collect<string>(ii++, channel, "name");
+                        cursor.Collect<string>(ii++, channel, "avatar");
+
+                        cursor.Collect<string>(ii++, lastContent, "txid");
+                        cursor.Collect(ii++, [&](int value) {
+                            lastContent.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                        });
+                        cursor.Collect<string>(ii++, lastContent, "caption");
+                        cursor.Collect<string>(ii++, lastContent, "message");
+                        cursor.Collect<int64_t>(ii++, lastContent, "time");
+                        cursor.Collect<int>(ii++, lastContent, "height");
+                        cursor.Collect<int>(ii++, lastContent, "scoreSum");
+                        cursor.Collect<int>(ii++, lastContent, "scoreCnt");
+                        cursor.Collect<int>(ii++, lastContent, "comments");
+
+                        channel.pushKV("lastContent", lastContent);
+                        result.push_back(channel);
+                    }
+                });
+            }
+        );
+
+        return result;
+    }
+
     // ------------------------------------------------------
 
     vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
