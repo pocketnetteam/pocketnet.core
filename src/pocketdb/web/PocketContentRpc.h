@@ -35,6 +35,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetActivities();
     RPCHelpMan GetNotificationsSummary();
     RPCHelpMan GetsubsciptionsGroupedByAuthors();
+    RPCHelpMan GetSubscribesChannels();
 }
 
 #endif //SRC_POCKETDEBUG_H

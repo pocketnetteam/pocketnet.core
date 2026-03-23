@@ -76,6 +76,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getnotifications",                 &GetNotifications,              {"height", "filters"}},
     {"contents",        "getnotificationssummary",          &GetNotificationsSummary,       {"addresses", "height", "filters"}},
     {"contents",        "getsubsciptionsgroupedbyauthors",  &GetsubsciptionsGroupedByAuthors, {"address", "addressPagination", "nHeight", "countOutOfUsers", "countOutOfcontents"}},
+    {"contents",        "getsubscribeschannels",            &GetSubscribesChannels,           {"address", "topHeight", "pageStart", "pageSize", "contentTypes"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
