@@ -200,7 +200,11 @@ public:
                 }
                 catch (const std::exception& e)
                 {
-                    LogPrintf("%s event loop thread exception: %s", name.value_or(""), e.what());
+                    LogPrintf("%s event loop thread exception: %s\n", name.value_or(""), e.what());
+                }
+                catch (...)
+                {
+                    LogPrintf("%s event loop thread unknown exception (possibly UniValue)\n", name.value_or(""));
                 }
             }
         });

@@ -499,7 +499,7 @@ namespace PocketDb
                 select
                     cu.Uid as AccountId,
                     ct.Uid as OfferId,
-                    json_extract(p.String4, '$.t') as Tag
+                    coalesce(json_extract(p.String4, '$.t'), 0) as Tag
                 from
                     Chain ct
                 cross join
