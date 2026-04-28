@@ -51,6 +51,8 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         return;
     }
 
+    try {
+
     const auto& block = entry.first;
     auto blockIndex = entry.second;
     auto blockHeight = blockIndex->nHeight;
@@ -501,4 +503,10 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         }
     };
     m_WSConnections->Iterate(send);
+
+    } catch (const std::exception& e) {
+        LogPrintf("Error: NotifyBlockProcessor::Process - %s\n", e.what());
+    } catch (...) {
+        LogPrintf("Error: NotifyBlockProcessor::Process - unknown exception at height %d\n", entry.second->nHeight);
+    }
 }
