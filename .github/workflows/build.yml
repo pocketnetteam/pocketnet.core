@@ -273,8 +273,10 @@ jobs:
           path: ./out/*
 
   deploy-binaries:
+    if: github.ref == 'refs/heads/0.22'
     needs: [ build-macos-arm64, build-macos-amd64, build-linux, build-windows ]
     runs-on: dev.core
+    environment: production
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
