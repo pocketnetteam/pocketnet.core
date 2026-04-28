@@ -137,7 +137,7 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.branch-name.outputs.ref_branch }}
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Install general dependencies
         run: brew install automake make libtool miniupnpc protobuf qrencode librsvg python-setuptools
       - name: Cache depends
@@ -169,7 +169,7 @@ jobs:
           security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain 
           security default-keychain -s build.keychain
           security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime dist/Pocketcoin-Qt.app -v
       - name: Notarize App
@@ -198,29 +198,37 @@ jobs:
           path: ./out/*
 
   build-macos-amd64:
-    runs-on: macos-13
+    runs-on: macos-15
     needs: prepare
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Install general dependencies
         run: |
           brew install automake make miniupnpc protobuf qrencode librsvg python-setuptools berkeley-db@4
-          pip3 install setuptools
+      - name: Detect depends path
+        id: detect
+        run: |
+          DARWIN_VER=$(sw_vers -productVersion | cut -d. -f1)
+          HOST="x86_64-apple-darwin${DARWIN_VER}.0.0"
+          echo "host=$HOST" >> $GITHUB_OUTPUT
+          echo "Detected HOST: $HOST"
       - name: Cache depends
         id: cache-depends
         uses: actions/cache@v4
         with:
-          path: depends/x86_64-apple-darwin22.6.0
-          key: macos-amd64-depends-${{ hashFiles('depends/Makefile', 'depends/funcs.mk', 'depends/packages/**/*.mk') }}
+          path: depends/${{ steps.detect.outputs.host }}
+          key: macos-amd64-depends-${{ steps.detect.outputs.host }}-${{ hashFiles('depends/Makefile', 'depends/funcs.mk', 'depends/packages/**/*.mk') }}
           restore-keys: macos-amd64-depends-
       - name: Build depends
         if: steps.cache-depends.outputs.cache-hit != 'true'
-        run: cd depends && make && cd ..
+        run: cd depends && make HOST=${{ steps.detect.outputs.host }} -j4 && cd ..
       - name: Configure
         run: |
           ./autogen.sh
-          ./configure --prefix=$PWD/depends/x86_64-apple-darwin22.6.0
+          ./configure --prefix=$PWD/depends/${{ steps.detect.outputs.host }}
       - name: Make
         run: |
           make -j4
@@ -236,7 +244,7 @@ jobs:
           security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain 
           security default-keychain -s build.keychain
           security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime dist/Pocketcoin-Qt.app -v
       - name: Notarize App
