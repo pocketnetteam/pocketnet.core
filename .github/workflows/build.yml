@@ -211,10 +211,10 @@ jobs:
       - name: Detect depends path
         id: detect
         run: |
-          DARWIN_VER=$(sw_vers -productVersion | cut -d. -f1)
+          DARWIN_VER=$(uname -r | cut -d. -f1)
           HOST="x86_64-apple-darwin${DARWIN_VER}.0.0"
           echo "host=$HOST" >> $GITHUB_OUTPUT
-          echo "Detected HOST: $HOST"
+          echo "Detected HOST: $HOST (Darwin kernel ${DARWIN_VER})"
       - name: Cache depends
         id: cache-depends
         uses: actions/cache@v4
