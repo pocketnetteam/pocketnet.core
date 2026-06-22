@@ -4063,8 +4063,10 @@ namespace PocketDb
 
         // -------------------- Totals per direction (respecting topHeight) --------------------
 
-        auto countBoosts = [&](const string& sql) -> int64_t {
+        // Returns {count, amount} where amount is the sum of boost values in satoshis.
+        auto countBoosts = [&](const string& sql) -> std::pair<int64_t, int64_t> {
             int64_t total = 0;
+            int64_t amount = 0;
             SqlTransaction(
                 __func__,
                 [&]() -> Stmt& {
@@ -4075,31 +4077,68 @@ namespace PocketDb
                 [&] (Stmt& stmt) {
                     stmt.Select([&](Cursor& cursor) {
                         if (cursor.Step())
+                        {
                             if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) total = value;
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) amount = value;
+                        }
                     });
                 }
             );
-            return total;
+            return {total, amount};
         };
 
         if (wantSent)
         {
-            totals.pushKV("sent", countBoosts(R"sql(
+            auto[cnt, amount] = countBoosts(R"sql(
                 with addr as ( select RowId as id from Registry where String = ? )
-                select count(*)
+                select
+                    count(*),
+                    coalesce(sum(
+                        (
+                            select sum(io.Value)
+                            from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                                on io.TxId = i.TxId and io.Number = i.Number
+                            where i.SpentTxId = tBoost.RowId
+                        )
+                        -
+                        (
+                            select sum(o.Value)
+                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            where o.TxId = tBoost.RowId
+                        )
+                    ), 0)
                 from addr
                 cross join Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on tBoost.Type in (208) and tBoost.RegId1 = addr.id
                 cross join Chain cb
                     on cb.TxId = tBoost.RowId and cb.Height <= ?
-            )sql"));
+            )sql");
+            totals.pushKV("sent", cnt);
+            totals.pushKV("sentAmount", ValueFromAmount(amount));
         }
 
         if (wantReceived)
         {
-            totals.pushKV("received", countBoosts(R"sql(
+            auto[cnt, amount] = countBoosts(R"sql(
                 with addr as ( select RowId as id from Registry where String = ? )
-                select count(*)
+                select
+                    count(*),
+                    coalesce(sum(
+                        (
+                            select sum(io.Value)
+                            from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                                on io.TxId = i.TxId and io.Number = i.Number
+                            where i.SpentTxId = tBoost.RowId
+                        )
+                        -
+                        (
+                            select sum(o.Value)
+                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            where o.TxId = tBoost.RowId
+                        )
+                    ), 0)
                 from addr
                 cross join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3
                     on tContent.Type in (200, 201, 202, 209, 210, 221) and tContent.RegId1 = addr.id
@@ -4109,7 +4148,9 @@ namespace PocketDb
                     on tBoost.Type in (208) and tBoost.RegId2 = tContent.RegId2
                 cross join Chain cb
                     on cb.TxId = tBoost.RowId and cb.Height <= ?
-            )sql"));
+            )sql");
+            totals.pushKV("received", cnt);
+            totals.pushKV("receivedAmount", ValueFromAmount(amount));
         }
 
         // -------------------- Page of boosts (selected direction(s)) --------------------

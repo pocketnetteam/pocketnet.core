@@ -854,9 +854,11 @@ namespace PocketWeb::PocketWebRpc
                 {
                     RPCResult{RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::NUM, "height", "Block height the selection was made for (boosts at height <= this value)"},
-                        {RPCResult::Type::OBJ, "totals", "Total number of matching boosts per direction (for pagination), ignoring count/offset", {
-                            {RPCResult::Type::NUM, "sent", /* optional */ true, "Total boosts made by the address (present when direction includes sent)"},
-                            {RPCResult::Type::NUM, "received", /* optional */ true, "Total boosts received on the address's content (present when direction includes received)"},
+                        {RPCResult::Type::OBJ, "totals", "Totals per direction (for pagination), ignoring count/offset", {
+                            {RPCResult::Type::NUM, "sent", /* optional */ true, "Total number of boosts made by the address (present when direction includes sent)"},
+                            {RPCResult::Type::NUM, "sentAmount", /* optional */ true, "Total amount of boosts made by the address, in PKOIN (present when direction includes sent)"},
+                            {RPCResult::Type::NUM, "received", /* optional */ true, "Total number of boosts received on the address's content (present when direction includes received)"},
+                            {RPCResult::Type::NUM, "receivedAmount", /* optional */ true, "Total amount of boosts received on the address's content, in PKOIN (present when direction includes received)"},
                         }},
                         {RPCResult::Type::ARR, "boosts", "", {
                             {RPCResult::Type::OBJ, "", "", {
