@@ -6874,87 +6874,165 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        if (pageSize <= 0)
+            return result;
+
+        // ------------------------------------------------------------------
+        // Phase 1 — find the page's channels cheaply.
+        //
+        // A channel's "latest content" is the one with the greatest Chain.Uid.
+        // Resolving it per-subscription scans every subscribed author's whole
+        // history (cost = sum of content across all subscribed channels), which
+        // runs for minutes when a user follows prolific channels. Instead scan a
+        // recent slice of the chain (Chain by Height desc), keep only subscribed
+        // authors and reduce to the newest content per author. Because a channel
+        // whose latest content is older than the slice necessarily ranks below
+        // every in-slice channel, the top of the slice is the true top of the
+        // page. If the slice does not yield enough channels to fill the page
+        // (dormant subscriptions or deep pagination) widen it and retry, falling
+        // back to the whole chain.
+        //
+        // Trade-off vs the per-subscription form: this scans the slice's content
+        // regardless of subscription count, so it is a little slower for users
+        // with few, low-volume subscriptions, but it is bounded (seconds) for
+        // everyone instead of unbounded (minutes) for heavy followers.
+        // ------------------------------------------------------------------
+
+        const int need = pageStart + pageSize;
+        const int fetchLimit = pageStart + pageSize * 2; // buffer for phase-2 hydration backfill
+
+        vector<int64_t> uids;
+
+        for (int window = 50000; ; window *= 2)
+        {
+            int fromHeight = topHeight - window;
+            bool wholeChain = fromHeight <= 0;
+            if (wholeChain)
+                fromHeight = 0;
+
+            uids.clear();
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        with
+                            addr as (
+                                select RowId as id from Registry where String = ?
+                            ),
+                            subs as (
+                                select s.RegId2 as author_id
+                                from addr
+                                cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                    s.Type in (302, 303) and s.RegId1 = addr.id
+                                cross join Last ls on ls.TxId = s.RowId
+                                cross join Chain cs on cs.TxId = s.RowId and cs.Height <= ?
+                            )
+                        select
+                            max(ct.Uid) as uid
+                        from Chain ct indexed by Chain_Height_Uid
+                        cross join Transactions t on
+                            t.RowId = ct.TxId and t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                        cross join Last lt on lt.TxId = t.RowId
+                        where ct.Height <= ? and ct.Height > ?
+                            and t.RegId1 in (select author_id from subs)
+                        group by t.RegId1
+                        order by uid desc
+                        limit ?
+                    )sql")
+                    .Bind(address, topHeight, contentTypes, topHeight, fromHeight, fetchLimit);
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        while (cursor.Step())
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                                uids.push_back(value);
+                    });
+                }
+            );
+
+            if ((int)uids.size() >= need || wholeChain)
+                break;
+        }
+
+        if (uids.empty())
+            return result;
+
+        // ------------------------------------------------------------------
+        // Phase 2 — hydrate only the page's channels (profile, latest content,
+        // score and comment aggregates). The aggregates are evaluated here,
+        // after pagination, so they run for at most pageSize rows rather than
+        // for every subscription. Hydration joins run before LIMIT so a channel
+        // that cannot be fully hydrated is dropped and backfilled from the
+        // buffered ids, matching the original single-query behaviour.
+        // ------------------------------------------------------------------
+
         SqlTransaction(
             __func__,
             [&]() -> Stmt& {
                 return Sql(R"sql(
                     with
-                        addr as (
-                            select RowId as id from Registry where String = ?
+                        ids(uid) as (
+                            values )sql" + join(vector<string>(uids.size(), "(?)"), ",") + R"sql(
                         ),
-                        height as (
-                            select ? as value
-                        ),
-                        subs_with_content as (
+                        page as (
                             select
-                                s.RegId2 as author_id,
-                                (
-                                    select ct.Uid
-                                    from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
-                                    cross join Last lt on lt.TxId = t.RowId
-                                    cross join Chain ct on ct.TxId = t.RowId and ct.Height <= height.value
-                                    where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                                        and t.RegId1 = s.RegId2
-                                    order by ct.Uid desc
-                                    limit 1
-                                ) as last_content_uid
-                            from
-                                addr, height
-                            cross join
-                                Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                                    s.Type in (302, 303) and
-                                    s.RegId1 = addr.id
-                            cross join
-                                Last ls on ls.TxId = s.RowId
-                            cross join
-                                Chain cs on cs.TxId = s.RowId and cs.Height <= height.value
+                                ids.uid as last_content_uid,
+                                ct.RegId1 as author_id,
+                                p.String2 as name,
+                                p.String3 as avatar,
+                                ct.RegId2 as content_root,
+                                ct.Type as content_type,
+                                ifnull(ctr.Time, ct.Time) as content_time,
+                                cc.Height as content_height,
+                                cp.String2 as caption,
+                                substr(cp.String3, 1, 200) as message
+                            from ids
+                            cross join Chain cc on cc.Uid = ids.uid
+                            cross join Last lcc on lcc.TxId = cc.TxId
+                            cross join Transactions ct on ct.RowId = cc.TxId
+                            cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                u.Type in (100, 170) and u.RegId1 = ct.RegId1
+                            cross join Last lu on lu.TxId = u.RowId
+                            cross join Payload p on p.TxId = u.RowId
+                            left join Transactions ctr on ctr.RowId = ct.RegId2
+                            left join Payload cp on cp.TxId = ct.RowId
+                            order by ids.uid desc
+                            limit ? offset ?
                         )
                     select
-                        (select r.String from Registry r where r.RowId = swc.author_id) as address,
-                        p.String2 as name,
-                        p.String3 as avatar,
-                        (select r.String from Registry r where r.RowId = ct.RegId2) as root_txid,
-                        ct.Type as content_type,
-                        cp.String2 as caption,
-                        substr(cp.String3, 1, 200) as message,
-                        ifnull(ctr.Time, ct.Time) as content_time,
-                        cc.Height as content_height,
+                        (select r.String from Registry r where r.RowId = page.author_id) as address,
+                        page.name,
+                        page.avatar,
+                        (select r.String from Registry r where r.RowId = page.content_root) as root_txid,
+                        page.content_type,
+                        page.caption,
+                        page.message,
+                        page.content_time,
+                        page.content_height,
                         ifnull((
                             select sum(scr.Int1)
                             from Transactions scr indexed by Transactions_Type_RegId2_RegId1
                             cross join Chain cscr on cscr.TxId = scr.RowId
-                            where scr.Type = 300 and scr.RegId2 = ct.RegId2
+                            where scr.Type = 300 and scr.RegId2 = page.content_root
                         ), 0) as score_sum,
                         (
                             select count()
                             from Transactions scr indexed by Transactions_Type_RegId2_RegId1
                             cross join Chain cscr on cscr.TxId = scr.RowId
-                            where scr.Type = 300 and scr.RegId2 = ct.RegId2
+                            where scr.Type = 300 and scr.RegId2 = page.content_root
                         ) as score_cnt,
                         (
                             select count()
                             from Transactions cmt indexed by Transactions_Type_RegId3_RegId1
                             cross join Last lcmt on lcmt.TxId = cmt.RowId
                             cross join Chain ccmt on ccmt.TxId = cmt.RowId
-                            where cmt.Type in (204, 205, 206) and cmt.RegId3 = ct.RegId2
+                            where cmt.Type in (204, 205, 206) and cmt.RegId3 = page.content_root
                         ) as comments_cnt
-                    from subs_with_content swc
-                    cross join Transactions u indexed by Transactions_Type_RegId1_RegId2_RegId3 on
-                        u.Type in (100, 170) and u.RegId1 = swc.author_id
-                    cross join Last lu on lu.TxId = u.RowId
-                    cross join Payload p on p.TxId = u.RowId
-                    cross join Chain cc on cc.Uid = swc.last_content_uid
-                    cross join Transactions ct on ct.RowId = cc.TxId
-                    left join Transactions ctr on ctr.RowId = ct.RegId2
-                    left join Payload cp on cp.TxId = ct.RowId
-                    where swc.last_content_uid is not null
-                    order by swc.last_content_uid desc
-                    limit ? offset ?
+                    from page
+                    order by page.last_content_uid desc
                 )sql")
                 .Bind(
-                    address,
-                    topHeight,
-                    contentTypes,
+                    uids,
                     pageSize,
                     pageStart
                 );
