@@ -4052,6 +4052,247 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetBoostsByAddress(const string& address, int topHeight, const string& direction, int count, int offset)
+    {
+        UniValue result(UniValue::VOBJ);
+        UniValue boosts(UniValue::VARR);
+        UniValue totals(UniValue::VOBJ);
+
+        bool wantSent = (direction == "sent" || direction == "both");
+        bool wantReceived = (direction == "received" || direction == "both");
+
+        // -------------------- Totals per direction (respecting topHeight) --------------------
+
+        // Returns {count, amount} where amount is the sum of boost values in satoshis.
+        auto countBoosts = [&](const string& sql) -> std::pair<int64_t, int64_t> {
+            int64_t total = 0;
+            int64_t amount = 0;
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    auto& stmt = Sql(sql);
+                    stmt.Bind(address, topHeight);
+                    return stmt;
+                },
+                [&] (Stmt& stmt) {
+                    stmt.Select([&](Cursor& cursor) {
+                        if (cursor.Step())
+                        {
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok) total = value;
+                            if (auto[ok, value] = cursor.TryGetColumnInt64(1); ok) amount = value;
+                        }
+                    });
+                }
+            );
+            return {total, amount};
+        };
+
+        if (wantSent)
+        {
+            auto[cnt, amount] = countBoosts(R"sql(
+                with addr as ( select RowId as id from Registry where String = ? )
+                select
+                    count(*),
+                    coalesce(sum(
+                        (
+                            select sum(io.Value)
+                            from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                                on io.TxId = i.TxId and io.Number = i.Number
+                            where i.SpentTxId = tBoost.RowId
+                        )
+                        -
+                        (
+                            select sum(o.Value)
+                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            where o.TxId = tBoost.RowId
+                        )
+                    ), 0)
+                from addr
+                cross join Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on tBoost.Type in (208) and tBoost.RegId1 = addr.id
+                cross join Chain cb
+                    on cb.TxId = tBoost.RowId and cb.Height <= ?
+            )sql");
+            totals.pushKV("sent", cnt);
+            totals.pushKV("sentAmount", ValueFromAmount(amount));
+        }
+
+        if (wantReceived)
+        {
+            auto[cnt, amount] = countBoosts(R"sql(
+                with addr as ( select RowId as id from Registry where String = ? )
+                select
+                    count(*),
+                    coalesce(sum(
+                        (
+                            select sum(io.Value)
+                            from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                            cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                                on io.TxId = i.TxId and io.Number = i.Number
+                            where i.SpentTxId = tBoost.RowId
+                        )
+                        -
+                        (
+                            select sum(o.Value)
+                            from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                            where o.TxId = tBoost.RowId
+                        )
+                    ), 0)
+                from addr
+                cross join Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on tContent.Type in (200, 201, 202, 209, 210, 221) and tContent.RegId1 = addr.id
+                cross join Last lc
+                    on lc.TxId = tContent.RowId
+                cross join Transactions tBoost indexed by Transactions_Type_RegId2_RegId1
+                    on tBoost.Type in (208) and tBoost.RegId2 = tContent.RegId2
+                cross join Chain cb
+                    on cb.TxId = tBoost.RowId and cb.Height <= ?
+            )sql");
+            totals.pushKV("received", cnt);
+            totals.pushKV("receivedAmount", ValueFromAmount(amount));
+        }
+
+        // -------------------- Page of boosts (selected direction(s)) --------------------
+
+        // Boosts made by the address (it spent coins to boost some content)
+        const string sqlSent = R"sql(
+            select
+                'sent' as direction,
+                (select r.String from Registry r where r.RowId = tBoost.RowId) as boostTxid,
+                addr.adr as boostAddress,
+                (
+                    select cr.String
+                    from Registry cr
+                    where cr.RowId = (
+                        select tc.RegId1
+                        from Transactions tc indexed by Transactions_Type_RegId2_RegId1
+                        where tc.Type in (200, 201, 202, 209, 210, 221) and tc.RegId2 = tBoost.RegId2
+                        limit 1
+                    )
+                ) as contentAddress,
+                (select r.String from Registry r where r.RowId = tBoost.RegId2) as contentTxid,
+                (
+                    (
+                        select sum(io.Value)
+                        from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                            on io.TxId = i.TxId and io.Number = i.Number
+                        where i.SpentTxId = tBoost.RowId
+                    )
+                    -
+                    (
+                        select sum(o.Value)
+                        from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                        where o.TxId = tBoost.RowId
+                    )
+                ) as boostAmount,
+                cb.Height as height,
+                tBoost.Time as time
+            from
+                addr
+            cross join
+                Transactions tBoost indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on tBoost.Type in (208) and tBoost.RegId1 = addr.id
+            cross join
+                Chain cb
+                    on cb.TxId = tBoost.RowId and cb.Height <= ?
+        )sql";
+
+        // Boosts received by the address (someone boosted content authored by the address)
+        const string sqlReceived = R"sql(
+            select
+                'received' as direction,
+                (select r.String from Registry r where r.RowId = tBoost.RowId) as boostTxid,
+                (select r.String from Registry r where r.RowId = tBoost.RegId1) as boostAddress,
+                addr.adr as contentAddress,
+                (select r.String from Registry r where r.RowId = tBoost.RegId2) as contentTxid,
+                (
+                    (
+                        select sum(io.Value)
+                        from TxInputs i indexed by TxInputs_SpentTxId_Number_TxId
+                        cross join TxOutputs io indexed by TxOutputs_TxId_Number_AddressId
+                            on io.TxId = i.TxId and io.Number = i.Number
+                        where i.SpentTxId = tBoost.RowId
+                    )
+                    -
+                    (
+                        select sum(o.Value)
+                        from TxOutputs o indexed by TxOutputs_TxId_Number_AddressId
+                        where o.TxId = tBoost.RowId
+                    )
+                ) as boostAmount,
+                cb.Height as height,
+                tBoost.Time as time
+            from
+                addr
+            cross join
+                Transactions tContent indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    on tContent.Type in (200, 201, 202, 209, 210, 221) and tContent.RegId1 = addr.id
+            cross join
+                Last lc
+                    on lc.TxId = tContent.RowId
+            cross join
+                Transactions tBoost indexed by Transactions_Type_RegId2_RegId1
+                    on tBoost.Type in (208) and tBoost.RegId2 = tContent.RegId2
+            cross join
+                Chain cb
+                    on cb.TxId = tBoost.RowId and cb.Height <= ?
+        )sql";
+
+        string sql = R"sql(
+            with
+            addr as (
+                select RowId as id, String as adr
+                from Registry
+                where String = ?
+            )
+        )sql";
+        if (wantSent && wantReceived)
+            sql += sqlSent + " union all " + sqlReceived;
+        else if (wantSent)
+            sql += sqlSent;
+        else
+            sql += sqlReceived;
+        sql += " order by height desc, boostTxid desc limit ? offset ?";
+
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                auto& stmt = Sql(sql);
+                stmt.Bind(address);
+                if (wantSent) stmt.Bind(topHeight);
+                if (wantReceived) stmt.Bind(topHeight);
+                stmt.Bind(count, offset);
+                return stmt;
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    while (cursor.Step())
+                    {
+                        UniValue record(UniValue::VOBJ);
+
+                        if (auto[ok, value] = cursor.TryGetColumnString(0); ok) record.pushKV("direction", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(1); ok) record.pushKV("txid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(2); ok) record.pushKV("boostAddress", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(3); ok) record.pushKV("contentAddress", value);
+                        if (auto[ok, value] = cursor.TryGetColumnString(4); ok) record.pushKV("contentTxid", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(5); ok) record.pushKV("boostAmount", ValueFromAmount(value));
+                        if (auto[ok, value] = cursor.TryGetColumnInt(6); ok) record.pushKV("height", value);
+                        if (auto[ok, value] = cursor.TryGetColumnInt64(7); ok) record.pushKV("time", value);
+
+                        boosts.push_back(record);
+                    }
+                });
+            }
+        );
+
+        result.pushKV("height", topHeight);
+        result.pushKV("totals", totals);
+        result.pushKV("boosts", boosts);
+        return result;
+    }
+
     // ------------------------- Other ---------------------
 
     UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut)
