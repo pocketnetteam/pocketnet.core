@@ -6878,39 +6878,115 @@ namespace PocketDb
             return result;
 
         // ------------------------------------------------------------------
-        // Phase 1 — find the page's channels cheaply.
+        // Phase 1 — collect the page's channels (their latest content Uid).
         //
         // A channel's "latest content" is the one with the greatest Chain.Uid.
-        // Resolving it per-subscription scans every subscribed author's whole
-        // history (cost = sum of content across all subscribed channels), which
-        // runs for minutes when a user follows prolific channels. Instead scan a
-        // recent slice of the chain (Chain by Height desc), keep only subscribed
-        // authors and reduce to the newest content per author. Because a channel
-        // whose latest content is older than the slice necessarily ranks below
-        // every in-slice channel, the top of the slice is the true top of the
-        // page. If the slice does not yield enough channels to fill the page
-        // (dormant subscriptions or deep pagination) widen it and retry, falling
-        // back to the whole chain.
+        // Two strategies are chosen by subscription count, because each is fast
+        // exactly where the other is slow:
         //
-        // Trade-off vs the per-subscription form: this scans the slice's content
-        // regardless of subscription count, so it is a little slower for users
-        // with few, low-volume subscriptions, but it is bounded (seconds) for
-        // everyone instead of unbounded (minutes) for heavy followers.
+        //   * Few subscriptions -> resolve each channel's latest content
+        //     directly. The cost is bounded by their combined history, which is
+        //     small when there are only a few of them (even dormant ones).
+        //
+        //   * Many subscriptions -> resolving each author's latest by scanning
+        //     their whole history is unbounded (one prolific channel with tens of
+        //     thousands of posts already costs seconds). Instead scan a single
+        //     recent slice of the chain (Chain by Height desc) and reduce to the
+        //     newest content per subscribed author. A channel whose latest content
+        //     predates the slice ranks below every in-slice channel, so the slice
+        //     top is the page top. The slice has a fixed size: if it does not fill
+        //     the page (mostly-dormant subscriptions or deep pagination) the page
+        //     is returned partial rather than escalating to a whole-chain scan,
+        //     which would take minutes.
         // ------------------------------------------------------------------
 
-        const int need = pageStart + pageSize;
         const int fetchLimit = pageStart + pageSize * 2; // buffer for phase-2 hydration backfill
+
+        // Threshold between the two phase-1 strategies, and the slice size used
+        // by the window strategy.
+        const int PER_AUTHOR_MAX_SUBS = 100;
+        const int WINDOW_BLOCKS = 50000;
+
+        // Count active subscriptions to pick the strategy.
+        int subsCount = 0;
+        SqlTransaction(
+            __func__,
+            [&]() -> Stmt& {
+                return Sql(R"sql(
+                    select count()
+                    from Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3
+                    cross join Last ls on ls.TxId = s.RowId
+                    cross join Chain cs on cs.TxId = s.RowId and cs.Height <= ?
+                    where s.Type in (302, 303)
+                        and s.RegId1 = (select RowId from Registry where String = ?)
+                )sql")
+                .Bind(topHeight, address);
+            },
+            [&] (Stmt& stmt) {
+                stmt.Select([&](Cursor& cursor) {
+                    if (cursor.Step())
+                        if (auto[ok, value] = cursor.TryGetColumnInt(0); ok)
+                            subsCount = value;
+                });
+            }
+        );
+
+        if (subsCount == 0)
+            return result;
 
         vector<int64_t> uids;
 
-        for (int window = 50000; ; window *= 2)
+        auto collectUids = [&](Stmt& stmt) {
+            stmt.Select([&](Cursor& cursor) {
+                while (cursor.Step())
+                    if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
+                        uids.push_back(value);
+            });
+        };
+
+        if (subsCount <= PER_AUTHOR_MAX_SUBS)
         {
-            int fromHeight = topHeight - window;
-            bool wholeChain = fromHeight <= 0;
-            if (wholeChain)
+            SqlTransaction(
+                __func__,
+                [&]() -> Stmt& {
+                    return Sql(R"sql(
+                        with
+                            addr as (
+                                select RowId as id from Registry where String = ?
+                            )
+                        select uid from (
+                            select
+                                (
+                                    select ct.Uid
+                                    from Transactions t indexed by Transactions_Type_RegId1_RegId2_RegId3
+                                    cross join Last lt on lt.TxId = t.RowId
+                                    cross join Chain ct on ct.TxId = t.RowId and ct.Height <= ?
+                                    where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                                        and t.RegId1 = s.RegId2
+                                    order by ct.Uid desc
+                                    limit 1
+                                ) as uid
+                            from addr
+                            cross join Transactions s indexed by Transactions_Type_RegId1_RegId2_RegId3 on
+                                s.Type in (302, 303) and s.RegId1 = addr.id
+                            cross join Last ls on ls.TxId = s.RowId
+                            cross join Chain cs on cs.TxId = s.RowId and cs.Height <= ?
+                        )
+                        where uid is not null
+                        order by uid desc
+                        limit ?
+                    )sql")
+                    .Bind(address, topHeight, contentTypes, topHeight, fetchLimit);
+                },
+                collectUids
+            );
+        }
+        else
+        {
+            int fromHeight = topHeight - WINDOW_BLOCKS;
+            if (fromHeight < 0)
                 fromHeight = 0;
 
-            uids.clear();
             SqlTransaction(
                 __func__,
                 [&]() -> Stmt& {
@@ -6941,17 +7017,8 @@ namespace PocketDb
                     )sql")
                     .Bind(address, topHeight, contentTypes, topHeight, fromHeight, fetchLimit);
                 },
-                [&] (Stmt& stmt) {
-                    stmt.Select([&](Cursor& cursor) {
-                        while (cursor.Step())
-                            if (auto[ok, value] = cursor.TryGetColumnInt64(0); ok)
-                                uids.push_back(value);
-                    });
-                }
+                collectUids
             );
-
-            if ((int)uids.size() >= need || wholeChain)
-                break;
         }
 
         if (uids.empty())
