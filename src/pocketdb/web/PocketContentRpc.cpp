@@ -6,6 +6,7 @@
 #include "pocketdb/web/PocketContentRpc.h"
 #include "rpc/util.h"
 #include "validation.h"
+#include "util/html.h"
 #include "pocketdb/helpers/ShortFormModelsHelper.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -835,6 +836,86 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("height", topHeight);
         result.pushKV("boosts", boosts);
         return result;
+    },
+        };
+    }
+
+    RPCHelpMan GetBoostsByAddress()
+    {
+        return RPCHelpMan{"getboostsbyaddress",
+                "\nReturns content boosts related to an address: boosts the address made and/or boosts received on the address's content.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Account address to get boosts for"},
+                    {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Block height to search down from. 0 or omitted means current chain height (default 0)"},
+                    {"direction", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Which boosts to return: \"sent\", \"received\" or \"both\" (default \"both\")"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Max number of boosts to return (default 100, max 1000)"},
+                    {"offset", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of boosts to skip for pagination (default 0)"},
+                },
+                {
+                    RPCResult{RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::NUM, "height", "Block height the selection was made for (boosts at height <= this value)"},
+                        {RPCResult::Type::OBJ, "totals", "Totals per direction (for pagination), ignoring count/offset", {
+                            {RPCResult::Type::NUM, "sent", /* optional */ true, "Total number of boosts made by the address (present when direction includes sent)"},
+                            {RPCResult::Type::NUM, "sentAmount", /* optional */ true, "Total amount of boosts made by the address, in PKOIN (present when direction includes sent)"},
+                            {RPCResult::Type::NUM, "received", /* optional */ true, "Total number of boosts received on the address's content (present when direction includes received)"},
+                            {RPCResult::Type::NUM, "receivedAmount", /* optional */ true, "Total amount of boosts received on the address's content, in PKOIN (present when direction includes received)"},
+                        }},
+                        {RPCResult::Type::ARR, "boosts", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::STR, "direction", "\"sent\" if the address made the boost, \"received\" if the address's content was boosted"},
+                                {RPCResult::Type::STR, "txid", "Boost transaction hash"},
+                                {RPCResult::Type::STR, "boostAddress", "Address that made the boost"},
+                                {RPCResult::Type::STR, "contentAddress", "Address that authored the boosted content"},
+                                {RPCResult::Type::STR, "contentTxid", "Hash of the boosted content"},
+                                {RPCResult::Type::NUM, "boostAmount", "Boost amount in PKOIN (decimal, satoshis / 1e8)"},
+                                {RPCResult::Type::NUM, "height", "Block height of the boost transaction"},
+                                {RPCResult::Type::NUM, "time", "Timestamp of the boost transaction"},
+                            }}
+                        }}
+                    }}
+                },
+                RPCExamples{
+                    HelpExampleCli("getboostsbyaddress", "\"1Pe6...\" 0 \"both\" 100 0") +
+                    HelpExampleRpc("getboostsbyaddress", "\"1Pe6...\", 0, \"both\", 100, 0")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+        if (address.empty())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter 'address' is required");
+
+        // 0 or omitted -> current chain height
+        int topHeight = ChainActiveSafeHeight();
+        if (request.params.size() > 1 && request.params[1].isNum() && request.params[1].get_int() > 0)
+            topHeight = request.params[1].get_int();
+
+        string direction = "both";
+        if (request.params.size() > 2 && request.params[2].isStr())
+        {
+            direction = request.params[2].get_str();
+            HtmlUtils::StringToLower(direction);
+            if (direction != "sent" && direction != "received" && direction != "both")
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter 'direction' must be one of: sent, received, both");
+        }
+
+        int count = 100;
+        if (request.params.size() > 3 && request.params[3].isNum())
+        {
+            count = request.params[3].get_int();
+            if (count < 0) count = 0;
+            count = std::min(count, 1000);
+        }
+
+        int offset = 0;
+        if (request.params.size() > 4 && request.params[4].isNum())
+        {
+            offset = request.params[4].get_int();
+            if (offset < 0) offset = 0;
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetBoostsByAddress(address, topHeight, direction, count, offset);
     },
         };
     }

@@ -22,6 +22,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetHistoricalFeed();
     RPCHelpMan GetHierarchicalFeed();
     RPCHelpMan GetBoostFeed();
+    RPCHelpMan GetBoostsByAddress();
     RPCHelpMan GetTopFeed();
     RPCHelpMan GetMostCommentedFeed();
     RPCHelpMan GetProfileFeed();
