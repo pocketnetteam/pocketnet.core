@@ -11,6 +11,18 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/module")
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_custom_target(generate_build_info
+  BYPRODUCTS ${PROJECT_BINARY_DIR}/src/obj/build.h
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/src/obj
+  COMMAND ${CMAKE_COMMAND} -DBUILD_INFO_HEADER_PATH=${PROJECT_BINARY_DIR}/src/obj/build.h -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/script/GenerateBuildInfo.cmake
+  COMMENT "Generating obj/build.h"
+  VERBATIM
+)
+
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSymbolExists)
@@ -26,18 +38,42 @@ set(CMAKE_CXX_STANDARD 17)
 option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
 
 option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
+if (NOT DISABLE_ZMQ)
+    find_package(ZMQ REQUIRED)
+    if (ZMQ_FOUND)
+        set(ENABLE_ZMQ 1)
+    endif()
+endif()
 
 option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
 
 option(ENABLE_ASM "Enable assembly routines (default is ON)" ON)
+if (ENABLE_ASM)
+    # add_compile_definitions(USE_ASM=1)
+    set(USE_ASM 1)
+endif ()
 
 set(BDB_ROOT CACHE STRING "Path to BerkleyDB 4.8")
 
-option(DISABLE_WALLET "Disable wallet (enabled by default)")
+option(DISABLE_WALLET "Disable wallet (enabled by default)" OFF)
+if (NOT DISABLE_WALLET)
+    set(ENABLE_WALLET 1)
+endif()
 
 set(WITH_MINIUPNPC CACHE STRING "enable UPNP (default is yes if libminiupnpc is found)" "auto")
+if(WITH_MINIUPNPC)
+    find_package(MiniUPnPc MODULE REQUIRED)
+    if(MiniUPnPc_FOUND)
+        set(USE_UPNP 1)
+    endif()
+endif()
 
 option(ENABLE_UPNP_DEFAULT "If UPNP is enabled, turn it on at startup (default is no)")
+
+option(WITH_USDT "Enable tracepoints for Userspace, Statically Defined Tracing." OFF)
+if(WITH_USDT)
+  find_package(USDT MODULE REQUIRED)
+endif()
 
 option(DISABLE_TESTS "Do not compile tests (default is to compile)" OFF)
 if (NOT DISABLE_TESTS)
@@ -56,6 +92,9 @@ endif ()
 option(ENABLE_EXTENDED_FUNCTIONAL_TESTS "enable expensive functional tests when using lcov (default OFF)" OFF)
 
 option(WITH_QRENCODE "enable QR code support (default is yes if qt is enabled and libqrencode is found)" "auto")
+if(WITH_QRENCODE)
+  set(USE_QRCODE TRUE)
+endif()
 
 option(DISABLE_HARDENING "do not attempt to harden the resulting executables (default is to harden when possible)" "auto")
 
@@ -113,7 +152,7 @@ endif()
 # BerkeleyDB
 if (NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
-    include(cmake/FindBerkeleyDB.cmake)
+    include(FindBerkeleyDB)
     set(BDB_INTERESTED_VERSION "${BerkeleyDB_VERSION_MAJOR}.${BerkeleyDB_VERSION_MINOR}")
     if (BDB_INTERESTED_VERSION VERSION_EQUAL "4.8")
         set(BDB_FOUND ON)
@@ -127,10 +166,6 @@ if (NOT DISABLE_WALLET)
     else ()
         message(FATAL_ERROR "BDB 4.8+ required for wallet functionality (-DDISABLE_WALLET to disable wallet functionality)")
     endif ()
-endif ()
-
-if (ENABLE_ASM)
-    add_compile_definitions(USE_ASM=1)
 endif ()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -158,6 +193,13 @@ set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
 find_package(Boost 1.66 REQUIRED COMPONENTS system thread filesystem)
+if(Boost_FOUND)
+    set(HAVE_BOOST 1)
+    set(HAVE_BOOST_SYSTEM 1)
+    set(HAVE_BOOST_FILESYSTEM 1)
+    set(HAVE_BOOST_THREAD 1)
+endif()
+
 #[[
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
@@ -200,7 +242,7 @@ endif ()
 # Common checks
 
 # AC_CHECK_HEADERS analog
-foreach(_HEADER endian.h sys/endian.h byteswap.h stdio.h stdlib.h unistd.h strings.h sys/types.h sys/stat.h sys/select.h sys/prctl.h sys/sysctl.h vm/vm_param.h sys/vmmeter.h sys/resources.h)
+foreach(_HEADER endian.h sys/endian.h byteswap.h stdio.h stdint.h stdlib.h unistd.h string.h strings.h inttypes.h sys/types.h sys/stat.h sys/select.h sys/prctl.h sys/sysctl.h vm/vm_param.h sys/vmmeter.h sys/resources.h dlfcn.h)
     check_include_file_cxx(${_HEADER} _RES_${_HEADER})
     if (_RES_${_HEADER})
         # Replace all non letter and number symbols with "_"
@@ -208,9 +250,14 @@ foreach(_HEADER endian.h sys/endian.h byteswap.h stdio.h stdlib.h unistd.h strin
         # All letters to upper
         string (TOUPPER ${_HEADER} _HEADER)
         string (CONCAT _TODECLARE "HAVE_" ${_HEADER})
-        add_compile_definitions(${_TODECLARE}=1)
+        # add_compile_definitions(${_TODECLARE}=1)
+        set(${_TODECLARE} 1)
     endif()
 endforeach()
+
+if (HAVE_STDLIB_H AND HAVE_STRING_H)
+    set(STDC_HEADERS 1)
+endif() 
 
 # Checking for getifaddrs and freeifaddrs
 set(_ADDRS_STUFF_COUNT 0)
@@ -222,7 +269,8 @@ foreach(_SYMBOL getifaddrs freeifaddrs)
         # All letters to upper
         string (TOUPPER ${_SYMBOL} _SYMBOL)
         string (CONCAT _TODECLARE "HAVE_DECL_" ${_SYMBOL})
-        add_compile_definitions(${_TODECLARE}=1)
+        # add_compile_definitions(${_TODECLARE}=1)
+        set(${_TODECLARE} 1)
         MATH(EXPR _ADDRS_STUFF_COUNT "${_ADDRS_STUFF_COUNT}+1")
     endif()
 endforeach()
@@ -236,9 +284,11 @@ foreach(_SYMBOL bswap_16 bswap_32 bswap_64)
     string (TOUPPER ${_TODECLARE} _TODECLARE)
     string (CONCAT _TODECLARE "HAVE_DECL_" ${_TODECLARE})
     if (_RES_${_SYMBOL})
-        add_compile_definitions(${_TODECLARE}=1)
+        # add_compile_definitions(${_TODECLARE}=1)
+        set(${_TODECLARE} 1)
     else()
-        add_compile_definitions(${_TODECLARE}=0)
+        # add_compile_definitions(${_TODECLARE}=0)
+        set(${_TODECLARE} 0)
     endif()
 endforeach()
 
@@ -270,10 +320,20 @@ endif()
 
 # Non-posix method from bsd and macos that should be enabled by specific option.
 # Checking for daemon function
-check_cxx_symbol_exists(daemon unistd.h _RES_DAEMON)
-if (_RES_DAEMON)
-    add_compile_definitions(HAVE_DECL_DAEMON=1)
-endif()
+check_cxx_symbol_exists(daemon stdlib.h HAVE_DECL_DAEMON)
+#if (HAVE_DECL_DAEMON)
+#    add_compile_definitions(HAVE_DECL_DAEMON=1)
+#endif()
+
+# Checking for __builtin_clzl
+check_cxx_source_compiles("int main()
+                           {
+                               (void) __builtin_clzl(0);
+                               return 0;
+                           }" HAVE_BUILTIN_CLZL)
+#if(HAVE_BUILTIN_CLZL)
+#    add_compile_definitions(HAVE_BUILTIN_CLZL=1)
+#endif()
 
 # Checking for __builtin_clzll
 check_cxx_source_compiles("int main()
@@ -281,9 +341,9 @@ check_cxx_source_compiles("int main()
                                (void) __builtin_clzll(0);
                                return 0;
                            }" HAVE_BUILTIN_CLZLL)
-if(HAVE_BUILTIN_CLZLL)
-    add_compile_definitions(HAVE_BUILTIN_CLZLL=1)
-endif()
+#if(HAVE_BUILTIN_CLZLL)
+#    add_compile_definitions(HAVE_BUILTIN_CLZLL=1)
+#endif()
 
 # Checking for posix_fallocate
 check_cxx_source_compiles("#ifdef __linux__
@@ -298,9 +358,9 @@ check_cxx_source_compiles("#ifdef __linux__
                                int f = posix_fallocate(0, 0, 0);
                                return 0;
                            }" HAVE_POSIX_FALLOCATE)
-if(HAVE_POSIX_FALLOCATE)
-    add_compile_definitions(HAVE_POSIX_FALLOCATE=1)
-endif()
+#if(HAVE_POSIX_FALLOCATE)
+#    add_compile_definitions(HAVE_POSIX_FALLOCATE=1)
+#endif()
 
 # Checking for sysctl
 check_cxx_source_compiles("#include <sys/types.h>
@@ -313,9 +373,9 @@ check_cxx_source_compiles("#include <sys/types.h>
                                sysctl(nullptr, 2, nullptr, nullptr, nullptr, 0);
                                return 0;
                            }" HAVE_SYSCTL)
-if(HAVE_SYSCTL)
-    add_compile_definitions(HAVE_SYSCTL=1)
-endif()
+#if(HAVE_SYSCTL)
+#    add_compile_definitions(HAVE_SYSCTL=1)
+#endif()
 
 # Checking for sysctl
 check_cxx_source_compiles("#include <sys/types.h>
@@ -329,9 +389,9 @@ check_cxx_source_compiles("#include <sys/types.h>
                                sysctl(name, 2, nullptr, nullptr, nullptr, 0);
                                return 0;
                            }" HAVE_SYSCTL_ARND)
-if(HAVE_SYSCTL_ARND)
-    add_compile_definitions(HAVE_SYSCTL_ARND=1)
-endif()
+#if(HAVE_SYSCTL_ARND)
+#    add_compile_definitions(HAVE_SYSCTL_ARND=1)
+#endif()
 
 # Checking for fdatasync
 check_cxx_source_compiles("#include <unistd.h>
@@ -340,11 +400,11 @@ check_cxx_source_compiles("#include <unistd.h>
                                fdatasync(0);
                                return 0;
                            }" HAVE_FDATASYNC)
-if(HAVE_FDATASYNC)
-    add_compile_definitions(HAVE_FDATASYNC=1)
-else()
-    add_compile_definitions(HAVE_FDATASYNC=0)
-endif()
+#if(HAVE_FDATASYNC)
+#    add_compile_definitions(HAVE_FDATASYNC=1)
+#else()
+#    add_compile_definitions(HAVE_FDATASYNC=0)
+#endif()
 
 # Checking for std::system
 check_cxx_source_compiles("#include <cstdlib>
@@ -353,9 +413,9 @@ check_cxx_source_compiles("#include <cstdlib>
                                int nErr = std::system(\"\");
                                return 0;
                            }" HAVE_STD__SYSTEM)
-if(HAVE_STD__SYSTEM)
-    add_compile_definitions(HAVE_STD__SYSTEM=1)
-endif()
+#if(HAVE_STD__SYSTEM)
+#    add_compile_definitions(HAVE_STD__SYSTEM=1)
+#endif()
 
 # Checking for ::_wsystem
 check_cxx_source_compiles("int main()
@@ -363,41 +423,51 @@ check_cxx_source_compiles("int main()
                                int nErr = ::_wsystem(\"\");
                                return 0;
                            }" HAVE_WSYSTEM)
-if(HAVE_WSYSTEM)
-    add_compile_definitions(HAVE_WSYSTEM=1)
-endif()
+#if(HAVE_WSYSTEM)
+#    add_compile_definitions(HAVE_WSYSTEM=1)
+#endif()
 
 if(HAVE_STD__SYSTEM OR HAVE_WSYSTEM)
-    add_compile_definitions(HAVE_SYSTEM=1)
+#    add_compile_definitions(HAVE_SYSTEM=1)
+    set(HAVE_SYSTEM 1)
 endif()
 
-set(CMAKE_REQUIRED_FLAGS -msse4.1)
-check_cxx_source_runs( "#include <stdint.h>
+include(CheckSourceCompilesWithFlags)
+
+set(SSE41_CXXFLAGS -msse4.1)
+check_cxx_source_compiles_with_flags(
+                            "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i l = _mm_set1_epi32(0);
                                 return _mm_extract_epi32(l, 3);
-                            }" ENABLE_SSE41)
+                            }"
+                            ENABLE_SSE41
+                            CXXFLAGS ${SSE41_CXXFLAGS})
 
-set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
-check_cxx_source_runs( "#include <stdint.h>
+set(AVX2_CXXFLAGS -mavx -mavx2)
+check_cxx_source_compiles_with_flags( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m256i l = _mm256_set1_epi32(0);
                                 return _mm256_extract_epi32(l, 7);
-                            }" ENABLE_AVX2)
+                            }"
+                            ENABLE_AVX2
+                            CXXFLAGS ${AVX2_CXXFLAGS})
 
-set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
-check_cxx_source_runs( "#include <stdint.h>
+set(SHANI_CXXFLAGS -msse4.1 -msha)
+check_cxx_source_compiles_with_flags( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i i = _mm_set1_epi32(0);
                                 __m128i j = _mm_set1_epi32(1);
                                 __m128i k = _mm_set1_epi32(2);
-                                return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);
-                            }" ENABLE_SHANI)
+                                return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, j, k), 0);
+                            }"
+                            ENABLE_SHANI
+                            CXXFLAGS ${SHANI_CXXFLAGS})
 
-
+#[[
 if (ENABLE_GLIBC_BACK_COMPAT)
     find_library(REQUIRED rt)
     set(CMAKE_REQUIRED_LIBRARIES rt)
@@ -419,27 +489,28 @@ if (ENABLE_GLIBC_BACK_COMPAT)
         add_compile_definitions(FDELT_TYPE="long int")
     endif ()
 endif ()
+]]
 
 check_cxx_source_compiles(" #include <malloc.h>
                             int main(){
                                 int f = malloc_info(0, NULL);
                             }" HAVE_MALLOC_INFO)
-if (HAVE_MALLOC_INFO)
-    add_compile_definitions(HAVE_MALLOC_INFO=1)
-endif ()
+#if (HAVE_MALLOC_INFO)
+#    add_compile_definitions(HAVE_MALLOC_INFO=1)
+#endif ()
 
 check_cxx_source_compiles(" #include <malloc.h>
                             int main(){
                                 mallopt(M_ARENA_MAX, 1);
                             }" HAVE_MALLOPT_ARENA_MAX)
-if (HAVE_MALLOPT_ARENA_MAX)
-    add_compile_definitions(HAVE_MALLOPT_ARENA_MAX=1)
-endif ()
+#if (HAVE_MALLOPT_ARENA_MAX)
+#    add_compile_definitions(HAVE_MALLOPT_ARENA_MAX=1)
+#endif ()
 
 check_cxx_source_compiles(" int foo_def( void ) __attribute__((visibility(\"default\")));
                             int main(){}" HAVE_VISIBILITY_ATTRIBUTE)
 if (HAVE_VISIBILITY_ATTRIBUTE)
-    add_compile_definitions(HAVE_VISIBILITY_ATTRIBUTE=1)
+    # add_compile_definitions(HAVE_VISIBILITY_ATTRIBUTE=1)
 elseif (ENABLE_REDUCE_EXPORTS)
     message(FATAL_ERROR "Cannot find a working visibility attribute. Use -DENABLE_REDUCE_EXPORTS=OFF.")
 endif ()
@@ -449,7 +520,7 @@ check_cxx_source_compiles("#include <ctime>
                                 gmtime_r((const time_t *) nullptr, (struct tm *) nullptr);
                             }" HAVE_GMTIME_R)
 if(HAVE_GMTIME_R)
-    add_compile_definitions(HAVE_GMTIME_R=1)
+    # add_compile_definitions(HAVE_GMTIME_R=1)
 else()
     check_cxx_source_compiles("#include <ctime>
                                 int main() {
@@ -469,9 +540,9 @@ if (NOT MINGW) # TODO (build): also this is required for freebsd but probably we
                                     for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
                                     return foo;
                                 }" HAVE_THREAD_LOCAL)
-    if (HAVE_THREAD_LOCAL)
-        add_compile_definitions(HAVE_THREAD_LOCAL=1)
-    endif ()
+    #if (HAVE_THREAD_LOCAL)
+    #    add_compile_definitions(HAVE_THREAD_LOCAL=1)
+    #endif ()
 endif()
 
 # TODO (build): add libmultiprocess stuff
@@ -481,35 +552,36 @@ check_cxx_source_compiles(" #include <sys/syscall.h>
                             int main(){
                                 syscall(SYS_getrandom, nullptr, 32, 0);
                             }" HAVE_SYS_GETRANDOM)
-if (HAVE_SYS_GETRANDOM)
-    add_compile_definitions(HAVE_SYS_GETRANDOM=1)
-endif ()
+#if (HAVE_SYS_GETRANDOM)
+#    add_compile_definitions(HAVE_SYS_GETRANDOM=1)
+#endif ()
 
 check_cxx_source_compiles(" #include <unistd.h>
                             int main(){
                                 getentropy(nullptr, 32);
                             }" HAVE_GETENTROPY)
-if (HAVE_GETENTROPY)
-    add_compile_definitions(HAVE_GETENTROPY=1)
-endif ()
+#if (HAVE_GETENTROPY)
+#    add_compile_definitions(HAVE_GETENTROPY=1)
+#endif ()
 
 check_cxx_source_compiles(" #include <unistd.h>
-                            #include <sys/random.h
+                            #include <stddef.h>
+                            #include <sys/random.h>
                             int main(){
-                                getentropy(nullptr, 32) ;
+                                getentropy(nullptr, 32);
                             }" HAVE_GETENTROPY_RAND)
-if (HAVE_GETENTROPY_RAND)
-    add_compile_definitions(HAVE_GETENTROPY_RAND=1)
-endif ()
+#if (HAVE_GETENTROPY_RAND)
+#    add_compile_definitions(HAVE_GETENTROPY_RAND=1)
+#endif ()
 
 check_cxx_source_compiles(" #include <stdint.h>
                             #include <type_traits>
                             int main(){
                                 static_assert(std::is_same<int8_t, char>::value, \"\");
                             }" CHAR_EQUALS_INT8)
-if (CHAR_EQUALS_INT8)
-    add_compile_definitions(CHAR_EQUALS_INT8=1)
-endif ()
+#if (CHAR_EQUALS_INT8)
+#    add_compile_definitions(CHAR_EQUALS_INT8=1)
+#endif ()
 
 if (ENABLE_REDUCE_EXPORTS)
     #    TODO (build): It doesn't go anywhere
@@ -519,8 +591,6 @@ if (ENABLE_REDUCE_EXPORTS)
     endif ()
 endif ()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
 set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 
@@ -528,17 +598,18 @@ set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 find_package(Event 2.0 REQUIRED)
 
 add_subdirectory(sqlite/)
-add_compile_definitions(USE_SQLITE=1)
+# add_compile_definitions(USE_SQLITE=1)
+set(USE_SQLITE 1)
 
 find_package(OpenSSL REQUIRED)
 
 # Some configuration
 check_function_exists(strnlen HAVE_DECL_STRNLEN)
-if (HAVE_DECL_STRNLEN)
-    add_compile_definitions(HAVE_DECL_STRNLEN=1)
-else (HAVE_DECL_STRNLEN)
-    add_compile_definitions(HAVE_DECL_STRNLEN=0)
-endif (HAVE_DECL_STRNLEN)
+#if (HAVE_DECL_STRNLEN)
+#    add_compile_definitions(HAVE_DECL_STRNLEN=1)
+#else (HAVE_DECL_STRNLEN)
+#    add_compile_definitions(HAVE_DECL_STRNLEN=0)
+#endif (HAVE_DECL_STRNLEN)
 
 
 # Univalue library
@@ -552,6 +623,12 @@ else ()
     add_subdirectory(univalue/)
 endif ()
 
+# TODO (build): hadrdcoded because we are always building consensus
+set(HAVE_CONSENSUS_LIB 1)
+
+# Create config/pocketcoin-config.h and add HAVE_CONFIG_H definition
+configure_file(${PROJECT_SOURCE_DIR}/cmake/pocketcoin-config.h.in config/pocketcoin-config.h USE_SOURCE_PERMISSIONS @ONLY)
+add_compile_definitions(HAVE_CONFIG_H)
 
 # Common library
 set(POCKETCOIN_COMMON pocketcoin_common)
@@ -834,6 +911,8 @@ if (REQUIRED_SOCKET_LIB)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE socket)
 endif()
 target_include_directories(${POCKETCOIN_UTIL} PUBLIC ${Boost_INCLUDE_DIRS})
+add_dependencies(${POCKETCOIN_UTIL} generate_build_info)
+target_compile_definitions(${POCKETCOIN_UTIL} PRIVATE HAVE_BUILD_INFO)
 
 ######## Crypto
 set(POCKETCOIN_CRYPTO pocketcoin_crypto)
@@ -893,25 +972,25 @@ if (ENABLE_SSE41)
         # target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
     else ()
         target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
-        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4.1)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE ${SSE41_CXXFLAGS})
     endif ()
 endif ()
 if (ENABLE_AVX2)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_avx2.cpp)
     if (MSVC)
-        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:AVX /arch:AVX2)
+        # target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:AVX /arch:AVX2)
     else ()
         target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_AVX2)
-        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -mavx -mavx2)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE ${AVX2_CXXFLAGS})
     endif ()
 endif ()
 if (ENABLE_SHANI)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_shani.cpp)
     if (MSVC)
-        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4 /arch:SHA)
-    else ()
+        # target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4 /arch:SHA)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86|AMD64|amd64|i[3-6]86)")
         target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SHANI)
-        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4 -msha)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE ${SHANI_CXXFLAGS})
     endif ()
 endif ()
 
@@ -939,7 +1018,7 @@ add_library(${POCKETCOIN_CONSENSUS}
         )
 target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${POCKETDB} univalue secp256k1)
 # TODO (build): hadrdcoded because we are always building consensus
-add_compile_definitions(HAVE_CONSENSUS_LIB=1)
+# add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 
 
 # Common rpc that used by server and cli
@@ -957,7 +1036,6 @@ target_include_directories(${POCKETCOIN_COMMON_RPC} PRIVATE ${CMAKE_CURRENT_SOUR
 ########### Server
 set(POCKETCOIN_SERVER pocketcoin_server)
 add_library(${POCKETCOIN_SERVER}
-
         node/coin.h
         node/coin.cpp
         node/coinstats.h
@@ -1268,7 +1346,20 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/barteron/Account.hpp
         pocketdb/consensus/Helper.cpp
         )
-    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} ${POCKET_UTIL} Event::event ${CRYPT32} Boost::boost)
+    target_link_libraries(${POCKETCOIN_SERVER}
+        PRIVATE
+            ${POCKETCOIN_COMMON_RPC}
+            ${POCKETCOIN_UTIL}
+            ${POCKETCOIN_COMMON}
+            ${POCKETCOIN_SYSTEM}
+            ${POCKETCOIN_CONSENSUS}
+            ${POCKETCOIN_CRYPTO}
+            ${POCKET_UTIL}
+            Event::event
+            ${CRYPT32}
+            Boost::boost
+            $<TARGET_NAME_IF_EXISTS:MiniUPnPc::MiniUPnPc>
+        )
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -1317,7 +1408,7 @@ if (NOT DISABLE_WALLET)
             staker.cpp
             )
     target_link_libraries(${POCKETCOIN_SERVER} PRIVATE Oracle::BerkeleyDB)
-    add_compile_definitions(ENABLE_WALLET=1)
+    # add_compile_definitions(ENABLE_WALLET=1)
 else ()
     target_sources(${POCKETCOIN_SERVER} PRIVATE dummywallet.cpp)
 endif ()
@@ -1327,16 +1418,13 @@ if(REQUIRED_SOCKET_LIB)
     target_link_libraries(${POCKETCOIN_SERVER} PRIVATE socket)
 endif()
 
-# TODO (build): USE_UPNP
-
 # ZMQ
 if (NOT DISABLE_ZMQ)
-    find_package(ZMQ)
     if (ZMQ_FOUND)
         if (MSVC AND MSVC_FORCE_STATIC)
             target_compile_definitions(${POCKETCOIN_SERVER} PRIVATE ZMQ_STATIC)
         endif ()
-        add_compile_definitions(ENABLE_ZMQ=1)
+        # add_compile_definitions(ENABLE_ZMQ=1)
         set(POCKETCOIN_ZMQ_SOURCES
                 zmq/zmqabstractnotifier.h
                 zmq/zmqabstractnotifier.cpp
@@ -1356,13 +1444,29 @@ if (NOT DISABLE_ZMQ)
     else ()
         message(WARNING "ZMQ not found, disabling")
     endif ()
-else()
-    add_compile_definitions(ENABLE_ZMQ=0)
+#else()
+#    add_compile_definitions(ENABLE_ZMQ=0)
 endif ()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto OpenSSL::SSL ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
+target_link_libraries(${POCKETCOIND}
+    PRIVATE
+        ${POCKETCOIN_SERVER}
+        ${POCKETCOIN_COMMON_RPC}
+        ${POCKETDB}
+        ${POCKETCOIN_UTIL}
+        ${POCKETCOIN_CONSENSUS}
+        ${POCKETCOIN_SYSTEM}
+        OpenSSL::Crypto
+        OpenSSL::SSL
+        ${CRYPT32}
+        Event::event
+        sqlite3
+        univalue
+        secp256k1
+        leveldb
+    )
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
@@ -1380,4 +1484,39 @@ target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN
 
 if(NOT DISABLE_GUI)
     add_subdirectory(qt/)
+endif()
+
+message("\n")
+message("Configure summary")
+message("=================")
+message("Executables:")
+message("  pocketcoind ............................ ${POCKETCOIND}")
+# message("  pocketcoin-node (multiprocess) ......... ${WITH_MULTIPROCESS}")
+message("  pocketcoin-cli ......................... ${POCKETCOIN_CLI}")
+message("  pocketcoin-tx .......................... ${POCKETCOIN_TX}")
+message("  pocketcoin-qt (GUI) .................... ${pocketcoin-qt}")
+if(BUILD_GUI AND WITH_MULTIPROCESS)
+  set(pocketcoin_gui_status ON)
+else()
+  set(pocketcoin_gui_status OFF)
+endif()
+message("  pocketcoin-gui (GUI, multiprocess) ..... ${pocketcoin_gui_status}")
+message("Optional features:")
+message("  wallet support ......................... ${ENABLE_WALLET}")
+message("  port mapping using UPnP ................ ${USE_UPNP}")
+message("  ZeroMQ ................................. ${ENABLE_ZMQ}")
+message("  USDT tracing ........................... ${WITH_USDT}")
+message("  QR code (GUI) .......................... ${USE_QRCODE}")
+message("  DBus (GUI, Linux only) ................. ${USE_DBUS}")
+message("Tests:")
+message("  test_pocketcoin ........................ ${USE_TESTS}")
+message("")
+message("C++ compiler .......................... ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, ${CMAKE_CXX_COMPILER}")
+message("\n")
+if(configure_warnings)
+    message("  ******\n")
+    foreach(warning IN LISTS configure_warnings)
+      message(WARNING "${warning}")
+    endforeach()
+    message("  ******\n")
 endif()
